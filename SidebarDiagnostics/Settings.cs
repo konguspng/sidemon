@@ -527,6 +527,22 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        private bool _checkForUpdates { get; set; } = true;
+
+        public bool CheckForUpdates
+        {
+            get
+            {
+                return _checkForUpdates;
+            }
+            set
+            {
+                _checkForUpdates = value;
+
+                NotifyPropertyChanged("CheckForUpdates");
+            }
+        }
+
         private string _fontFamilyName { get; set; } = SidebarFonts.DefaultName;
 
         public string FontFamilyName

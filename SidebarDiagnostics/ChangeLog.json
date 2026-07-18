@@ -14,7 +14,8 @@
       "Sensor polling moved off the UI thread for a smoother experience.",
       "Drive space now read directly (no more broken performance counter errors).",
       "Network speeds measured from adapter statistics instead of performance counters.",
-      "Removed the built-in auto-updater and several heavy dependencies; the app is much lighter."
+      "Removed the heavy built-in auto-updater; SideMon now checks GitHub for new versions at startup and notifies you from the tray. Manual check available in the tray menu.",
+      "Removed several heavy dependencies; the app is much lighter."
     ]
   },
   {

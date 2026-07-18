@@ -278,6 +278,62 @@ namespace SidebarDiagnostics.Utilities
         }
     }
 
+    public class UpdateInfo
+    {
+        public string Version { get; set; }
+
+        public string URL { get; set; }
+    }
+
+    public static class UpdateCheck
+    {
+        private const string API = "https://api.github.com/repos/konguspng/sidemon/releases/latest";
+
+        public const string DOWNLOADPAGE = "https://github.com/konguspng/sidemon/releases/latest";
+
+        public static async System.Threading.Tasks.Task<UpdateInfo> CheckAsync()
+        {
+            try
+            {
+                using (HttpClient _client = new HttpClient())
+                {
+                    _client.Timeout = TimeSpan.FromSeconds(15);
+                    _client.DefaultRequestHeaders.UserAgent.ParseAdd("SideMon");
+
+                    string _json = await _client.GetStringAsync(API).ConfigureAwait(false);
+
+                    using (System.Text.Json.JsonDocument _doc = System.Text.Json.JsonDocument.Parse(_json))
+                    {
+                        string _tag = _doc.RootElement.GetProperty("tag_name").GetString();
+
+                        Version _latest;
+
+                        if (!Version.TryParse(_tag.TrimStart('v', 'V'), out _latest))
+                        {
+                            return null;
+                        }
+
+                        Version _current = Assembly.GetExecutingAssembly().GetName().Version;
+
+                        if (new Version(_latest.Major, _latest.Minor, Math.Max(_latest.Build, 0)) > new Version(_current.Major, _current.Minor, Math.Max(_current.Build, 0)))
+                        {
+                            System.Text.Json.JsonElement _url;
+
+                            return new UpdateInfo()
+                            {
+                                Version = _latest.ToString(),
+                                URL = _doc.RootElement.TryGetProperty("html_url", out _url) ? _url.GetString() : DOWNLOADPAGE
+                            };
+                        }
+                    }
+                }
+            }
+            catch { } // no network or rate-limited; check again next launch
+
+            return null;
+        }
+    }
+
     // Run-at-startup uses a Task Scheduler logon task (via schtasks.exe) because the app
     // runs elevated; a plain HKCU Run entry cannot launch an elevated process silently.
     public static class Startup

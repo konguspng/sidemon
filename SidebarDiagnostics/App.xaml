@@ -28,6 +28,7 @@
                             <MenuItem Header="{x:Static frame:Resources.ButtonHide}" Click="Hide_Click" />
                         </MenuItem>
                         <Separator />
+                        <MenuItem Header="Check for Updates" Click="CheckUpdates_Click" />
                         <MenuItem Header="{x:Static frame:Resources.ButtonGitHub}" Click="GitHub_Click" />
                         <MenuItem Header="{x:Static frame:Resources.ButtonClose}" Click="Close_Click" />
                     </ContextMenu>

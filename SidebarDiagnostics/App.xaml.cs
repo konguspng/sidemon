@@ -44,6 +44,13 @@ namespace SidebarDiagnostics
             TrayIcon = (TaskbarIcon)FindResource("TrayIcon");
             TrayIcon.ToolTipText = string.Format("{0} v{1}", Framework.Resources.AppName, _vstring);
             TrayIcon.TrayContextMenuOpen += TrayIcon_TrayContextMenuOpen;
+            TrayIcon.TrayBalloonTipClicked += TrayIcon_BalloonClicked;
+
+            // UPDATE CHECK
+            if (Framework.Settings.Instance.CheckForUpdates)
+            {
+                _ = CheckForUpdatesAsync(false);
+            }
 
             // START APP
             if (Framework.Settings.Instance.InitialSetup)
@@ -255,6 +262,37 @@ namespace SidebarDiagnostics
         private void GitHub_Click(object sender, RoutedEventArgs e)
         {
             OpenURL(Constants.URLs.REPO);
+        }
+
+        private void CheckUpdates_Click(object sender, RoutedEventArgs e)
+        {
+            _ = CheckForUpdatesAsync(true);
+        }
+
+        private static string _updateURL = null;
+
+        private static async System.Threading.Tasks.Task CheckForUpdatesAsync(bool manual)
+        {
+            UpdateInfo _update = await UpdateCheck.CheckAsync();
+
+            if (_update != null)
+            {
+                _updateURL = _update.URL;
+
+                TrayIcon.ShowBalloonTip(Framework.Resources.AppName, string.Format("Version {0} is available. Click here to download.", _update.Version), BalloonIcon.Info);
+            }
+            else if (manual)
+            {
+                TrayIcon.ShowBalloonTip(Framework.Resources.AppName, "You are running the latest version.", BalloonIcon.Info);
+            }
+        }
+
+        private static void TrayIcon_BalloonClicked(object sender, RoutedEventArgs e)
+        {
+            if (_updateURL != null)
+            {
+                OpenURL(_updateURL);
+            }
         }
 
         private void Close_Click(object sender, EventArgs e)
