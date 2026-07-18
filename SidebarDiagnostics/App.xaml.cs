@@ -1,14 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
-using Squirrel;
 using Hardcodet.Wpf.TaskbarNotification;
 using SidebarDiagnostics.Monitoring;
 using SidebarDiagnostics.Utilities;
@@ -21,7 +17,7 @@ namespace SidebarDiagnostics
     /// </summary>
     public partial class App : Application
     {
-        protected async override void OnStartup(StartupEventArgs e)
+        protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
@@ -34,16 +30,11 @@ namespace SidebarDiagnostics
             Culture.SetDefault();
             Culture.SetCurrent(true);
 
-            // UPDATE
-            #if !DEBUG
-            if (Framework.Settings.Instance.AutoUpdate)
-            {
-                await AppUpdate(false);
-            }
-            #endif
-
             // SETTINGS
             CheckSettings();
+
+            // SENSOR DRIVER
+            CheckPawnIO();
 
             // VERSION
             Version _version = Assembly.GetExecutingAssembly().GetName().Version;
@@ -101,8 +92,13 @@ namespace SidebarDiagnostics
 
             if (_result == MessageBoxResult.OK)
             {
-                Process.Start(ConfigurationManager.AppSettings["WikiURL"]);
+                OpenURL(Constants.URLs.WIKI);
             }
+        }
+
+        public static void OpenURL(string url)
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
         }
 
         public void OpenSettings()
@@ -138,72 +134,43 @@ namespace SidebarDiagnostics
             new Graph(_sidebar);
         }
 
-        private async Task AppUpdate(bool showInfo)
+        private void CheckPawnIO()
         {
-            string _exe = await SquirrelUpdate(showInfo);
-
-            if (_exe != null)
+            if (PawnIO.IsInstalled)
             {
-                if (Framework.Settings.Instance.RunAtStartup)
-                {
-                    Utilities.Startup.EnableStartupTask(_exe);
-                }
-
-                Process.Start(_exe);
-
-                Shutdown();
-            }
-        }
-
-        private async Task<string> SquirrelUpdate(bool showInfo)
-        {
-            try
-            {
-                using (UpdateManager _manager = new UpdateManager(ConfigurationManager.AppSettings["CurrentReleaseURL"]))
-                {
-                    UpdateInfo _update = await _manager.CheckForUpdate();
-
-                    if (_update.ReleasesToApply.Any())
-                    {
-                        Version _newVersion = _update.ReleasesToApply.OrderByDescending(r => r.Version).First().Version.Version;
-
-                        Update _updateWindow = new Update();
-                        _updateWindow.Show();
-
-                        await _manager.UpdateApp((p) => _updateWindow.SetProgress(p));
-
-                        _updateWindow.Close();
-
-                        return Utilities.Paths.Exe(_newVersion);
-                    }
-                    else if (showInfo)
-                    {
-                        MessageBox.Show(Framework.Resources.UpdateSuccessText, Framework.Resources.AppName, MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
-                    }
-                }
-            }
-            catch (WebException)
-            {
-                if (showInfo)
-                {
-                    MessageBox.Show(Framework.Resources.UpdateErrorText, Framework.Resources.UpdateErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
-                }
-            }
-            catch (Exception e)
-            {
-                Framework.Settings.Instance.AutoUpdate = false;
-                Framework.Settings.Instance.Save();
-
-                using (EventLog _log = new EventLog("Application"))
-                {
-                    _log.Source = Framework.Resources.AppName;
-                    _log.WriteEntry(e.ToString(), EventLogEntryType.Error, 100, 1);
-                }
-
-                MessageBox.Show(Framework.Resources.UpdateErrorFatalText, Framework.Resources.UpdateErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                return;
             }
 
-            return null;
+            MessageBoxResult _result = MessageBox.Show(
+                "CPU and GPU sensors (clock, temperature, voltage) require the PawnIO driver, which is not installed.\n\n" +
+                "Install it now? It will be downloaded from its official source (pawnio.eu, by namazso), the digital signature will be verified, and setup runs silently.\n\n" +
+                "If you skip this, those sensors will show \"No Value\".",
+                Framework.Resources.AppName,
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question,
+                MessageBoxResult.Yes,
+                MessageBoxOptions.DefaultDesktopOnly);
+
+            if (_result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            if (!PawnIO.Install())
+            {
+                MessageBoxResult _fallback = MessageBox.Show(
+                    "Automatic installation failed. Open pawnio.eu in your browser to install it manually?",
+                    Framework.Resources.AppName,
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning,
+                    MessageBoxResult.Yes,
+                    MessageBoxOptions.DefaultDesktopOnly);
+
+                if (_fallback == MessageBoxResult.Yes)
+                {
+                    OpenURL("https://pawnio.eu");
+                }
+            }
         }
 
         private void CheckSettings()
@@ -260,8 +227,8 @@ namespace SidebarDiagnostics
             (_this.Items.GetItemAt(0) as MenuItem).IsChecked = _sidebar.Visibility == Visibility.Visible;
             (_this.Items.GetItemAt(1) as MenuItem).IsChecked = _sidebar.Visibility == Visibility.Hidden;
         }
-        
-        private void Show_Click(object sender, EventArgs e)
+
+        private async void Show_Click(object sender, EventArgs e)
         {
             Sidebar _sidebar = Sidebar;
 
@@ -270,7 +237,7 @@ namespace SidebarDiagnostics
                 return;
             }
 
-            _sidebar.AppBarShow();
+            await _sidebar.AppBarShow();
         }
 
         private void Hide_Click(object sender, EventArgs e)
@@ -285,33 +252,25 @@ namespace SidebarDiagnostics
             _sidebar.AppBarHide();
         }
 
-        private void Donate_Click(object sender, RoutedEventArgs e)
-        {
-            Process.Start(ConfigurationManager.AppSettings["DonateURL"]);
-        }
-
         private void GitHub_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start(ConfigurationManager.AppSettings["RepoURL"]);
-        }
-
-        private async void Update_Click(object sender, RoutedEventArgs e)
-        {
-            await AppUpdate(true);
+            OpenURL(Constants.URLs.REPO);
         }
 
         private void Close_Click(object sender, EventArgs e)
         {
             Shutdown();
         }
-        
+
         private static void AppDomain_Error(object sender, UnhandledExceptionEventArgs e)
         {
             Exception ex = (Exception)e.ExceptionObject;
 
+            ErrorLog.Write(ex);
+
             MessageBox.Show(ex.ToString(), Framework.Resources.ErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
         }
-        
+
         public Sidebar Sidebar
         {
             get
@@ -339,5 +298,7 @@ namespace SidebarDiagnostics
         public static TaskbarIcon TrayIcon { get; set; }
 
         internal static bool _reloading { get; set; } = false;
+
+        internal static bool _reloadOpenSettings { get; set; } = false;
     }
 }

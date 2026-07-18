@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -10,10 +10,11 @@ using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows.Threading;
 using System.Windows.Media;
 using LibreHardwareMonitor.Hardware;
-using Newtonsoft.Json;
 using SidebarDiagnostics.Framework;
 
 namespace SidebarDiagnostics.Monitoring
@@ -125,7 +126,7 @@ namespace SidebarDiagnostics.Monitoring
                 case MonitorType.CPU:
                     return OHMPanel(
                         config.Type,
-                        "M 19,19L 57,19L 57,22.063C 56.1374,22.285 55.5,23.0681 55.5,24C 55.5,24.9319 56.1374,25.715 57,25.937L 57,57L 19,57L 19,27.937C 19.8626,27.715 20.5,26.9319 20.5,26C 20.5,25.0681 19.8626,24.285 19,24.063L 19,19 Z M 21.9998,22.0005L 21.9998,24.0005L 23.9998,24.0005L 23.9998,22.0005L 21.9998,22.0005 Z M 24.9998,22.0005L 24.9998,24.0005L 26.9998,24.0005L 26.9998,22.0005L 24.9998,22.0005 Z M 27.9998,22.0005L 27.9998,24.0005L 29.9998,24.0005L 29.9998,22.0005L 27.9998,22.0005 Z M 30.9998,22.0005L 30.9998,24.0005L 32.9998,24.0005L 32.9998,22.0005L 30.9998,22.0005 Z M 33.9998,22.0005L 33.9998,24.0005L 35.9998,24.0005L 35.9998,22.0005L 33.9998,22.0005 Z M 36.9998,22.0005L 36.9998,24.0005L 38.9998,24.0005L 38.9998,22.0005L 36.9998,22.0005 Z M 39.9998,22.0005L 39.9998,24.0005L 41.9998,24.0005L 41.9998,22.0005L 39.9998,22.0005 Z M 42.9995,22.0005L 42.9995,24.0005L 44.9995,24.0005L 44.9995,22.0005L 42.9995,22.0005 Z M 45.9995,22.0005L 45.9995,24.0005L 47.9995,24.0005L 47.9995,22.0005L 45.9995,22.0005 Z M 48.9995,22.0004L 48.9995,24.0004L 50.9995,24.0004L 50.9995,22.0004L 48.9995,22.0004 Z M 51.9996,22.0004L 51.9996,24.0004L 53.9996,24.0004L 53.9996,22.0004L 51.9996,22.0004 Z M 21.9998,25.0004L 21.9998,27.0004L 23.9998,27.0004L 23.9998,25.0004L 21.9998,25.0004 Z M 24.9998,25.0004L 24.9998,27.0004L 26.9998,27.0004L 26.9998,25.0004L 24.9998,25.0004 Z M 27.9998,25.0004L 27.9998,27.0004L 29.9998,27.0004L 29.9998,25.0004L 27.9998,25.0004 Z M 30.9998,25.0004L 30.9998,27.0004L 32.9998,27.0004L 32.9998,25.0004L 30.9998,25.0004 Z M 33.9998,25.0004L 33.9998,27.0004L 35.9998,27.0004L 35.9998,25.0004L 33.9998,25.0004 Z M 36.9998,25.0004L 36.9998,27.0004L 38.9998,27.0004L 38.9998,25.0004L 36.9998,25.0004 Z M 39.9998,25.0004L 39.9998,27.0004L 41.9998,27.0004L 41.9998,25.0004L 39.9998,25.0004 Z M 42.9996,25.0004L 42.9996,27.0004L 44.9996,27.0004L 44.9996,25.0004L 42.9996,25.0004 Z M 45.9996,25.0004L 45.9996,27.0004L 47.9996,27.0004L 47.9996,25.0004L 45.9996,25.0004 Z M 48.9996,25.0004L 48.9996,27.0004L 50.9996,27.0004L 50.9996,25.0004L 48.9996,25.0004 Z M 51.9996,25.0004L 51.9996,27.0004L 53.9996,27.0004L 53.9996,25.0004L 51.9996,25.0004 Z M 21.9998,28.0004L 21.9998,30.0004L 23.9998,30.0004L 23.9998,28.0004L 21.9998,28.0004 Z M 24.9998,28.0004L 24.9998,30.0004L 26.9998,30.0004L 26.9998,28.0004L 24.9998,28.0004 Z M 27.9998,28.0004L 27.9998,30.0004L 29.9998,30.0004L 29.9998,28.0004L 27.9998,28.0004 Z M 30.9998,28.0004L 30.9998,30.0004L 32.9998,30.0004L 32.9998,28.0004L 30.9998,28.0004 Z M 33.9998,28.0004L 33.9998,30.0004L 35.9998,30.0004L 35.9998,28.0004L 33.9998,28.0004 Z M 36.9998,28.0004L 36.9998,30.0004L 38.9998,30.0004L 38.9998,28.0004L 36.9998,28.0004 Z M 39.9998,28.0004L 39.9998,30.0004L 41.9998,30.0004L 41.9998,28.0004L 39.9998,28.0004 Z M 42.9996,28.0004L 42.9996,30.0004L 44.9996,30.0004L 44.9996,28.0004L 42.9996,28.0004 Z M 45.9997,28.0004L 45.9997,30.0004L 47.9997,30.0004L 47.9997,28.0004L 45.9997,28.0004 Z M 48.9997,28.0003L 48.9997,30.0003L 50.9997,30.0003L 50.9997,28.0003L 48.9997,28.0003 Z M 51.9997,28.0003L 51.9997,30.0003L 53.9997,30.0003L 53.9997,28.0003L 51.9997,28.0003 Z M 21.9998,31.0003L 21.9998,33.0003L 23.9998,33.0003L 23.9998,31.0003L 21.9998,31.0003 Z M 24.9998,31.0003L 24.9998,33.0003L 26.9998,33.0003L 26.9998,31.0003L 24.9998,31.0003 Z M 27.9998,31.0003L 27.9998,33.0003L 29.9998,33.0003L 29.9998,31.0003L 27.9998,31.0003 Z M 45.9997,31.0003L 45.9997,33.0003L 47.9997,33.0003L 47.9997,31.0003L 45.9997,31.0003 Z M 48.9997,31.0003L 48.9997,33.0003L 50.9997,33.0003L 50.9997,31.0003L 48.9997,31.0003 Z M 51.9997,31.0003L 51.9997,33.0003L 53.9997,33.0003L 53.9997,31.0003L 51.9997,31.0003 Z M 21.9998,34.0001L 21.9998,36.0001L 23.9998,36.0001L 23.9998,34.0001L 21.9998,34.0001 Z M 24.9999,34.0001L 24.9999,36.0001L 26.9999,36.0001L 26.9999,34.0001L 24.9999,34.0001 Z M 27.9999,34.0001L 27.9999,36.0001L 29.9999,36.0001L 29.9999,34.0001L 27.9999,34.0001 Z M 45.9997,34.0001L 45.9997,36.0001L 47.9997,36.0001L 47.9997,34.0001L 45.9997,34.0001 Z M 48.9997,34.0001L 48.9997,36.0001L 50.9997,36.0001L 50.9997,34.0001L 48.9997,34.0001 Z M 51.9997,34.0001L 51.9997,36.0001L 53.9997,36.0001L 53.9997,34.0001L 51.9997,34.0001 Z M 21.9999,37.0001L 21.9999,39.0001L 23.9999,39.0001L 23.9999,37.0001L 21.9999,37.0001 Z M 24.9999,37.0001L 24.9999,39.0001L 26.9999,39.0001L 26.9999,37.0001L 24.9999,37.0001 Z M 27.9999,37.0001L 27.9999,39.0001L 29.9999,39.0001L 29.9999,37.0001L 27.9999,37.0001 Z M 45.9997,37.0001L 45.9997,39.0001L 47.9997,39.0001L 47.9997,37.0001L 45.9997,37.0001 Z M 48.9998,37.0001L 48.9998,39.0001L 50.9998,39.0001L 50.9998,37.0001L 48.9998,37.0001 Z M 51.9998,37.0001L 51.9998,39.0001L 53.9998,39.0001L 53.9998,37.0001L 51.9998,37.0001 Z M 21.9999,40.0001L 21.9999,42.0001L 23.9999,42.0001L 23.9999,40.0001L 21.9999,40.0001 Z M 24.9999,40.0001L 24.9999,42.0001L 26.9999,42.0001L 26.9999,40.0001L 24.9999,40.0001 Z M 27.9999,40.0001L 27.9999,42.0001L 29.9999,42.0001L 29.9999,40.0001L 27.9999,40.0001 Z M 45.9998,40.0001L 45.9998,42.0001L 47.9998,42.0001L 47.9998,40.0001L 45.9998,40.0001 Z M 48.9998,40.0001L 48.9998,42.0001L 50.9998,42.0001L 50.9998,40.0001L 48.9998,40.0001 Z M 51.9998,40.0001L 51.9998,42.0001L 53.9998,42.0001L 53.9998,40.0001L 51.9998,40.0001 Z M 21.9999,43.0001L 21.9999,45.0001L 23.9999,45.0001L 23.9999,43.0001L 21.9999,43.0001 Z M 24.9999,43.0001L 24.9999,45.0001L 26.9999,45.0001L 26.9999,43.0001L 24.9999,43.0001 Z M 27.9999,43.0001L 27.9999,45.0001L 29.9999,45.0001L 29.9999,43.0001L 27.9999,43.0001 Z M 45.9998,43.0001L 45.9998,45.0001L 47.9998,45.0001L 47.9998,43.0001L 45.9998,43.0001 Z M 48.9998,43.0001L 48.9998,45.0001L 50.9998,45.0001L 50.9998,43.0001L 48.9998,43.0001 Z M 51.9998,43.0001L 51.9998,45.0001L 53.9998,45.0001L 53.9998,43.0001L 51.9998,43.0001 Z M 21.9999,46.0001L 21.9999,48.0001L 23.9999,48.0001L 23.9999,46.0001L 21.9999,46.0001 Z M 24.9999,46.0001L 24.9999,48.0001L 26.9999,48.0001L 26.9999,46.0001L 24.9999,46.0001 Z M 27.9999,46.0001L 27.9999,48.0001L 29.9999,48.0001L 29.9999,46.0001L 27.9999,46.0001 Z M 30.9999,46.0001L 30.9999,48.0001L 32.9999,48.0001L 32.9999,46.0001L 30.9999,46.0001 Z M 33.9999,46.0001L 33.9999,48.0001L 35.9999,48.0001L 35.9999,46.0001L 33.9999,46.0001 Z M 36.9999,46.0001L 36.9999,48.0001L 38.9999,48.0001L 38.9999,46.0001L 36.9999,46.0001 Z M 39.9999,46.0001L 39.9999,48.0001L 41.9999,48.0001L 41.9999,46.0001L 39.9999,46.0001 Z M 42.9999,46.0001L 42.9999,48.0001L 44.9999,48.0001L 44.9999,46.0001L 42.9999,46.0001 Z M 45.9999,46.0001L 45.9999,48.0001L 47.9999,48.0001L 47.9999,46.0001L 45.9999,46.0001 Z M 48.9999,46.0001L 48.9999,48.0001L 50.9999,48.0001L 50.9999,46.0001L 48.9999,46.0001 Z M 51.9999,46.0001L 51.9999,48.0001L 53.9999,48.0001L 53.9999,46.0001L 51.9999,46.0001 Z M 21.9999,49.0001L 21.9999,51.0001L 23.9999,51.0001L 23.9999,49.0001L 21.9999,49.0001 Z M 24.9999,49.0001L 24.9999,51.0001L 26.9999,51.0001L 26.9999,49.0001L 24.9999,49.0001 Z M 27.9999,49.0001L 27.9999,51.0001L 29.9999,51.0001L 29.9999,49.0001L 27.9999,49.0001 Z M 30.9999,49.0001L 30.9999,51.0001L 33,51.0001L 33,49.0001L 30.9999,49.0001 Z M 34,49.0001L 34,51.0001L 36,51.0001L 36,49.0001L 34,49.0001 Z M 37,49.0001L 37,51.0001L 39,51.0001L 39,49.0001L 37,49.0001 Z M 40,49.0001L 40,51.0001L 42,51.0001L 42,49.0001L 40,49.0001 Z M 42.9999,49.0001L 42.9999,51.0001L 44.9999,51.0001L 44.9999,49.0001L 42.9999,49.0001 Z M 45.9999,49L 45.9999,51L 47.9999,51L 47.9999,49L 45.9999,49 Z M 48.9999,49L 48.9999,51L 50.9999,51L 50.9999,49L 48.9999,49 Z M 51.9999,49L 51.9999,51L 53.9999,51L 53.9999,49L 51.9999,49 Z M 22,52L 22,54L 24,54L 24,52L 22,52 Z M 25,52L 25,54L 27,54L 27,52L 25,52 Z M 28,52L 28,54L 30,54L 30,52L 28,52 Z M 31,52L 31,54L 33,54L 33,52L 31,52 Z M 34,52L 34,54L 36,54L 36,52L 34,52 Z M 37,52L 37,54L 39,54L 39,52L 37,52 Z M 40,52L 40,54L 42,54L 42,52L 40,52 Z M 43,52L 43,54L 45,54L 45,52L 43,52 Z M 46,52L 46,54L 48,54L 48,52L 46,52 Z M 49,52L 49,54L 51,54L 51,52L 49,52 Z M 52,52L 52,54L 54,54L 54,52L 52,52 Z M 31,31L 31,45L 45,45L 45,31L 31,31 Z M 33.6375,36.64L 33.4504,36.565L 33.3733,36.375L 33.4504,36.1829L 33.6375,36.1067L 33.8283,36.1829L 33.9067,36.375L 33.8283,36.5625L 33.6375,36.64 Z M 33.8533,40L 33.4266,40L 33.4266,37.3334L 33.8533,37.3334L 33.8533,40 Z M 36.9467,40L 36.52,40L 36.52,38.4942C 36.52,37.9336 36.3092,37.6533 35.8875,37.6533C 35.6697,37.6533 35.4896,37.7328 35.3471,37.8917C 35.2046,38.0506 35.1333,38.2514 35.1333,38.4942L 35.1333,40L 34.7066,40L 34.7066,37.3333L 35.1333,37.3333L 35.1333,37.7992L 35.1441,37.7992C 35.3486,37.4531 35.6444,37.28 36.0317,37.28C 36.3278,37.28 36.5543,37.3739 36.7112,37.5617C 36.8682,37.7495 36.9467,38.0206 36.9467,38.375L 36.9467,40 Z M 39.0267,39.9642L 38.6208,40.0533C 38.1447,40.0533 37.9067,39.7945 37.9067,39.2767L 37.9067,37.7067L 37.4267,37.7067L 37.4267,37.3333L 37.9067,37.3333L 37.9067,36.6733L 38.3333,36.5333L 38.3333,37.3333L 39.0267,37.3333L 39.0267,37.7067L 38.3333,37.7067L 38.3333,39.1892C 38.3333,39.3658 38.3647,39.4918 38.4275,39.5671C 38.4903,39.6424 38.5942,39.68 38.7392,39.68L 39.0267,39.5733L 39.0267,39.9642 Z M 41.6933,38.7733L 39.8267,38.7733C 39.8339,39.0628 39.9142,39.2863 40.0675,39.4438C 40.2208,39.6013 40.4319,39.68 40.7008,39.68C 41.003,39.68 41.2805,39.5911 41.5333,39.4133L 41.5333,39.8042C 41.3,39.9703 40.9911,40.0533 40.6067,40.0533C 40.2311,40.0533 39.9361,39.9331 39.7217,39.6925C 39.5072,39.452 39.4,39.1133 39.4,38.6767C 39.4,38.2645 39.516,37.9286 39.7479,37.6692C 39.9799,37.4097 40.268,37.28 40.6125,37.28C 40.9564,37.28 41.2225,37.3921 41.4108,37.6163C 41.5992,37.8404 41.6933,38.152 41.6933,38.5508L 41.6933,38.7733 Z M 41.2667,38.4C 41.265,38.1645 41.2058,37.9811 41.0892,37.85C 40.9725,37.7189 40.8103,37.6533 40.6025,37.6533C 40.4019,37.6533 40.2317,37.7222 40.0917,37.86C 39.9517,37.9978 39.8653,38.1778 39.8325,38.4L 41.2667,38.4 Z M 42.76,40L 42.3333,40L 42.3333,36.0533L 42.76,36.0533L 42.76,40 Z",
+                        "M9 2v3 M15 2v3 M9 19v3 M15 19v3 M2 9h3 M2 15h3 M19 9h3 M19 15h3 M7 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z M10 10h4v4h-4Z",
                         config.Hardware,
                         config.Metrics,
                         config.Params,
@@ -135,7 +136,7 @@ namespace SidebarDiagnostics.Monitoring
                 case MonitorType.RAM:
                     return OHMPanel(
                         config.Type,
-                        "M 473.00,193.00 C 473.00,193.00 434.00,193.00 434.00,193.00 434.00,193.00 434.00,245.00 434.00,245.00 434.00,245.00 259.00,245.00 259.00,245.00 259.00,239.01 259.59,235.54 256.67,230.00 247.91,213.34 228.26,212.83 217.65,228.00 213.65,233.71 214.00,238.44 214.00,245.00 214.00,245.00 27.00,245.00 27.00,245.00 27.00,245.00 27.00,193.00 27.00,193.00 27.00,193.00 0.00,193.00 0.00,193.00 0.00,193.00 0.00,20.00 0.00,20.00 12.36,19.43 21.26,13.56 18.00,0.00 18.00,0.00 453.00,0.00 453.00,0.00 453.01,7.85 454.03,15.96 463.00,18.82 465.56,19.42 470.18,19.04 473.00,18.82 473.00,18.82 473.00,193.00 473.00,193.00 Z M 433.00,39.00 C 433.00,39.00 386.00,39.00 386.00,39.00 386.00,39.00 386.00,147.00 386.00,147.00 386.00,147.00 433.00,147.00 433.00,147.00 433.00,147.00 433.00,39.00 433.00,39.00 Z M 423.00,193.00 C 423.00,193.00 399.00,193.00 399.00,193.00 399.00,193.00 399.00,224.00 399.00,224.00 399.00,224.00 387.00,224.00 387.00,224.00 387.00,224.00 387.00,193.00 387.00,193.00 387.00,193.00 377.00,193.00 377.00,193.00 377.00,193.00 377.00,224.00 377.00,224.00 377.00,224.00 365.00,224.00 365.00,224.00 365.00,224.00 365.00,193.00 365.00,193.00 365.00,193.00 354.00,193.00 354.00,193.00 354.00,193.00 354.00,224.00 354.00,224.00 354.00,224.00 343.00,224.00 343.00,224.00 343.00,224.00 343.00,193.00 343.00,193.00 343.00,193.00 333.00,193.00 333.00,193.00 333.00,193.00 333.00,224.00 333.00,224.00 333.00,224.00 322.00,224.00 322.00,224.00 322.00,224.00 322.00,193.00 322.00,193.00 322.00,193.00 311.00,193.00 311.00,193.00 311.00,193.00 311.00,224.00 311.00,224.00 311.00,224.00 300.00,224.00 300.00,224.00 300.00,224.00 300.00,193.00 300.00,193.00 300.00,193.00 289.00,193.00 289.00,193.00 289.00,193.00 289.00,224.00 289.00,224.00 289.00,224.00 277.00,224.00 277.00,224.00 277.00,224.00 277.00,193.00 277.00,193.00 277.00,193.00 191.00,193.00 191.00,193.00 191.00,193.00 191.00,224.00 191.00,224.00 191.00,224.00 179.00,224.00 179.00,224.00 179.00,224.00 179.00,193.00 179.00,193.00 179.00,193.00 169.00,193.00 169.00,193.00 169.00,193.00 169.00,224.00 169.00,224.00 169.00,224.00 157.00,224.00 157.00,224.00 157.00,224.00 157.00,193.00 157.00,193.00 157.00,193.00 146.00,193.00 146.00,193.00 146.00,193.00 146.00,224.00 146.00,224.00 146.00,224.00 134.00,224.00 134.00,224.00 134.00,224.00 134.00,193.00 134.00,193.00 134.00,193.00 125.00,193.00 125.00,193.00 125.00,193.00 125.00,224.00 125.00,224.00 125.00,224.00 114.00,224.00 114.00,224.00 114.00,224.00 114.00,193.00 114.00,193.00 114.00,193.00 103.00,193.00 103.00,193.00 103.00,193.00 103.00,224.00 103.00,224.00 103.00,224.00 91.00,224.00 91.00,224.00 91.00,224.00 91.00,193.00 91.00,193.00 91.00,193.00 81.00,193.00 81.00,193.00 81.00,193.00 81.00,224.00 81.00,224.00 81.00,224.00 69.00,224.00 69.00,224.00 69.00,224.00 69.00,193.00 69.00,193.00 69.00,193.00 39.00,193.00 39.00,193.00 39.00,193.00 39.00,234.00 39.00,234.00 39.00,234.00 203.00,234.00 203.00,234.00 204.62,218.32 219.49,205.67 235.00,205.04 245.28,204.62 255.94,209.24 262.67,217.04 265.14,219.89 267.13,223.51 268.54,227.00 269.28,228.84 269.93,231.78 271.56,232.98 273.27,234.24 276.91,234.00 279.00,234.00 279.00,234.00 423.00,234.00 423.00,234.00 423.00,234.00 423.00,193.00 423.00,193.00 Z M 367.00,39.00 C 367.00,39.00 320.00,39.00 320.00,39.00 320.00,39.00 320.00,147.00 320.00,147.00 320.00,147.00 367.00,147.00 367.00,147.00 367.00,147.00 367.00,39.00 367.00,39.00 Z M 303.00,39.00 C 303.00,39.00 256.00,39.00 256.00,39.00 256.00,39.00 256.00,147.00 256.00,147.00 256.00,147.00 303.00,147.00 303.00,147.00 303.00,147.00 303.00,39.00 303.00,39.00 Z M 215.00,39.00 C 215.00,39.00 168.00,39.00 168.00,39.00 168.00,39.00 168.00,147.00 168.00,147.00 168.00,147.00 215.00,147.00 215.00,147.00 215.00,147.00 215.00,39.00 215.00,39.00 Z M 148.00,39.00 C 148.00,39.00 101.00,39.00 101.00,39.00 101.00,39.00 101.00,147.00 101.00,147.00 101.00,147.00 148.00,147.00 148.00,147.00 148.00,147.00 148.00,39.00 148.00,39.00 Z M 84.00,39.00 C 84.00,39.00 37.00,39.00 37.00,39.00 37.00,39.00 37.00,147.00 37.00,147.00 37.00,147.00 84.00,147.00 84.00,147.00 84.00,147.00 84.00,39.00 84.00,39.00 Z",
+                        "M4 6h16a1 1 0 0 1 1 1v8H3V7a1 1 0 0 1 1-1Z M6 15v3 M10 15v3 M14 15v3 M18 15v3 M7.5 9v3 M12 9v3 M16.5 9v3",
                         config.Hardware,
                         config.Metrics,
                         config.Params,
@@ -145,7 +146,7 @@ namespace SidebarDiagnostics.Monitoring
                 case MonitorType.GPU:
                     return OHMPanel(
                         config.Type,
-                        "F1 M 20,23.0002L 55.9998,23.0002C 57.1044,23.0002 57.9998,23.8956 57.9998,25.0002L 57.9999,46C 57.9999,47.1046 57.1045,48 55.9999,48L 41,48L 41,53L 45,53C 46.1046,53 47,53.8954 47,55L 47,57L 29,57L 29,55C 29,53.8954 29.8955,53 31,53L 35,53L 35,48L 20,48C 18.8954,48 18,47.1046 18,46L 18,25.0002C 18,23.8956 18.8954,23.0002 20,23.0002 Z M 21,26.0002L 21,45L 54.9999,45L 54.9998,26.0002L 21,26.0002 Z",
+                        "M3 5v15 M3 7h17a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3 M7 17v3 M11 17v3 M17 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
                         config.Hardware,
                         config.Metrics,
                         config.Params,
@@ -186,7 +187,7 @@ namespace SidebarDiagnostics.Monitoring
         {
             return new MonitorPanel(
                 type.GetDescription(),
-                "m12.56977,260.69523l0,63.527l352.937,0l0,-63.527l-352.937,0zm232.938,45.881c-7.797,0 -14.118,-6.318 -14.118,-14.117c0,-7.801 6.321,-14.117 14.118,-14.117c7.795,0 14.117,6.316 14.117,14.117c0.001,7.798 -6.322,14.117 -14.117,14.117zm42.353,0c-7.797,0 -14.118,-6.318 -14.118,-14.117c0,-7.801 6.321,-14.117 14.118,-14.117c7.796,0 14.117,6.316 14.117,14.117c0,7.798 -6.321,14.117 -14.117,14.117zm42.352,0c-7.797,0 -14.117,-6.318 -14.117,-14.117c0,-7.801 6.32,-14.117 14.117,-14.117c7.796,0 14.118,6.316 14.118,14.117c0,7.798 -6.323,14.117 -14.118,14.117 M309.0357666015625,52.46223449707031 69.03976440429688,52.46223449707031 12.569778442382812,246.57623291015625 365.50677490234375,246.57623291015625z",
+                "M22 12H2 M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z M6 16h.01 M10 16h.01",
                 DriveMonitor.GetInstances(hardwareConfig, metrics, parameters)
                 );
         }
@@ -195,7 +196,7 @@ namespace SidebarDiagnostics.Monitoring
         {
             return new MonitorPanel(
                 type.GetDescription(),
-                "M 40,44L 39.9999,51L 44,51C 45.1046,51 46,51.8954 46,53L 46,57C 46,58.1046 45.1045,59 44,59L 32,59C 30.8954,59 30,58.1046 30,57L 30,53C 30,51.8954 30.8954,51 32,51L 36,51L 36,44L 40,44 Z M 47,53L 57,53L 57,57L 47,57L 47,53 Z M 29,53L 29,57L 19,57L 19,53L 29,53 Z M 19,22L 57,22L 57,31L 19,31L 19,22 Z M 55,24L 53,24L 53,29L 55,29L 55,24 Z M 51,24L 49,24L 49,29L 51,29L 51,24 Z M 47,24L 45,24L 45,29L 47,29L 47,24 Z M 21,27L 21,29L 23,29L 23,27L 21,27 Z M 19,33L 57,33L 57,42L 19,42L 19,33 Z M 55,35L 53,35L 53,40L 55,40L 55,35 Z M 51,35L 49,35L 49,40L 51,40L 51,35 Z M 47,35L 45,35L 45,40L 47,40L 47,35 Z M 21,38L 21,40L 23,40L 23,38L 21,38 Z",
+                "M9 2h6v6H9Z M3 16h6v6H3Z M15 16h6v6h-6Z M6 16v-3h12v3 M12 8v5",
                 NetworkMonitor.GetInstances(hardwareConfig, metrics, parameters)
                 );
         }
@@ -483,7 +484,9 @@ namespace SidebarDiagnostics.Monitoring
                         parameters.GetValue<bool>(ParamKey.AllCoreClocks),
                         parameters.GetValue<bool>(ParamKey.UseGHz),
                         parameters.GetValue<bool>(ParamKey.UseFahrenheit),
-                        parameters.GetValue<int>(ParamKey.TempAlert)
+                        parameters.GetValue<int>(ParamKey.TempAlert),
+                        parameters.Any(p => p.Key == ParamKey.UseWatts) && parameters.GetValue<bool>(ParamKey.UseWatts),
+                        parameters.Any(p => p.Key == ParamKey.ShowFanRPM) ? parameters.GetValue<bool>(ParamKey.ShowFanRPM) : true
                         );
                     break;
 
@@ -501,7 +504,10 @@ namespace SidebarDiagnostics.Monitoring
                         parameters.GetValue<bool>(ParamKey.RoundAll),
                         parameters.GetValue<bool>(ParamKey.UseGHz),
                         parameters.GetValue<bool>(ParamKey.UseFahrenheit),
-                        parameters.GetValue<int>(ParamKey.TempAlert)
+                        parameters.GetValue<int>(ParamKey.TempAlert),
+                        parameters.Any(p => p.Key == ParamKey.UseWatts) && parameters.GetValue<bool>(ParamKey.UseWatts),
+                        parameters.Any(p => p.Key == ParamKey.ShowVRAMGB) && parameters.GetValue<bool>(ParamKey.ShowVRAMGB),
+                        parameters.Any(p => p.Key == ParamKey.ShowFanRPM) ? parameters.GetValue<bool>(ParamKey.ShowFanRPM) : false
                         );
                     break;
 
@@ -560,7 +566,7 @@ namespace SidebarDiagnostics.Monitoring
             _hardware.Update();
         }
 
-        private void InitCPU(IHardware board, MetricConfig[] metrics, bool roundAll, bool allCoreClocks, bool useGHz, bool useFahrenheit, double tempAlert)
+        private void InitCPU(IHardware board, MetricConfig[] metrics, bool roundAll, bool allCoreClocks, bool useGHz, bool useFahrenheit, double tempAlert, bool useWatts = false, bool showFanRPM = true)
         {
             List<OHMMetric> _sensorList = new List<OHMMetric>();
 
@@ -606,21 +612,37 @@ namespace SidebarDiagnostics.Monitoring
 
             if (metrics.IsEnabled(MetricKey.CPUVoltage))
             {
-                ISensor _voltage = null;
-
-                if (board != null)
+                if (useWatts)
                 {
-                    _voltage = board.Sensors.Where(s => s.SensorType == SensorType.Voltage && s.Name.Contains("CPU")).FirstOrDefault();
+                    // Show CPU package power (Watts) instead of voltage
+                    ISensor _power = _hardware.Sensors
+                        .Where(s => s.SensorType == SensorType.Power && s.Name.Contains("Package"))
+                        .FirstOrDefault()
+                        ?? _hardware.Sensors.Where(s => s.SensorType == SensorType.Power).FirstOrDefault();
+
+                    if (_power != null)
+                    {
+                        _sensorList.Add(new OHMMetric(_power, MetricKey.CPUVoltage, DataType.Watt, Resources.PowerLabel, roundAll));
+                    }
                 }
-
-                if (_voltage == null)
+                else
                 {
-                    _voltage = _hardware.Sensors.Where(s => s.SensorType == SensorType.Voltage).FirstOrDefault();
-                }
+                    ISensor _voltage = null;
 
-                if (_voltage != null)
-                {
-                    _sensorList.Add(new OHMMetric(_voltage, MetricKey.CPUVoltage, DataType.Voltage, null, roundAll));
+                    if (board != null)
+                    {
+                        _voltage = board.Sensors.Where(s => s.SensorType == SensorType.Voltage && s.Name.Contains("CPU")).FirstOrDefault();
+                    }
+
+                    if (_voltage == null)
+                    {
+                        _voltage = _hardware.Sensors.Where(s => s.SensorType == SensorType.Voltage).FirstOrDefault();
+                    }
+
+                    if (_voltage != null)
+                    {
+                        _sensorList.Add(new OHMMetric(_voltage, MetricKey.CPUVoltage, DataType.Voltage, null, roundAll));
+                    }
                 }
             }
 
@@ -654,17 +676,50 @@ namespace SidebarDiagnostics.Monitoring
 
                 if (board != null)
                 {
-                    _fanSensor = board.Sensors.Where(s => new SensorType[2] { SensorType.Fan, SensorType.Control }.Contains(s.SensorType) && s.Name.Contains("CPU")).FirstOrDefault();
+                    if (showFanRPM)
+                    {
+                        // 1. Prioritize RPM sensor
+                        _fanSensor = board.Sensors.Where(s => s.SensorType == SensorType.Fan && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
+                            ?? board.Sensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault();
+                        // 2. Fallback to Control (Percent) sensor
+                        if (_fanSensor == null)
+                        {
+                            _fanSensor = board.Sensors.Where(s => s.SensorType == SensorType.Control && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
+                                ?? board.Sensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault();
+                        }
+                    }
+                    else
+                    {
+                        // 1. Prioritize Control (Percent) sensor
+                        _fanSensor = board.Sensors.Where(s => s.SensorType == SensorType.Control && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
+                            ?? board.Sensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault();
+                        // 2. Fallback to RPM sensor
+                        if (_fanSensor == null)
+                        {
+                            _fanSensor = board.Sensors.Where(s => s.SensorType == SensorType.Fan && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
+                                ?? board.Sensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault();
+                        }
+                    }
                 }
 
                 if (_fanSensor == null)
                 {
-                    _fanSensor = _hardware.Sensors.Where(s => new SensorType[2] { SensorType.Fan, SensorType.Control }.Contains(s.SensorType)).FirstOrDefault();
+                    if (showFanRPM)
+                    {
+                        _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault()
+                            ?? _hardware.Sensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault();
+                    }
+                    else
+                    {
+                        _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault()
+                            ?? _hardware.Sensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault();
+                    }
                 }
 
                 if (_fanSensor != null)
                 {
-                    _sensorList.Add(new OHMMetric(_fanSensor, MetricKey.CPUFan, DataType.RPM, null, roundAll));
+                    DataType fanDataType = _fanSensor.SensorType == SensorType.Control ? DataType.Percent : DataType.RPM;
+                    _sensorList.Add(new OHMMetric(_fanSensor, MetricKey.CPUFan, fanDataType, null, roundAll));
                 }
             }
 
@@ -772,7 +827,7 @@ namespace SidebarDiagnostics.Monitoring
             Metrics = _sensorList.ToArray();
         }
 
-        public void InitGPU(MetricConfig[] metrics, bool roundAll, bool useGHz, bool useFahrenheit, double tempAlert)
+        public void InitGPU(MetricConfig[] metrics, bool roundAll, bool useGHz, bool useFahrenheit, double tempAlert, bool useWatts = false, bool showVRAMGB = false, bool showFanRPM = false)
         {
             List<iMetric> _sensorList = new List<iMetric>();
 
@@ -814,7 +869,7 @@ namespace SidebarDiagnostics.Monitoring
 
                 if (_memoryUsed != null && _memoryTotal != null)
                 {
-                    _sensorList.Add(new GPUVRAMMLoadMetric(_memoryUsed, _memoryTotal, MetricKey.GPUVRAMLoad, DataType.Percent, null, roundAll));
+                    _sensorList.Add(new GPUVRAMMLoadMetric(_memoryUsed, _memoryTotal, MetricKey.GPUVRAMLoad, DataType.Percent, null, roundAll, 0, null, showVRAMGB));
                 }
                 else
                 {
@@ -830,11 +885,27 @@ namespace SidebarDiagnostics.Monitoring
 
             if (metrics.IsEnabled(MetricKey.GPUVoltage))
             {
-                ISensor _voltage = _hardware.Sensors.Where(s => s.SensorType == SensorType.Voltage && s.Index == 0).FirstOrDefault();
-
-                if (_voltage != null)
+                if (useWatts)
                 {
-                    _sensorList.Add(new OHMMetric(_voltage, MetricKey.GPUVoltage, DataType.Voltage, null, roundAll));
+                    // Show GPU total board power (Watts) instead of voltage
+                    ISensor _power = _hardware.Sensors
+                        .Where(s => s.SensorType == SensorType.Power && (s.Name.Contains("GPU Package") || s.Name.Contains("Board") || s.Name.Contains("Total")))
+                        .FirstOrDefault()
+                        ?? _hardware.Sensors.Where(s => s.SensorType == SensorType.Power).FirstOrDefault();
+
+                    if (_power != null)
+                    {
+                        _sensorList.Add(new OHMMetric(_power, MetricKey.GPUVoltage, DataType.Watt, Resources.PowerLabel, roundAll));
+                    }
+                }
+                else
+                {
+                    ISensor _voltage = _hardware.Sensors.Where(s => s.SensorType == SensorType.Voltage && s.Index == 0).FirstOrDefault();
+
+                    if (_voltage != null)
+                    {
+                        _sensorList.Add(new OHMMetric(_voltage, MetricKey.GPUVoltage, DataType.Voltage, null, roundAll));
+                    }
                 }
             }
 
@@ -850,11 +921,33 @@ namespace SidebarDiagnostics.Monitoring
 
             if (metrics.IsEnabled(MetricKey.GPUFan))
             {
-                ISensor _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Control).OrderBy(s => s.Index).FirstOrDefault();
+                ISensor _fanSensor = null;
+
+                if (showFanRPM)
+                {
+                    // 1. Prioritize RPM sensor
+                    _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Fan).OrderBy(s => s.Index).FirstOrDefault();
+                    // 2. Fallback to Control (Percent) sensor
+                    if (_fanSensor == null)
+                    {
+                        _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Control).OrderBy(s => s.Index).FirstOrDefault();
+                    }
+                }
+                else
+                {
+                    // 1. Prioritize Control (Percent) sensor
+                    _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Control).OrderBy(s => s.Index).FirstOrDefault();
+                    // 2. Fallback to RPM sensor
+                    if (_fanSensor == null)
+                    {
+                        _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Fan).OrderBy(s => s.Index).FirstOrDefault();
+                    }
+                }
 
                 if (_fanSensor != null)
                 {
-                    _sensorList.Add(new OHMMetric(_fanSensor, MetricKey.GPUFan, DataType.Percent));
+                    DataType fanDataType = _fanSensor.SensorType == SensorType.Control ? DataType.Percent : DataType.RPM;
+                    _sensorList.Add(new OHMMetric(_fanSensor, MetricKey.GPUFan, fanDataType));
                 }
             }
 
@@ -866,12 +959,13 @@ namespace SidebarDiagnostics.Monitoring
         private bool _disposed { get; set; } = false;
     }
 
+    // Drive space comes from DriveInfo (cheap, admin-independent, immune to broken
+    // perf-counter registries). Read/write throughput still needs LogicalDisk counters;
+    // if those are unavailable the IO metrics are silently skipped instead of erroring.
     public class DriveMonitor : BaseMonitor
     {
         private const string CATEGORYNAME = "LogicalDisk";
 
-        private const string FREEMB = "Free Megabytes";
-        private const string PERCENTFREE = "% Free Space";
         private const string BYTESREADPERSECOND = "Disk Read Bytes/sec";
         private const string BYTESWRITEPERSECOND = "Disk Write Bytes/sec";
 
@@ -901,11 +995,7 @@ namespace SidebarDiagnostics.Monitoring
                 Status = State.NoLoadBar;
             }
 
-            if (_loadBarEnabled || _loadEnabled || _usedEnabled || _freeEnabled)
-            {
-                _counterFreeMB = new PerformanceCounter(CATEGORYNAME, FREEMB, id);
-                _counterFreePercent = new PerformanceCounter(CATEGORYNAME, PERCENTFREE, id);
-            }
+            _spaceEnabled = _loadBarEnabled || _loadEnabled || _usedEnabled || _freeEnabled;
 
             List<iMetric> _metrics = new List<iMetric>();
 
@@ -927,14 +1017,24 @@ namespace SidebarDiagnostics.Monitoring
                 _metrics.Add(FreeMetric);
             }
 
-            if (_readEnabled)
+            if (_readEnabled || _writeEnabled)
             {
-                _metrics.Add(new PCMetric(new PerformanceCounter(CATEGORYNAME, BYTESREADPERSECOND, id), MetricKey.DriveRead, DataType.kBps, null, roundAll, 0, BytesPerSecondConverter.Instance));
-            }
+                try
+                {
+                    if (_readEnabled)
+                    {
+                        _metrics.Add(new PCMetric(new PerformanceCounter(CATEGORYNAME, BYTESREADPERSECOND, id), MetricKey.DriveRead, DataType.kBps, null, roundAll, 0, BytesPerSecondConverter.Instance));
+                    }
 
-            if (_writeEnabled)
-            {
-                _metrics.Add(new PCMetric(new PerformanceCounter(CATEGORYNAME, BYTESWRITEPERSECOND, id), MetricKey.DriveWrite, DataType.kBps, null, roundAll, 0, BytesPerSecondConverter.Instance));
+                    if (_writeEnabled)
+                    {
+                        _metrics.Add(new PCMetric(new PerformanceCounter(CATEGORYNAME, BYTESWRITEPERSECOND, id), MetricKey.DriveWrite, DataType.kBps, null, roundAll, 0, BytesPerSecondConverter.Instance));
+                    }
+                }
+                catch (Exception e)
+                {
+                    SidebarDiagnostics.Utilities.ErrorLog.Write(e);
+                }
             }
 
             Metrics = _metrics.ToArray();
@@ -954,35 +1054,9 @@ namespace SidebarDiagnostics.Monitoring
             {
                 if (disposing)
                 {
-                    if (_loadMetric != null)
-                    {
-                        _loadMetric.Dispose();
-                        _loadMetric = null;
-                    }
-
-                    if (_usedMetric != null)
-                    {
-                        _usedMetric.Dispose();
-                        _usedMetric = null;
-                    }
-
-                    if (_freeMetric != null)
-                    {
-                        _freeMetric.Dispose();
-                        _freeMetric = null;
-                    }
-
-                    if (_counterFreeMB != null)
-                    {
-                        _counterFreeMB.Dispose();
-                        _counterFreeMB = null;
-                    }
-
-                    if (_counterFreePercent != null)
-                    {
-                        _counterFreePercent.Dispose();
-                        _counterFreePercent = null;
-                    }
+                    _loadMetric = null;
+                    _usedMetric = null;
+                    _freeMetric = null;
                 }
 
                 _disposed = true;
@@ -996,23 +1070,17 @@ namespace SidebarDiagnostics.Monitoring
 
         public static IEnumerable<HardwareConfig> GetHardware()
         {
-            string[] _instances;
-
-            try
-            {
-                _instances = new PerformanceCounterCategory(CATEGORYNAME).GetInstanceNames();
-            }
-            catch (InvalidOperationException)
-            {
-                _instances = new string[0];
-
-                App.ShowPerformanceCounterError();
-            }
-
             Regex _regex = new Regex("^[A-Z]:$");
 
-            return _instances.Where(n => _regex.IsMatch(n)).OrderBy(d => d[0]).Select(h => new HardwareConfig() { ID = h, Name = h, ActualName = h });
+            return DriveInfo.GetDrives()
+                .Where(d => (d.DriveType == DriveType.Fixed || d.DriveType == DriveType.Removable) && d.IsReady)
+                .Select(d => d.Name.TrimEnd(DIRSEPARATOR))
+                .Where(n => _regex.IsMatch(n))
+                .OrderBy(n => n[0])
+                .Select(n => new HardwareConfig() { ID = n, Name = n, ActualName = n });
         }
+
+        private static readonly char[] DIRSEPARATOR = new char[1] { char.Parse("\\") };
 
         public static iMonitor[] GetInstances(HardwareConfig[] hardwareConfig, MetricConfig[] metrics, ConfigParam[] parameters)
         {
@@ -1031,34 +1099,42 @@ namespace SidebarDiagnostics.Monitoring
 
         public override void Update()
         {
-            if (!PerformanceCounterCategory.InstanceExists(ID, CATEGORYNAME))
+            if (_spaceEnabled)
             {
-                return;
-            }
-
-            if (_counterFreeMB != null && _counterFreePercent != null)
-            {
-                double _freeGB = _counterFreeMB.NextValue() / 1024d;
-                double _freePercent = _counterFreePercent.NextValue();
-
-                double _usedPercent = 100d - _freePercent;
-
-                double _totalGB = _freeGB / (_freePercent / 100d);
-                double _usedGB = _totalGB - _freeGB;
-
-                if (LoadMetric != null)
+                try
                 {
-                    LoadMetric.Update(_usedPercent);
+                    DriveInfo _drive = new DriveInfo(ID);
+
+                    if (_drive.IsReady)
+                    {
+                        double _totalGB = _drive.TotalSize / 1073741824d;
+                        double _freeGB = _drive.TotalFreeSpace / 1073741824d;
+                        double _usedGB = _totalGB - _freeGB;
+                        double _usedPercent = _totalGB > 0d ? _usedGB / _totalGB * 100d : 0d;
+
+                        if (LoadMetric != null)
+                        {
+                            LoadMetric.Update(_usedPercent);
+                        }
+
+                        if (UsedMetric != null)
+                        {
+                            UsedMetric.Update(_usedGB);
+                        }
+
+                        if (FreeMetric != null)
+                        {
+                            FreeMetric.Update(_freeGB);
+                        }
+                    }
                 }
-
-                if (UsedMetric != null)
+                catch (IOException)
                 {
-                    UsedMetric.Update(_usedGB);
+                    return;
                 }
-
-                if (FreeMetric != null)
+                catch (UnauthorizedAccessException)
                 {
-                    FreeMetric.Update(_freeGB);
+                    return;
                 }
             }
 
@@ -1144,11 +1220,9 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
-        private PerformanceCounter _counterFreeMB { get; set; }
-
-        private PerformanceCounter _counterFreePercent { get; set; }
-
         private bool _loadEnabled { get; set; }
+
+        private bool _spaceEnabled { get; set; }
 
         private bool _disposed { get; set; } = false;
 
@@ -1160,15 +1234,14 @@ namespace SidebarDiagnostics.Monitoring
         }
     }
 
+    // Network throughput is measured from NetworkInterface byte counters sampled each
+    // poll; no perf counters, no name-mangling between counter instances and adapters.
     public class NetworkMonitor : BaseMonitor
     {
-        private const string CATEGORYNAME = "Network Interface";
-
-        private const string BYTESRECEIVEDPERSECOND = "Bytes Received/sec";
-        private const string BYTESSENTPERSECOND = "Bytes Sent/sec";
-
-        public NetworkMonitor(string id, string name, string extIP, MetricConfig[] metrics, bool showName = true, bool roundAll = false, bool useBytes = false, double bandwidthInAlert = 0, double bandwidthOutAlert = 0) : base(id, name, showName)
+        public NetworkMonitor(NetworkInterface nic, string name, string extIP, MetricConfig[] metrics, bool showName = true, bool roundAll = false, bool useBytes = false, double bandwidthInAlert = 0, double bandwidthOutAlert = 0) : base(nic.Id, name, showName)
         {
+            _nic = nic;
+
             iConverter _converter;
 
             if (useBytes)
@@ -1184,7 +1257,7 @@ namespace SidebarDiagnostics.Monitoring
 
             if (metrics.IsEnabled(MetricKey.NetworkIP))
             {
-                string _ipAddress = GetAdapterIPAddress(name);
+                string _ipAddress = GetAdapterIPAddress(nic);
 
                 if (!string.IsNullOrEmpty(_ipAddress))
                 {
@@ -1199,12 +1272,14 @@ namespace SidebarDiagnostics.Monitoring
 
             if (metrics.IsEnabled(MetricKey.NetworkIn))
             {
-                _metrics.Add(new PCMetric(new PerformanceCounter(CATEGORYNAME, BYTESRECEIVEDPERSECOND, id), MetricKey.NetworkIn, DataType.kbps, null, roundAll, bandwidthInAlert, _converter));
+                InMetric = new BaseMetric(MetricKey.NetworkIn, DataType.kbps, null, roundAll, bandwidthInAlert, _converter);
+                _metrics.Add(InMetric);
             }
 
             if (metrics.IsEnabled(MetricKey.NetworkOut))
             {
-                _metrics.Add(new PCMetric(new PerformanceCounter(CATEGORYNAME, BYTESSENTPERSECOND, id), MetricKey.NetworkOut, DataType.kbps, null, roundAll, bandwidthOutAlert, _converter));
+                OutMetric = new BaseMetric(MetricKey.NetworkOut, DataType.kbps, null, roundAll, bandwidthOutAlert, _converter);
+                _metrics.Add(OutMetric);
             }
 
             Metrics = _metrics.ToArray();
@@ -1217,22 +1292,18 @@ namespace SidebarDiagnostics.Monitoring
 
         public static IEnumerable<HardwareConfig> GetHardware()
         {
-            string[] _instances;
+            return GetAdapters()
+                .OrderBy(n => n.Name)
+                .Select(n => new HardwareConfig() { ID = n.Id, Name = n.Name, ActualName = n.Name });
+        }
 
-            try
-            {
-                _instances = new PerformanceCounterCategory(CATEGORYNAME).GetInstanceNames();
-            }
-            catch (InvalidOperationException)
-            {
-                _instances = new string[0];
-
-                App.ShowPerformanceCounterError();
-            }
-
-            Regex _regex = new Regex(@"^isatap.*$");
-
-            return _instances.Where(i => !_regex.IsMatch(i)).OrderBy(h => h).Select(h => new HardwareConfig() { ID = h, Name = h, ActualName = h });
+        private static IEnumerable<NetworkInterface> GetAdapters()
+        {
+            return NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n =>
+                    n.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+                    n.NetworkInterfaceType != NetworkInterfaceType.Tunnel &&
+                    n.OperationalStatus == OperationalStatus.Up);
         }
 
         public static iMonitor[] GetInstances(HardwareConfig[] hardwareConfig, MetricConfig[] metrics, ConfigParam[] parameters)
@@ -1251,18 +1322,54 @@ namespace SidebarDiagnostics.Monitoring
             }
 
             return (
-                from hw in GetHardware()
-                join c in hardwareConfig on hw.ID equals c.ID into merged
-                from n in merged.DefaultIfEmpty(hw).Select(n => { n.ActualName = hw.Name; return n; })
+                from nic in GetAdapters()
+                join c in hardwareConfig on nic.Id equals c.ID into merged
+                from n in merged.DefaultIfEmpty(new HardwareConfig() { ID = nic.Id, Name = nic.Name, ActualName = nic.Name }).Select(n => { n.ActualName = nic.Name; return n; })
                 where n.Enabled
                 orderby n.Order descending, n.Name ascending
-                select new NetworkMonitor(n.ID, n.Name ?? n.ActualName, _extIP, metrics, _showName, _roundAll, _useBytes, _bandwidthInAlert, _bandwidthOutAlert)
+                select new NetworkMonitor(nic, n.Name ?? n.ActualName, _extIP, metrics, _showName, _roundAll, _useBytes, _bandwidthInAlert, _bandwidthOutAlert)
                 ).ToArray();
         }
 
         public override void Update()
         {
-            if (!PerformanceCounterCategory.InstanceExists(ID, CATEGORYNAME))
+            if (InMetric == null && OutMetric == null)
+            {
+                base.Update();
+                return;
+            }
+
+            try
+            {
+                IPInterfaceStatistics _stats = _nic.GetIPStatistics();
+
+                long _now = Stopwatch.GetTimestamp();
+
+                if (_lastTimestamp > 0)
+                {
+                    double _seconds = (_now - _lastTimestamp) / (double)Stopwatch.Frequency;
+
+                    if (_seconds > 0d)
+                    {
+                        if (InMetric != null)
+                        {
+                            double _bytesIn = Math.Max(0, _stats.BytesReceived - _lastBytesReceived);
+                            InMetric.Update(_bytesIn / _seconds);
+                        }
+
+                        if (OutMetric != null)
+                        {
+                            double _bytesOut = Math.Max(0, _stats.BytesSent - _lastBytesSent);
+                            OutMetric.Update(_bytesOut / _seconds);
+                        }
+                    }
+                }
+
+                _lastBytesReceived = _stats.BytesReceived;
+                _lastBytesSent = _stats.BytesSent;
+                _lastTimestamp = _now;
+            }
+            catch (NetworkInformationException)
             {
                 return;
             }
@@ -1270,37 +1377,13 @@ namespace SidebarDiagnostics.Monitoring
             base.Update();
         }
 
-        private static string GetAdapterIPAddress(string name)
+        private static string GetAdapterIPAddress(NetworkInterface nic)
         {
-            //Here we need to match the apdapter returned by the network interface to the
-            //adapter represented by this instance of the class.
-
-            string configuredName = Regex.Replace(name, @"[^\w\d\s]", "");
-
-            foreach (NetworkInterface netif in NetworkInterface.GetAllNetworkInterfaces())
+            foreach (IPAddressInformation unicast in nic.GetIPProperties().UnicastAddresses)
             {
-                //Strange pattern matching as the Performance Monitor routines which provide the ID and Names
-                //instantiating this class return different values for the devices than the NetworkInterface calls used here.
-                //For example Performance Monitor routines return Intel[R] where as NetworkInterface returns Intel(R) causing the
-                //strings not to match.  So to get around this, use Regex to strip off the special characters and just compare the string values.
-                //Also, in some cases the values for Description match the Performance Monitor calls, and 
-                //in others the Name is what matches.  It's a little weird, but this will pick up all 4 network adapters on 
-                //my test machine correctly.
-
-                string interfaceDesc = Regex.Replace(netif.Description, @"[^\w\d\s]", "");
-                string interfaceName = Regex.Replace(netif.Name, @"[^\w\d\s]", "");
-
-                if (interfaceDesc == configuredName || interfaceName == configuredName)
+                if (unicast.Address.AddressFamily == AddressFamily.InterNetwork)
                 {
-                    IPInterfaceProperties properties = netif.GetIPProperties();
-
-                    foreach (IPAddressInformation unicast in properties.UnicastAddresses)
-                    {
-                        if (unicast.Address.AddressFamily == AddressFamily.InterNetwork)
-                        {
-                            return unicast.Address.ToString();
-                        }
-                    }
+                    return unicast.Address.ToString();
                 }
             }
 
@@ -1311,26 +1394,28 @@ namespace SidebarDiagnostics.Monitoring
         {
             try
             {
-                HttpWebRequest _request = WebRequest.CreateHttp(Constants.URLs.IPIFY);
-                _request.Method = HttpMethod.Get.Method;
-                _request.Timeout = 5000;
-
-                using (HttpWebResponse _response = (HttpWebResponse)_request.GetResponse())
+                using (HttpClient _client = new HttpClient() { Timeout = TimeSpan.FromSeconds(5) })
                 {
-                    using (Stream _stream = _response.GetResponseStream())
-                    {
-                        using (StreamReader _reader = new StreamReader(_stream))
-                        {
-                            return _reader.ReadToEnd();
-                        }
-                    }
+                    return _client.GetStringAsync(Constants.URLs.IPIFY).GetAwaiter().GetResult();
                 }
             }
-            catch (WebException)
+            catch (Exception)
             {
                 return "";
             }
         }
+
+        public iMetric InMetric { get; private set; }
+
+        public iMetric OutMetric { get; private set; }
+
+        private NetworkInterface _nic { get; set; }
+
+        private long _lastBytesReceived { get; set; }
+
+        private long _lastBytesSent { get; set; }
+
+        private long _lastTimestamp { get; set; }
     }
 
     public interface iMetric : INotifyPropertyChanged, IDisposable
@@ -1395,10 +1480,10 @@ namespace SidebarDiagnostics.Monitoring
             {
                 if (disposing)
                 {
-                    if (_alertColorTimer != null)
+                    if (_blinking)
                     {
-                        _alertColorTimer.Stop();
-                        _alertColorTimer = null;
+                        _blinking = false;
+                        AlertBlinker.Unsubscribe(this);
                     }
 
                     _converter = null;
@@ -1529,6 +1614,11 @@ namespace SidebarDiagnostics.Monitoring
             }
             protected set
             {
+                if (_value == value)
+                {
+                    return;
+                }
+
                 _value = value;
 
                 NotifyPropertyChanged("Value");
@@ -1545,6 +1635,11 @@ namespace SidebarDiagnostics.Monitoring
             }
             protected set
             {
+                if (string.Equals(_append, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
                 _append = value;
 
                 NotifyPropertyChanged("Append");
@@ -1561,6 +1656,11 @@ namespace SidebarDiagnostics.Monitoring
             }
             set
             {
+                if (_nValue == value)
+                {
+                    return;
+                }
+
                 _nValue = value;
 
                 NotifyPropertyChanged("nValue");
@@ -1577,6 +1677,11 @@ namespace SidebarDiagnostics.Monitoring
             }
             set
             {
+                if (string.Equals(_nAppend, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
                 _nAppend = value;
 
                 NotifyPropertyChanged("nAppend");
@@ -1593,6 +1698,11 @@ namespace SidebarDiagnostics.Monitoring
             }
             protected set
             {
+                if (string.Equals(_text, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
                 _text = value;
 
                 NotifyPropertyChanged("Text");
@@ -1609,26 +1719,27 @@ namespace SidebarDiagnostics.Monitoring
             }
             protected set
             {
+                if (_isAlert == value)
+                {
+                    return;
+                }
+
                 _isAlert = value;
 
                 NotifyPropertyChanged("IsAlert");
 
                 if (value)
                 {
-                    _alertColorFlag = false;
-
-                    if (Framework.Settings.Instance.AlertBlink)
+                    if (Framework.Settings.Instance.AlertBlink && !_blinking)
                     {
-                        _alertColorTimer = new DispatcherTimer(DispatcherPriority.Normal, App.Current.Dispatcher);
-                        _alertColorTimer.Interval = TimeSpan.FromSeconds(0.5d);
-                        _alertColorTimer.Tick += new EventHandler(AlertColorTimer_Tick);
-                        _alertColorTimer.Start();
+                        _blinking = true;
+                        AlertBlinker.Subscribe(this);
                     }
                 }
-                else if (_alertColorTimer != null)
+                else if (_blinking)
                 {
-                    _alertColorTimer.Stop();
-                    _alertColorTimer = null;
+                    _blinking = false;
+                    AlertBlinker.Unsubscribe(this);
                 }
             }
         }
@@ -1642,20 +1753,16 @@ namespace SidebarDiagnostics.Monitoring
         {
             get
             {
-                return _alertColorFlag ? Framework.Settings.Instance.FontColor : Framework.Settings.Instance.AlertFontColor;
+                return AlertBlinker.Flag ? Framework.Settings.Instance.FontColor : Framework.Settings.Instance.AlertFontColor;
             }
         }
 
-        private DispatcherTimer _alertColorTimer;
-
-        private void AlertColorTimer_Tick(object sender, EventArgs e)
+        internal void BlinkTick()
         {
-            _alertColorFlag = !_alertColorFlag;
-
             NotifyPropertyChanged("AlertColor");
         }
 
-        private bool _alertColorFlag = false;
+        private bool _blinking = false;
 
         protected iConverter _converter { get; set; }
 
@@ -1664,6 +1771,97 @@ namespace SidebarDiagnostics.Monitoring
         protected double _alertValue { get; set; }
 
         private bool _disposed { get; set; } = false;
+    }
+
+    // One shared timer drives every blinking alert instead of one DispatcherTimer per
+    // metric. Subscribe/Unsubscribe may be called from the polling thread.
+    internal static class AlertBlinker
+    {
+        private static readonly object _lock = new object();
+
+        private static readonly List<BaseMetric> _subscribers = new List<BaseMetric>();
+
+        private static DispatcherTimer _timer;
+
+        public static bool Flag { get; private set; }
+
+        public static void Subscribe(BaseMetric metric)
+        {
+            lock (_lock)
+            {
+                if (!_subscribers.Contains(metric))
+                {
+                    _subscribers.Add(metric);
+                }
+            }
+
+            App.Current?.Dispatcher.BeginInvoke((Action)EnsureTimer);
+        }
+
+        public static void Unsubscribe(BaseMetric metric)
+        {
+            bool _empty;
+
+            lock (_lock)
+            {
+                _subscribers.Remove(metric);
+                _empty = _subscribers.Count == 0;
+            }
+
+            if (_empty)
+            {
+                App.Current?.Dispatcher.BeginInvoke((Action)StopTimer);
+            }
+        }
+
+        private static void EnsureTimer()
+        {
+            lock (_lock)
+            {
+                if (_timer != null || _subscribers.Count == 0)
+                {
+                    return;
+                }
+            }
+
+            _timer = new DispatcherTimer(DispatcherPriority.Background, App.Current.Dispatcher);
+            _timer.Interval = TimeSpan.FromSeconds(0.5d);
+            _timer.Tick += Timer_Tick;
+            _timer.Start();
+        }
+
+        private static void StopTimer()
+        {
+            lock (_lock)
+            {
+                if (_subscribers.Count > 0 || _timer == null)
+                {
+                    return;
+                }
+            }
+
+            _timer.Stop();
+            _timer.Tick -= Timer_Tick;
+            _timer = null;
+            Flag = false;
+        }
+
+        private static void Timer_Tick(object sender, EventArgs e)
+        {
+            Flag = !Flag;
+
+            BaseMetric[] _current;
+
+            lock (_lock)
+            {
+                _current = _subscribers.ToArray();
+            }
+
+            foreach (BaseMetric _metric in _current)
+            {
+                _metric.BlinkTick();
+            }
+        }
     }
 
     public class OHMMetric : BaseMetric
@@ -1718,10 +1916,11 @@ namespace SidebarDiagnostics.Monitoring
 
     public class GPUVRAMMLoadMetric : BaseMetric
     {
-        public GPUVRAMMLoadMetric(ISensor memoryUsedSensor, ISensor memoryTotalSensor, MetricKey key, DataType dataType, string label = null, bool round = false, double alertValue = 0, iConverter converter = null) : base(key, dataType, label, round, alertValue, converter)
+        public GPUVRAMMLoadMetric(ISensor memoryUsedSensor, ISensor memoryTotalSensor, MetricKey key, DataType dataType, string label = null, bool round = false, double alertValue = 0, iConverter converter = null, bool showAsData = false) : base(key, dataType, label, round, alertValue, converter)
         {
             _memoryUsedSensor = memoryUsedSensor;
             _memoryTotalSensor = memoryTotalSensor;
+            _showAsData = showAsData;
         }
 
         public new void Dispose()
@@ -1755,9 +1954,33 @@ namespace SidebarDiagnostics.Monitoring
         {
             if (_memoryUsedSensor.Value.HasValue && _memoryTotalSensor.Value.HasValue)
             {
-                float load = _memoryUsedSensor.Value.Value / _memoryTotalSensor.Value.Value * 100f;
+                float used = _memoryUsedSensor.Value.Value;
+                float total = _memoryTotalSensor.Value.Value;
 
-                Update(load);
+                if (_showAsData)
+                {
+                    // Used and Total are in MB in LibreHardwareMonitor.
+                    // Convert to GB if total is large enough.
+                    if (total >= 1000f)
+                    {
+                        float usedGB = used / 1024f;
+                        float totalGB = total / 1024f;
+                        Text = string.Format("{0:0.0} GB / {1:0.0} GB", usedGB, totalGB);
+                    }
+                    else
+                    {
+                        Text = string.Format("{0:0} MB / {1:0} MB", used, total);
+                    }
+                    
+                    // Keep updating percentage values for alerts and charts
+                    nValue = (used / total) * 100f;
+                    Value = used;
+                }
+                else
+                {
+                    float load = used / total * 100f;
+                    Update(load);
+                }
             }
             else
             {
@@ -1768,6 +1991,8 @@ namespace SidebarDiagnostics.Monitoring
         private ISensor _memoryUsedSensor { get; set; }
 
         private ISensor _memoryTotalSensor { get; set; }
+
+        private bool _showAsData { get; set; }
 
         private bool _disposed { get; set; } = false;
     }
@@ -1853,7 +2078,6 @@ namespace SidebarDiagnostics.Monitoring
         Network
     }
 
-    [JsonObject(MemberSerialization.OptIn)]
     public class MonitorConfig : INotifyPropertyChanged, ICloneable
     {
         public void NotifyPropertyChanged(string propertyName)
@@ -1887,7 +2111,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private MonitorType _type { get; set; }
 
-        [JsonProperty]
         public MonitorType Type
         {
             get
@@ -1904,7 +2127,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private bool _enabled { get; set; }
 
-        [JsonProperty]
         public bool Enabled
         {
             get
@@ -1921,7 +2143,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private byte _order { get; set; }
 
-        [JsonProperty]
         public byte Order
         {
             get
@@ -1938,7 +2159,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private HardwareConfig[] _hardware { get; set; }
 
-        [JsonProperty]
         public HardwareConfig[] Hardware
         {
             get
@@ -1955,6 +2175,7 @@ namespace SidebarDiagnostics.Monitoring
 
         private ObservableCollection<HardwareConfig> _hardwareOC { get; set; }
 
+        [JsonIgnore]
         public ObservableCollection<HardwareConfig> HardwareOC
         {
             get
@@ -1971,7 +2192,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private MetricConfig[] _metrics { get; set; }
 
-        [JsonProperty]
         public MetricConfig[] Metrics
         {
             get
@@ -1988,7 +2208,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private ConfigParam[] _params { get; set; }
 
-        [JsonProperty]
         public ConfigParam[] Params
         {
             get
@@ -2003,6 +2222,7 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
+        [JsonIgnore]
         public string Name
         {
             get
@@ -2089,14 +2309,16 @@ namespace SidebarDiagnostics.Monitoring
                             new MetricConfig(MetricKey.CPULoad, true),
                             new MetricConfig(MetricKey.CPUCoreLoad, true)
                         },
-                        Params = new ConfigParam[6]
+                        Params = new ConfigParam[8]
                         {
                             ConfigParam.Defaults.HardwareNames,
                             ConfigParam.Defaults.RoundAll,
                             ConfigParam.Defaults.AllCoreClocks,
                             ConfigParam.Defaults.UseGHz,
                             ConfigParam.Defaults.UseFahrenheit,
-                            ConfigParam.Defaults.TempAlert
+                            ConfigParam.Defaults.TempAlert,
+                            ConfigParam.Defaults.UseWatts,
+                            ConfigParam.Defaults.ShowFanRPM
                         }
                     },
                     new MonitorConfig()
@@ -2135,13 +2357,16 @@ namespace SidebarDiagnostics.Monitoring
                             new MetricConfig(MetricKey.GPUTemp, true),
                             new MetricConfig(MetricKey.GPUFan, true)
                         },
-                        Params = new ConfigParam[5]
+                        Params = new ConfigParam[8]
                         {
                             ConfigParam.Defaults.HardwareNames,
                             ConfigParam.Defaults.RoundAll,
                             ConfigParam.Defaults.UseGHz,
                             ConfigParam.Defaults.UseFahrenheit,
-                            ConfigParam.Defaults.TempAlert
+                            ConfigParam.Defaults.TempAlert,
+                            ConfigParam.Defaults.UseWatts,
+                            ConfigParam.Defaults.ShowVRAMGB,
+                            new ConfigParam() { Key = ParamKey.ShowFanRPM, Value = false }
                         }
                     },
                     new MonitorConfig()
@@ -2192,7 +2417,6 @@ namespace SidebarDiagnostics.Monitoring
         }
     }
 
-    [JsonObject(MemberSerialization.OptIn)]
     public class HardwareConfig : INotifyPropertyChanged, ICloneable
     {
         public void NotifyPropertyChanged(string propertyName)
@@ -2217,7 +2441,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private string _id { get; set; }
 
-        [JsonProperty]
         public string ID
         {
             get
@@ -2234,7 +2457,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private string _name { get; set; }
 
-        [JsonProperty]
         public string Name
         {
             get
@@ -2251,7 +2473,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private string _actualName { get; set; }
 
-        [JsonProperty]
         public string ActualName
         {
             get
@@ -2268,7 +2489,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private bool _enabled { get; set; } = true;
 
-        [JsonProperty]
         public bool Enabled
         {
             get
@@ -2285,7 +2505,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private byte _order { get; set; } = 0;
 
-        [JsonProperty]
         public byte Order
         {
             get
@@ -2301,7 +2520,6 @@ namespace SidebarDiagnostics.Monitoring
         }
     }
 
-    [JsonObject(MemberSerialization.OptIn)]
     public class MetricConfig : INotifyPropertyChanged, ICloneable
     {
         public MetricConfig() { }
@@ -2334,7 +2552,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private MetricKey _key { get; set; }
 
-        [JsonProperty]
         public MetricKey Key
         {
             get
@@ -2351,7 +2568,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private bool _enabled { get; set; }
 
-        [JsonProperty]
         public bool Enabled
         {
             get
@@ -2371,6 +2587,7 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
+        [JsonIgnore]
         public string Name
         {
             get
@@ -2417,7 +2634,6 @@ namespace SidebarDiagnostics.Monitoring
         DriveWrite = 25
     }
 
-    [JsonObject(MemberSerialization.OptIn)]
     public class ConfigParam : INotifyPropertyChanged, ICloneable
     {
         public void NotifyPropertyChanged(string propertyName)
@@ -2442,7 +2658,6 @@ namespace SidebarDiagnostics.Monitoring
 
         private ParamKey _key { get; set; }
 
-        [JsonProperty]
         public ParamKey Key
         {
             get
@@ -2459,7 +2674,7 @@ namespace SidebarDiagnostics.Monitoring
 
         private object _value { get; set; }
 
-        [JsonProperty]
+        [JsonConverter(typeof(ParamValueConverter))]
         public object Value
         {
             get
@@ -2481,6 +2696,7 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
+        [JsonIgnore]
         public Type Type
         {
             get
@@ -2489,6 +2705,7 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
+        [JsonIgnore]
         public string TypeString
         {
             get
@@ -2497,6 +2714,7 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
+        [JsonIgnore]
         public string Name
         {
             get
@@ -2545,12 +2763,22 @@ namespace SidebarDiagnostics.Monitoring
                     case ParamKey.UseGHz:
                         return Resources.SettingsUseGHz;
 
+                    case ParamKey.UseWatts:
+                        return Resources.SettingsUseWatts;
+
+                    case ParamKey.ShowVRAMGB:
+                        return Resources.SettingsShowVRAMGB;
+
+                    case ParamKey.ShowFanRPM:
+                        return Resources.SettingsShowFanRPM;
+
                     default:
                         return "Unknown";
                 }
             }
         }
 
+        [JsonIgnore]
         public string Tooltip
         {
             get
@@ -2598,6 +2826,15 @@ namespace SidebarDiagnostics.Monitoring
 
                     case ParamKey.UseGHz:
                         return Resources.SettingsUseGHzTooltip;
+
+                    case ParamKey.UseWatts:
+                        return Resources.SettingsUseWattsTooltip;
+
+                    case ParamKey.ShowVRAMGB:
+                        return Resources.SettingsShowVRAMGBTooltip;
+
+                    case ParamKey.ShowFanRPM:
+                        return Resources.SettingsShowFanRPMTooltip;
 
                     default:
                         return "Unknown";
@@ -2726,6 +2963,66 @@ namespace SidebarDiagnostics.Monitoring
                     return new ConfigParam() { Key = ParamKey.UseGHz, Value = false };
                 }
             }
+
+            public static ConfigParam UseWatts
+            {
+                get
+                {
+                    return new ConfigParam() { Key = ParamKey.UseWatts, Value = false };
+                }
+            }
+
+            public static ConfigParam ShowVRAMGB
+            {
+                get
+                {
+                    return new ConfigParam() { Key = ParamKey.ShowVRAMGB, Value = false };
+                }
+            }
+
+            public static ConfigParam ShowFanRPM
+            {
+                get
+                {
+                    return new ConfigParam() { Key = ParamKey.ShowFanRPM, Value = true };
+                }
+            }
+        }
+    }
+
+    // ConfigParam.Value is bool or int depending on the parameter; System.Text.Json
+    // would otherwise deserialize it as a JsonElement.
+    public class ParamValueConverter : JsonConverter<object>
+    {
+        public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            switch (reader.TokenType)
+            {
+                case JsonTokenType.True:
+                    return true;
+
+                case JsonTokenType.False:
+                    return false;
+
+                case JsonTokenType.Number:
+                    if (reader.TryGetInt32(out int _int))
+                    {
+                        return _int;
+                    }
+                    return reader.GetDouble();
+
+                case JsonTokenType.String:
+                    return reader.GetString();
+
+                default:
+                    reader.Skip();
+                    return null;
+            }
+        }
+
+        public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+        {
+            JsonSerializer.Serialize(writer, value, value?.GetType() ?? typeof(object), options);
         }
     }
 
@@ -2745,7 +3042,10 @@ namespace SidebarDiagnostics.Monitoring
         RoundAll,
         DriveSpace,
         DriveIO,
-        UseGHz
+        UseGHz,
+        UseWatts,
+        ShowVRAMGB,
+        ShowFanRPM
     }
 
     public enum DataType : byte
@@ -2770,6 +3070,7 @@ namespace SidebarDiagnostics.Monitoring
         MHz,
         GHz,
         Voltage,
+        Watt,
         Percent,
         RPM,
         Celcius,
@@ -3036,7 +3337,7 @@ namespace SidebarDiagnostics.Monitoring
                     return new HardwareType[1] { HardwareType.Memory };
 
                 case MonitorType.GPU:
-                    return new HardwareType[2] { HardwareType.GpuNvidia, HardwareType.GpuAmd };
+                    return new HardwareType[3] { HardwareType.GpuNvidia, HardwareType.GpuAmd, HardwareType.GpuIntel };
 
                 default:
                     throw new ArgumentException("Invalid MonitorType.");
@@ -3318,6 +3619,9 @@ namespace SidebarDiagnostics.Monitoring
 
                 case DataType.Voltage:
                     return " V";
+
+                case DataType.Watt:
+                    return " W";
 
                 case DataType.Percent:
                     return "%";

@@ -1,0 +1,8 @@
+The fonts bundled with Sidebar Diagnostics are licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org):
+
+- Titillium Web — Copyright (c) Accademia di Belle Arti di Urbino (campivisivi.net)
+- Rajdhani — Copyright (c) Indian Type Foundry (indiantypefoundry.com)
+- Chakra Petch — Copyright (c) Cadson Demak (cadsondemak.com)
+- Share Tech Mono — Copyright (c) Carrois Type Design, Ralph du Carrois (carrois.com)
+
+These fonts are embedded as application resources and are not installed on the system.

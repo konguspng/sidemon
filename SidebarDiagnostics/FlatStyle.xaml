@@ -83,9 +83,6 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type style:FlatWindow}">
                     <Border x:Name="PART_BORDER" Margin="10" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5">
-                        <Border.Effect>
-                            <DropShadowEffect BlurRadius="10" Direction="-90" ShadowDepth="2" Opacity="0.5" Color="#333333" />
-                        </Border.Effect>
                         <Grid>
                             <DockPanel LastChildFill="True">
                                 <Border x:Name="PART_TITLEBAR" DockPanel.Dock="Top" Margin="0" Height="30" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" MouseLeftButtonDown="PART_TITLEBAR_MouseLeftButtonDown">

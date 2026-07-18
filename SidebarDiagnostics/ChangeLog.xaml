@@ -10,7 +10,7 @@
         xmlns:sty="clr-namespace:SidebarDiagnostics.Style"
         xmlns:frame="clr-namespace:SidebarDiagnostics.Framework"
         mc:Ignorable="d"
-        Title="Sidebar Diagnostics"
+        Title="SideMon"
         Icon="Sidebar.ico"
         ShowMaximize="False"
         Width="460"

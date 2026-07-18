@@ -1,10 +1,12 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
-using OxyPlot.Wpf;
+using OxyPlot;
+using OxyPlot.Axes;
+using OxyPlot.Series;
 using SidebarDiagnostics.Framework;
 using SidebarDiagnostics.Monitoring;
 
@@ -12,9 +14,9 @@ namespace SidebarDiagnostics.Models
 {
     public class GraphModel : INotifyPropertyChanged, IDisposable
     {
-        public GraphModel(Plot plot)
+        public GraphModel()
         {
-            _plot = plot;
+            PlotModel = NewPlotModel();
         }
 
         public void Dispose()
@@ -49,7 +51,7 @@ namespace SidebarDiagnostics.Models
                         _metrics = null;
                     }
 
-                    _plot = null;
+                    _plotModel = null;
                     _data = null;
                 }
 
@@ -69,30 +71,57 @@ namespace SidebarDiagnostics.Models
             ExpandConfig = true;
         }
 
+        public void ResetAxes()
+        {
+            if (PlotModel != null)
+            {
+                PlotModel.ResetAllAxes();
+                PlotModel.InvalidatePlot(false);
+            }
+        }
+
+        private static PlotModel NewPlotModel()
+        {
+            PlotModel _model = new PlotModel();
+
+            _model.Axes.Add(new LogarithmicAxis()
+            {
+                Position = AxisPosition.Left,
+                MajorGridlineStyle = LineStyle.Solid
+            });
+
+            _model.Axes.Add(new DateTimeAxis()
+            {
+                Position = AxisPosition.Bottom,
+                StringFormat = "T",
+                Angle = 45
+            });
+
+            return _model;
+        }
+
         public void SetupPlot()
         {
-            _data = new Dictionary<iMetric, ObservableCollection<MetricRecord>>();
+            _data = new Dictionary<iMetric, LineSeries>();
 
-            _plot.Series.Clear();
+            PlotModel _model = NewPlotModel();
 
             foreach (iMetric _metric in Metrics)
             {
-                ObservableCollection<MetricRecord> _records = new ObservableCollection<MetricRecord>();
+                LineSeries _series = new LineSeries()
+                {
+                    Title = _metric.FullName,
+                    TrackerFormatString = string.Format("{0}\r\n{{4:#,##0.##}}{1}\r\n{{2:T}}", _metric.FullName, _metric.nAppend)
+                };
 
-                _data.Add(_metric, _records);
-                
+                _data.Add(_metric, _series);
+
                 _metric.PropertyChanged += Metric_PropertyChanged;
 
-                _plot.Series.Add(
-                    new LineSeries()
-                    {
-                        Title = _metric.FullName,
-                        TrackerFormatString = string.Format("{0}\r\n{{Value:#,##0.##}}{1}\r\n{{Recorded:T}}", _metric.FullName, _metric.nAppend),
-                        ItemsSource = _records,
-                        DataFieldX = "Recorded",
-                        DataFieldY = "Value"
-                    });
+                _model.Series.Add(_series);
             }
+
+            PlotModel = _model;
         }
 
         public void NotifyPropertyChanged(string propertyName)
@@ -165,9 +194,16 @@ namespace SidebarDiagnostics.Models
                 return;
             }
 
+            // sensor updates arrive on the polling thread; the plot belongs to the UI
+            if (!App.Current.Dispatcher.CheckAccess())
+            {
+                App.Current.Dispatcher.BeginInvoke((Action)(() => Metric_PropertyChanged(sender, e)));
+                return;
+            }
+
             iMetric _metric = (iMetric)sender;
 
-            if (_data == null || !_data.ContainsKey(_metric))
+            if (_data == null || !_data.TryGetValue(_metric, out LineSeries _series))
             {
                 _metric.PropertyChanged -= Metric_PropertyChanged;
                 return;
@@ -175,21 +211,25 @@ namespace SidebarDiagnostics.Models
 
             DateTime _now = DateTime.Now;
 
-            try
-            {
-                ObservableCollection<MetricRecord> _mData = _data[_metric];
+            double _cutoff = DateTimeAxis.ToDouble(_now.AddSeconds(-Duration));
 
-                foreach (MetricRecord _record in _mData.Where(r => (_now - r.Recorded).TotalSeconds > Duration).ToArray())
-                {
-                    _mData.Remove(_record);
-                }
+            List<DataPoint> _points = _series.Points;
 
-                _mData.Add(new MetricRecord(_metric.nValue, _now));
-            }
-            catch
+            int _stale = 0;
+
+            while (_stale < _points.Count && _points[_stale].X < _cutoff)
             {
-                _metric.PropertyChanged -= Metric_PropertyChanged;
+                _stale++;
             }
+
+            if (_stale > 0)
+            {
+                _points.RemoveRange(0, _stale);
+            }
+
+            _points.Add(new DataPoint(DateTimeAxis.ToDouble(_now), _metric.nValue > 0d ? _metric.nValue : 0.001d));
+
+            PlotModel.InvalidatePlot(true);
         }
 
         private string _title { get; set; } = Resources.GraphTitle;
@@ -205,6 +245,22 @@ namespace SidebarDiagnostics.Models
                 _title = value;
 
                 NotifyPropertyChanged("Title");
+            }
+        }
+
+        private PlotModel _plotModel { get; set; }
+
+        public PlotModel PlotModel
+        {
+            get
+            {
+                return _plotModel;
+            }
+            private set
+            {
+                _plotModel = value;
+
+                NotifyPropertyChanged("PlotModel");
             }
         }
 
@@ -389,9 +445,7 @@ namespace SidebarDiagnostics.Models
             }
         }
 
-        private Plot _plot { get; set; }
-
-        private Dictionary<iMetric, ObservableCollection<MetricRecord>> _data { get; set; }
+        private Dictionary<iMetric, LineSeries> _data { get; set; }
 
         private bool _disposed { get; set; } = false;
     }
@@ -407,18 +461,5 @@ namespace SidebarDiagnostics.Models
         public int Seconds { get; set; }
 
         public string Text { get; set; }
-    }
-
-    public class MetricRecord
-    {
-        public MetricRecord(double value, DateTime recorded)
-        {
-            Value = value > 0 ? value : 0.001d;
-            Recorded = recorded;
-        }
-
-        public double Value { get; set; }
-
-        public DateTime Recorded { get; set; }
     }
 }

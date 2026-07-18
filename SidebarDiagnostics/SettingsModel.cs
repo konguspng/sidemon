@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -49,12 +49,16 @@ namespace SidebarDiagnostics.Models
             ToolbarMode = Framework.Settings.Instance.ToolbarMode;
             ClickThrough = Framework.Settings.Instance.ClickThrough;
             ShowTrayIcon = Framework.Settings.Instance.ShowTrayIcon;
-            AutoUpdate = Framework.Settings.Instance.AutoUpdate;
             RunAtStartup = Framework.Settings.Instance.RunAtStartup;
             SidebarWidth = Framework.Settings.Instance.SidebarWidth;
             AutoBGColor = Framework.Settings.Instance.AutoBGColor;
+            GlassBackground = Framework.Settings.Instance.GlassBackground;
             BGColor = Framework.Settings.Instance.BGColor;
             BGOpacity = Framework.Settings.Instance.BGOpacity;
+            BlurAmount = Framework.Settings.Instance.BlurAmount;
+            BlurStrength = Framework.Settings.Instance.BlurStrength;
+            FeatherDirection = Framework.Settings.Instance.FeatherDirection;
+            FeatherSize = Framework.Settings.Instance.FeatherSize;
 
             TextAlignItems = new TextAlignItem[2]
             {
@@ -74,6 +78,10 @@ namespace SidebarDiagnostics.Models
             };
 
             FontSetting = Framework.Settings.Instance.FontSetting;
+
+            FontFamilyItems = SidebarFonts.All;
+            FontOption = FontFamilyItems.FirstOrDefault(f => string.Equals(f.Name, Framework.Settings.Instance.FontFamilyName, StringComparison.OrdinalIgnoreCase)) ?? FontFamilyItems[0];
+
             FontColor = Framework.Settings.Instance.FontColor;
             AlertFontColor = Framework.Settings.Instance.AlertFontColor;
             AlertBlink = Framework.Settings.Instance.AlertBlink;
@@ -124,6 +132,7 @@ namespace SidebarDiagnostics.Models
             }
 
             IsChanged = false;
+            _initialized = true;
         }
 
         public void Save()
@@ -145,14 +154,19 @@ namespace SidebarDiagnostics.Models
             Framework.Settings.Instance.ToolbarMode = ToolbarMode;
             Framework.Settings.Instance.ClickThrough = ClickThrough;
             Framework.Settings.Instance.ShowTrayIcon = ShowTrayIcon;
-            Framework.Settings.Instance.AutoUpdate = AutoUpdate;
             Framework.Settings.Instance.RunAtStartup = RunAtStartup;
             Framework.Settings.Instance.SidebarWidth = SidebarWidth;
             Framework.Settings.Instance.AutoBGColor = AutoBGColor;
+            Framework.Settings.Instance.GlassBackground = GlassBackground;
             Framework.Settings.Instance.BGColor = BGColor;
             Framework.Settings.Instance.BGOpacity = BGOpacity;
+            Framework.Settings.Instance.BlurAmount = BlurAmount;
+            Framework.Settings.Instance.BlurStrength = BlurStrength;
+            Framework.Settings.Instance.FeatherDirection = FeatherDirection;
+            Framework.Settings.Instance.FeatherSize = FeatherSize;
             Framework.Settings.Instance.TextAlign = TextAlign;
             Framework.Settings.Instance.FontSetting = FontSetting;
+            Framework.Settings.Instance.FontFamilyName = FontOption != null ? FontOption.Name : SidebarFonts.DefaultName;
             Framework.Settings.Instance.FontColor = FontColor;
             Framework.Settings.Instance.AlertFontColor = AlertFontColor;
             Framework.Settings.Instance.AlertBlink = AlertBlink;
@@ -528,22 +542,6 @@ namespace SidebarDiagnostics.Models
             }
         }
 
-        private bool _autoUpdate { get; set; }
-
-        public bool AutoUpdate
-        {
-            get
-            {
-                return _autoUpdate;
-            }
-            set
-            {
-                _autoUpdate = value;
-
-                NotifyPropertyChanged("AutoUpdate");
-            }
-        }
-
         private bool _runAtStartup { get; set; }
 
         public bool RunAtStartup
@@ -592,6 +590,32 @@ namespace SidebarDiagnostics.Models
             }
         }
 
+        private bool _glassBackground { get; set; }
+
+        public bool GlassBackground
+        {
+            get
+            {
+                return _glassBackground;
+            }
+            set
+            {
+                bool _turnedOn = value && !_glassBackground;
+
+                _glassBackground = value;
+
+                NotifyPropertyChanged("GlassBackground");
+
+                // a heavy tint hides the blur entirely; ease it when the user opts in
+                if (_turnedOn && _initialized && BGOpacity > 0.6d)
+                {
+                    BGOpacity = 0.35d;
+                }
+            }
+        }
+
+        private bool _initialized = false;
+
         private string _bgColor { get; set; }
 
         public string BGColor
@@ -623,6 +647,75 @@ namespace SidebarDiagnostics.Models
                 NotifyPropertyChanged("BGOpacity");
             }
         }
+
+        public string[] BlurAmountItems { get; } = new string[] { "Standard", "Strong" };
+
+        private string _blurAmount { get; set; }
+
+        public string BlurAmount
+        {
+            get
+            {
+                return _blurAmount;
+            }
+            set
+            {
+                _blurAmount = value;
+
+                NotifyPropertyChanged("BlurAmount");
+            }
+        }
+
+        private double _blurStrength { get; set; }
+
+        public double BlurStrength
+        {
+            get
+            {
+                return _blurStrength;
+            }
+            set
+            {
+                _blurStrength = value;
+
+                NotifyPropertyChanged("BlurStrength");
+            }
+        }
+
+        public string[] FeatherDirectionItems { get; } = new string[] { "Auto", "Left", "Right", "Top", "Bottom", "None" };
+
+        private string _featherDirection { get; set; }
+
+        public string FeatherDirection
+        {
+            get
+            {
+                return _featherDirection;
+            }
+            set
+            {
+                _featherDirection = value;
+
+                NotifyPropertyChanged("FeatherDirection");
+            }
+        }
+
+        private double _featherSize { get; set; }
+
+        public double FeatherSize
+        {
+            get
+            {
+                return _featherSize;
+            }
+            set
+            {
+                _featherSize = value;
+
+                NotifyPropertyChanged("FeatherSize");
+            }
+        }
+
 
         private TextAlign _textAlign { get; set; }
 
@@ -685,6 +778,38 @@ namespace SidebarDiagnostics.Models
                 _fontSettingItems = value;
 
                 NotifyPropertyChanged("FontSizeItems");
+            }
+        }
+
+        private FontOption _fontOption { get; set; }
+
+        public FontOption FontOption
+        {
+            get
+            {
+                return _fontOption;
+            }
+            set
+            {
+                _fontOption = value;
+
+                NotifyPropertyChanged("FontOption");
+            }
+        }
+
+        private FontOption[] _fontFamilyItems { get; set; }
+
+        public FontOption[] FontFamilyItems
+        {
+            get
+            {
+                return _fontFamilyItems;
+            }
+            set
+            {
+                _fontFamilyItems = value;
+
+                NotifyPropertyChanged("FontFamilyItems");
             }
         }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Windows.Threading;
 using SidebarDiagnostics.Monitoring;
@@ -98,8 +98,11 @@ namespace SidebarDiagnostics.Models
 
         private void InitMonitors()
         {
-            MonitorManager = new MonitorManager(Framework.Settings.Instance.MonitorConfig);
-            MonitorManager.Update();
+            lock (_updateLock)
+            {
+                MonitorManager = new MonitorManager(Framework.Settings.Instance.MonitorConfig);
+                MonitorManager.Update();
+            }
         }
 
         private void StartClock()
@@ -115,11 +118,13 @@ namespace SidebarDiagnostics.Models
             _clockTimer.Start();
         }
 
+        // Sensor polling runs on a threadpool timer so slow hardware reads never
+        // stall the UI; bindings marshal the resulting scalar changes themselves.
         private void StartMonitors()
         {
-            _monitorTimer = new DispatcherTimer();
-            _monitorTimer.Interval = TimeSpan.FromMilliseconds(Framework.Settings.Instance.PollingInterval);
-            _monitorTimer.Tick += new EventHandler(MonitorTimer_Tick);
+            _monitorTimer = new System.Timers.Timer(Framework.Settings.Instance.PollingInterval);
+            _monitorTimer.AutoReset = true;
+            _monitorTimer.Elapsed += MonitorTimer_Elapsed;
             _monitorTimer.Start();
         }
 
@@ -133,11 +138,6 @@ namespace SidebarDiagnostics.Models
             {
                 Date = _now.ToString(Framework.Settings.Instance.DateSetting.Format, Culture.CultureInfo);
             }
-        }
-
-        private void UpdateMonitors()
-        {
-            MonitorManager.Update();
         }
 
         private void PauseClock()
@@ -186,13 +186,18 @@ namespace SidebarDiagnostics.Models
             if (_monitorTimer != null)
             {
                 _monitorTimer.Stop();
+                _monitorTimer.Elapsed -= MonitorTimer_Elapsed;
+                _monitorTimer.Dispose();
                 _monitorTimer = null;
             }
-            
-            if (MonitorManager != null)
+
+            lock (_updateLock)
             {
-                MonitorManager.Dispose();
-                _monitorManager = null;
+                if (MonitorManager != null)
+                {
+                    MonitorManager.Dispose();
+                    _monitorManager = null;
+                }
             }
         }
 
@@ -201,9 +206,31 @@ namespace SidebarDiagnostics.Models
             UpdateClock();
         }
 
-        private void MonitorTimer_Tick(object sender, EventArgs e)
+        private void MonitorTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            UpdateMonitors();
+            // skip the tick if the previous update is still running
+            if (!System.Threading.Monitor.TryEnter(_updateLock))
+            {
+                return;
+            }
+
+            try
+            {
+                MonitorManager _manager = _monitorManager;
+
+                if (_manager != null && !_disposed)
+                {
+                    _manager.Update();
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorLog.Write(ex);
+            }
+            finally
+            {
+                System.Threading.Monitor.Exit(_updateLock);
+            }
         }
 
         private bool _ready { get; set; } = false;
@@ -280,6 +307,11 @@ namespace SidebarDiagnostics.Models
             }
             set
             {
+                if (string.Equals(_time, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
                 _time = value;
 
                 NotifyPropertyChanged("Time");
@@ -312,6 +344,11 @@ namespace SidebarDiagnostics.Models
             }
             set
             {
+                if (string.Equals(_date, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
                 _date = value;
 
                 NotifyPropertyChanged("Date");
@@ -336,8 +373,10 @@ namespace SidebarDiagnostics.Models
 
         private DispatcherTimer _clockTimer { get; set; }
 
-        private DispatcherTimer _monitorTimer { get; set; }
+        private System.Timers.Timer _monitorTimer { get; set; }
 
-        private bool _disposed { get; set; } = false;
+        private readonly object _updateLock = new object();
+
+        private volatile bool _disposed = false;
     }
 }

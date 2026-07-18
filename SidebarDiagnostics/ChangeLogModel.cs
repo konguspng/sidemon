@@ -2,7 +2,6 @@
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
 using SidebarDiagnostics.Utilities;
 using SidebarDiagnostics.Framework;
 
@@ -71,30 +70,29 @@ namespace SidebarDiagnostics.Models
         }
     }
 
-    [JsonObject(MemberSerialization.OptIn)]
     public class ChangeLogEntry
     {
         public static ChangeLogEntry[] Load()
         {
-            ChangeLogEntry[] _return = null;
-
-            string _file = Paths.ChangeLog;
-
-            if (File.Exists(_file))
+            try
             {
-                using (StreamReader _reader = File.OpenText(_file))
+                string _file = Paths.ChangeLog;
+
+                if (File.Exists(_file))
                 {
-                    _return = (ChangeLogEntry[])new JsonSerializer().Deserialize(_reader, typeof(ChangeLogEntry[]));
+                    return System.Text.Json.JsonSerializer.Deserialize<ChangeLogEntry[]>(File.ReadAllText(_file)) ?? new ChangeLogEntry[0];
                 }
             }
+            catch (Exception e)
+            {
+                ErrorLog.Write(e);
+            }
 
-            return _return ?? new ChangeLogEntry[0];
+            return new ChangeLogEntry[0];
         }
 
-        [JsonProperty]
         public string Version { get; set; }
 
-        [JsonProperty]
         public string[] Changes { get; set; }
     }
 }

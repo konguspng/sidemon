@@ -1,5 +1,7 @@
-﻿using System.Windows.Input;
+﻿using System.Windows.Controls;
+using System.Windows.Input;
 using SidebarDiagnostics.Models;
+using SidebarDiagnostics.Monitoring;
 using SidebarDiagnostics.Windows;
 using System.ComponentModel;
 using SidebarDiagnostics.Style;
@@ -15,17 +17,38 @@ namespace SidebarDiagnostics
         {
             InitializeComponent();
 
-            DataContext = Model = new GraphModel(OPGraph);
+            DataContext = Model = new GraphModel();
             Model.BindData(sidebar.Model.MonitorManager);
-            
+
             Show();
+        }
+
+        private void MetricList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (Model == null || Model.Metrics == null)
+            {
+                return;
+            }
+
+            foreach (iMetric _metric in e.RemovedItems)
+            {
+                Model.Metrics.Remove(_metric);
+            }
+
+            foreach (iMetric _metric in e.AddedItems)
+            {
+                if (!Model.Metrics.Contains(_metric))
+                {
+                    Model.Metrics.Add(_metric);
+                }
+            }
         }
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Space)
             {
-                OPGraph.ResetAllAxes();
+                Model.ResetAxes();
             }
         }
 

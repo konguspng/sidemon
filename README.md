@@ -1,54 +1,39 @@
-<h1><img src="https://cdn.rawgit.com/ArcadeRenegade/SidebarDiagnostics/master/sidebar.ico" width="64" height="64" /> Sidebar Diagnostics</h1>
+<h1><img src="icon.png" width="48" height="48" align="top" /> SideMon</h1>
 
-A simple sidebar for Windows desktop that displays hardware diagnostic information.
+A lightweight hardware monitor sidebar for Windows 10/11. SideMon docks to the edge of your screen and shows your PC's vitals at a glance, without getting in the way and without eating the resources it's supposed to be measuring.
 
-### Download
+## Download
 
-Go to the <a href="https://github.com/ArcadeRenegade/SidebarDiagnostics/releases">releases tab</a>.
+Grab the installer from the [releases page](https://github.com/konguspng/sidemon/releases) and run it. No prerequisites needed, the .NET runtime is bundled. On first run, SideMon offers to install the [PawnIO](https://pawnio.eu) driver, which is required for CPU/GPU clock, temperature, and voltage sensors on modern systems.
 
-### Features
-* Monitors CPU, RAM, GPU, network, and logical drives.
-* Create graphs for all metrics.
-* Allows for lots of customization.
-* Allows alerts for various values.
-* Allows binding hotkeys.
-* Supports monitors of all DPI types.
-* Has a clock at the top.
+## Features
 
-### Important
+* Monitors CPU (clocks, temps, load), GPU, RAM, network throughput, and drives.
+* **Frosted-glass background** with adjustable blur, tint, and edge fade.
+* **Bundled fonts**: pick from Titillium Web, Rajdhani, Chakra Petch, or Share Tech Mono. No font installation needed.
+* **Game-friendly**: monitoring and rendering pause automatically while a fullscreen app runs on the sidebar's screen.
+* Graphs for all metrics, configurable alerts with blink, global hotkeys, clock and date display.
+* Per-monitor DPI aware; works across multi-monitor setups.
+* Minimalist icon set and extensive customization (width, colors, opacity, text alignment, ordering).
 
-If you are changing your screen's DPI settings, <a href="https://github.com/ArcadeRenegade/SidebarDiagnostics/wiki/DPI-Settings">view this page!</a>
+## Built to be light
 
-### Author Note
+* Sensors poll on a background thread; the UI only updates values that actually changed.
+* The glass blur is rendered **once** and cached. No live shader effects.
+* No installed services, no telemetry, no auto-updater running in the background.
 
-This software will always be free on GitHub. If you really like it please consider donating. I'd appreciate it!
-Thanks.
+## Requirements
 
-https://www.paypal.me/arcaderenegade
+* Windows 10 or Windows 11 (x64)
+* Administrator rights (required for hardware sensor access)
 
-### Supported OS
+## Credits
 
-* Windows 10
-* Windows 8.1
-* Windows 8
-* Windows 7
+* Based on [Sidebar Diagnostics](https://github.com/ArcadeRenegade/SidebarDiagnostics) by ArcadeRenegade. Thank you for the original project!
+* Hardware data provided by [Libre Hardware Monitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor).
+* Kernel driver by [PawnIO](https://pawnio.eu).
+* Bundled fonts are licensed under the SIL Open Font License (see `SidebarDiagnostics/Fonts/FONT-LICENSES.txt`).
 
-### License
+## License
 
-GNU GENERAL PUBLIC LICENSE
-
-Please provide a link to this GitHub repository if reuploading. Thank you.
-
-### Info
-
-Written in C# .NET WPF.
-
-Currently compiled in <a href="https://dotnet.microsoft.com/download/dotnet-framework/thank-you/net472-web-installer">.NET 4.7.2</a>.
-
-You will need to run it as administrator.
-
-Data provided by <a href="https://github.com/LibreHardwareMonitor/LibreHardwareMonitor">Libre Hardware Monitor</a>. Please thank the library's contributors for their support!
-
-<img src="http://i.imgur.com/70LkdwO.png" />
-
-<img src="http://i.imgur.com/mkrO6W6.png" />
+GNU General Public License. Please link back to this repository if you redistribute.

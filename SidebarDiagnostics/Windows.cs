@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -11,8 +11,8 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using System.Windows.Media;
+using System.Text.Json.Serialization;
 using SidebarDiagnostics.Style;
-using Newtonsoft.Json;
 
 namespace SidebarDiagnostics.Windows
 {
@@ -81,6 +81,15 @@ namespace SidebarDiagnostics.Windows
                 return OS.Get >= WinOS.Win10;
             }
         }
+
+        // DWMWA_SYSTEMBACKDROP_TYPE (real acrylic/mica) exists since Windows 11 22H2
+        public static bool SupportSystemBackdrop
+        {
+            get
+            {
+                return Environment.OSVersion.Version.Build >= 22621;
+            }
+        }
     }
 
     internal static class NativeMethods
@@ -141,6 +150,26 @@ namespace SidebarDiagnostics.Windows
 
         [DllImport("dwmapi.dll")]
         internal static extern int DwmSetWindowAttribute(IntPtr hwnd, AppBarWindow.DWMWINDOWATTRIBUTE dwmAttribute, IntPtr pvAttribute, uint cbAttribute);
+
+        [DllImport("user32.dll")]
+        internal static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct AccentPolicy
+    {
+        public int AccentState;
+        public int AccentFlags;
+        public int GradientColor;
+        public int AnimationId;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct WindowCompositionAttributeData
+    {
+        public int Attribute;
+        public IntPtr Data;
+        public int SizeOfData;
     }
 
     public static class ShowDesktop
@@ -352,7 +381,6 @@ namespace SidebarDiagnostics.Windows
         private static CancellationTokenSource _cancelRestart { get; set; }
     }
 
-    [JsonObject(MemberSerialization.OptIn)]
     public class Hotkey
     {
         private const int WM_HOTKEY = 0x0312;
@@ -391,24 +419,19 @@ namespace SidebarDiagnostics.Windows
             WinMod = winMod;
         }
 
-        [JsonProperty]
         public KeyAction Action { get; set; }
 
-        [JsonProperty]
         public uint VirtualKey { get; set; }
 
-        [JsonProperty]
         public bool AltMod { get; set; }
 
-        [JsonProperty]
         public bool CtrlMod { get; set; }
 
-        [JsonProperty]
         public bool ShiftMod { get; set; }
 
-        [JsonProperty]
         public bool WinMod { get; set; }
 
+        [JsonIgnore]
         public Key WinKey
         {
             get
@@ -552,12 +575,12 @@ namespace SidebarDiagnostics.Windows
                             }
                             else
                             {
-                                _sidebar.AppBarShow();
+                                _ = _sidebar.AppBarShow();
                             }
                             break;
 
                         case KeyAction.Show:
-                            _sidebar.AppBarShow();
+                            _ = _sidebar.AppBarShow();
                             break;
 
                         case KeyAction.Hide:
@@ -589,7 +612,7 @@ namespace SidebarDiagnostics.Windows
 
                                 Framework.Settings.Instance.Save();
 
-                                _sidebar.Reposition();
+                                _ = _sidebar.Reposition();
                             }
                             break;
 
@@ -609,7 +632,7 @@ namespace SidebarDiagnostics.Windows
 
                                 Framework.Settings.Instance.Save();
 
-                                _sidebar.Reposition();
+                                _ = _sidebar.Reposition();
                             }
                             break;
 
@@ -617,7 +640,7 @@ namespace SidebarDiagnostics.Windows
                             Framework.Settings.Instance.UseAppBar = !Framework.Settings.Instance.UseAppBar;
                             Framework.Settings.Instance.Save();
 
-                            _sidebar.Reposition();
+                            _ = _sidebar.Reposition();
                             break;
                     }
 
@@ -1115,7 +1138,8 @@ namespace SidebarDiagnostics.Windows
             DWMWA_CLOAK = 13,
             DWMWA_CLOAKED = 14,
             DWMWA_FREEZE_REPRESENTATION = 15,
-            DWMWA_LAST = 16
+            DWMWA_LAST = 16,
+            DWMWA_SYSTEMBACKDROP_TYPE = 38
         }
 
         private static class HWND_FLAG
@@ -1318,6 +1342,73 @@ namespace SidebarDiagnostics.Windows
             SetWindowLong(WND_STYLE.WS_EX_TOOLWINDOW, null);
         }
 
+        private static class DWMSBT
+        {
+            public const int AUTO = 0;
+            public const int NONE = 1;
+            public const int MAINWINDOW = 2;   // mica
+            public const int TRANSIENTWINDOW = 3;   // acrylic
+            public const int TABBEDWINDOW = 4;
+        }
+
+        // Real DWM acrylic backdrop (Windows 11 22H2+). The legacy accent-policy
+        // acrylic renders black on layered windows since 24H2, so glass mode instead
+        // recreates the sidebar non-layered and lets the WPF background act as tint.
+        // Legacy composition blur-behind effect (ACCENT_ENABLE_BLURBEHIND = 3).
+        // This runs on transparent layered windows (AllowsTransparency = true) and
+        // honors the alpha channel, enabling a feathered blur that fades at the window edges.
+        public void SetGlass()
+        {
+            IntPtr _hwnd = new WindowInteropHelper(this).Handle;
+
+            var accent = new AccentPolicy();
+            accent.AccentState = 3; // ACCENT_ENABLE_BLURBEHIND
+
+            var accentStructSize = Marshal.SizeOf(accent);
+            var accentPtr = Marshal.AllocHGlobal(accentStructSize);
+            try
+            {
+                Marshal.StructureToPtr(accent, accentPtr, false);
+
+                var data = new WindowCompositionAttributeData();
+                data.Attribute = 19; // WCA_ACCENT_POLICY
+                data.SizeOfData = accentStructSize;
+                data.Data = accentPtr;
+
+                NativeMethods.SetWindowCompositionAttribute(_hwnd, ref data);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(accentPtr);
+            }
+        }
+
+        public void ClearGlass()
+        {
+            IntPtr _hwnd = new WindowInteropHelper(this).Handle;
+
+            var accent = new AccentPolicy();
+            accent.AccentState = 0; // ACCENT_DISABLED
+
+            var accentStructSize = Marshal.SizeOf(accent);
+            var accentPtr = Marshal.AllocHGlobal(accentStructSize);
+            try
+            {
+                Marshal.StructureToPtr(accent, accentPtr, false);
+
+                var data = new WindowCompositionAttributeData();
+                data.Attribute = 19; // WCA_ACCENT_POLICY
+                data.SizeOfData = accentStructSize;
+                data.Data = accentPtr;
+
+                NativeMethods.SetWindowCompositionAttribute(_hwnd, ref data);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(accentPtr);
+            }
+        }
+
         public void DisableAeroPeek()
         {
             IntPtr _hwnd = new WindowInteropHelper(this).Handle;
@@ -1365,20 +1456,31 @@ namespace SidebarDiagnostics.Windows
             }
         }
 
+        // awaits resume on the dispatcher (WPF sync context), so the whole sequence
+        // stays on the UI thread without the old fire-and-forget ContinueWith chain
         public async Task SetAppBar()
         {
-            ClearAppBar();
-
-            await Task.Delay(100).ContinueWith(async (_) =>
+            if (_settingAppBar)
             {
-                await Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, (Action)(async () =>
-                {
-                    await BindAppBar();
-                }));
-            });
+                return;
+            }
 
+            _settingAppBar = true;
+
+            try
+            {
+                ClearAppBar();
+
+                await Task.Delay(100);
+
+                await BindAppBar();
+            }
+            finally
+            {
+                _settingAppBar = false;
+            }
         }
-        
+
         private async Task BindAppBar()
         {
             Monitor.GetWorkArea(this, out int screen, out DockEdge edge, out WorkArea initPos, out WorkArea windowWA, out WorkArea appbarWA);
@@ -1421,13 +1523,9 @@ namespace SidebarDiagnostics.Windows
                 Move(windowWA);
             }));
 
-            await Task.Delay(500).ContinueWith(async (_) =>
-            {
-                await Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, (Action)(() =>
-                {
-                    HwndSource.AddHook(AppBarHook);
-                }));
-            });
+            await Task.Delay(500);
+
+            HwndSource.AddHook(AppBarHook);
         }
 
         public void ClearAppBar()
@@ -1445,6 +1543,9 @@ namespace SidebarDiagnostics.Windows
 
             IsAppBar = false;
         }
+
+        // raised when the shell reports a fullscreen app appearing/leaving this screen
+        protected virtual void OnFullScreenAppChanged(bool active) { }
 
         public virtual async Task AppBarShow()
         {
@@ -1482,7 +1583,7 @@ namespace SidebarDiagnostics.Windows
                 switch (wParam.ToInt32())
                 {
                     case APPBARNOTIFY.ABN_POSCHANGED:
-                        SetAppBar();
+                        _ = SetAppBar();
                         break;
 
                     case APPBARNOTIFY.ABN_FULLSCREENAPP:
@@ -1494,10 +1595,17 @@ namespace SidebarDiagnostics.Windows
                             {
                                 SetBottom(false);
                             }
+
+                            OnFullScreenAppChanged(true);
                         }
-                        else if (_wasTopMost)
+                        else
                         {
-                            SetTopMost(false);
+                            if (_wasTopMost)
+                            {
+                                SetTopMost(false);
+                            }
+
+                            OnFullScreenAppChanged(false);
                         }
                         break;
                 }
@@ -1525,6 +1633,8 @@ namespace SidebarDiagnostics.Windows
         private bool _canMove { get; set; } = true;
 
         private bool _wasTopMost { get; set; } = false;
+
+        private bool _settingAppBar { get; set; } = false;
 
         private int _callbackID { get; set; }
 

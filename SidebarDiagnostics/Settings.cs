@@ -1,18 +1,23 @@
-﻿using System;
+using System;
 using System.IO;
 using System.ComponentModel;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using SidebarDiagnostics.Utilities;
 using SidebarDiagnostics.Monitoring;
 using SidebarDiagnostics.Windows;
-using System.Globalization;
 
 namespace SidebarDiagnostics.Framework
 {
-    [JsonObject(MemberSerialization.OptIn)]
     public sealed class Settings : INotifyPropertyChanged
     {
-        private Settings() { }
+        public Settings() { }
+
+        internal static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions()
+        {
+            WriteIndented = true,
+            IncludeFields = false
+        };
 
         public void Save()
         {
@@ -21,10 +26,7 @@ namespace SidebarDiagnostics.Framework
                 Directory.CreateDirectory(Paths.LocalApp);
             }
 
-            using (StreamWriter _writer = File.CreateText(Paths.SettingsFile))
-            {
-                new JsonSerializer() { Formatting = Formatting.Indented }.Serialize(_writer, this);
-            }
+            File.WriteAllText(Paths.SettingsFile, JsonSerializer.Serialize(this, JsonOptions));
         }
 
         public void Reload()
@@ -34,17 +36,20 @@ namespace SidebarDiagnostics.Framework
 
         private static Settings Load()
         {
-            Settings _return = null;
-
-            if (File.Exists(Paths.SettingsFile))
+            // a corrupt or truncated settings file must never prevent startup
+            try
             {
-                using (StreamReader _reader = File.OpenText(Paths.SettingsFile))
+                if (File.Exists(Paths.SettingsFile))
                 {
-                    _return = (Settings)new JsonSerializer().Deserialize(_reader, typeof(Settings));
+                    return JsonSerializer.Deserialize<Settings>(File.ReadAllText(Paths.SettingsFile), JsonOptions) ?? new Settings();
                 }
             }
+            catch (Exception e)
+            {
+                ErrorLog.Write(e);
+            }
 
-            return _return ?? new Settings();
+            return new Settings();
         }
 
         public void NotifyPropertyChanged(string propertyName)
@@ -59,7 +64,6 @@ namespace SidebarDiagnostics.Framework
 
         private string _changeLog { get; set; } = null;
 
-        [JsonProperty]
         public string ChangeLog
         {
             get
@@ -76,7 +80,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _initialSetup { get; set; } = true;
 
-        [JsonProperty]
         public bool InitialSetup
         {
             get
@@ -93,7 +96,6 @@ namespace SidebarDiagnostics.Framework
 
         private DockEdge _dockEdge { get; set; } = DockEdge.Right;
 
-        [JsonProperty]
         public DockEdge DockEdge
         {
             get
@@ -110,7 +112,6 @@ namespace SidebarDiagnostics.Framework
 
         private int _screenIndex { get; set; } = 0;
 
-        [JsonProperty]
         public int ScreenIndex
         {
             get
@@ -127,7 +128,6 @@ namespace SidebarDiagnostics.Framework
 
         private string _culture { get; set; } = Utilities.Culture.DEFAULT;
 
-        [JsonProperty]
         public string Culture
         {
             get
@@ -144,7 +144,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _useAppBar { get; set; } = true;
         
-        [JsonProperty]
         public bool UseAppBar
         {
             get
@@ -161,7 +160,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _alwaysTop { get; set; } = true;
 
-        [JsonProperty]
         public bool AlwaysTop
         {
             get
@@ -178,7 +176,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _autoUpdate { get; set; } = true;
 
-        [JsonProperty]
         public bool AutoUpdate
         {
             get
@@ -195,7 +192,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _runAtStartup { get; set; } = true;
 
-        [JsonProperty]
         public bool RunAtStartup
         {
             get
@@ -212,7 +208,6 @@ namespace SidebarDiagnostics.Framework
 
         private double _uiScale { get; set; } = 1d;
 
-        [JsonProperty]
         public double UIScale
         {
             get
@@ -229,7 +224,6 @@ namespace SidebarDiagnostics.Framework
 
         private int _xOffset { get; set; } = 0;
 
-        [JsonProperty]
         public int XOffset
         {
             get
@@ -246,7 +240,6 @@ namespace SidebarDiagnostics.Framework
 
         private int _yOffset { get; set; } = 0;
 
-        [JsonProperty]
         public int YOffset
         {
             get
@@ -263,7 +256,6 @@ namespace SidebarDiagnostics.Framework
 
         private int _pollingInterval { get; set; } = 1000;
 
-        [JsonProperty]
         public int PollingInterval
         {
             get
@@ -280,7 +272,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _toolbarMode { get; set; } = true;
 
-        [JsonProperty]
         public bool ToolbarMode
         {
             get
@@ -297,7 +288,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _clickThrough { get; set; } = false;
 
-        [JsonProperty]
         public bool ClickThrough
         {
             get
@@ -314,7 +304,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _showTrayIcon { get; set; } = true;
 
-        [JsonProperty]
         public bool ShowTrayIcon
         {
             get
@@ -331,7 +320,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _collapseMenuBar { get; set; } = false;
 
-        [JsonProperty]
         public bool CollapseMenuBar
         {
             get
@@ -348,7 +336,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _initiallyHidden { get; set; } = false;
 
-        [JsonProperty]
         public bool InitiallyHidden
         {
             get
@@ -365,7 +352,6 @@ namespace SidebarDiagnostics.Framework
 
         private int _sidebarWidth { get; set; } = 180;
 
-        [JsonProperty]
         public int SidebarWidth
         {
             get
@@ -382,7 +368,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _autoBGColor { get; set; } = false;
 
-        [JsonProperty]
         public bool AutoBGColor
         {
             get
@@ -397,9 +382,24 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        private bool _glassBackground { get; set; } = false;
+
+        public bool GlassBackground
+        {
+            get
+            {
+                return _glassBackground;
+            }
+            set
+            {
+                _glassBackground = value;
+
+                NotifyPropertyChanged("GlassBackground");
+            }
+        }
+
         private string _bgColor { get; set; } = "#000000";
 
-        [JsonProperty]
         public string BGColor
         {
             get
@@ -416,7 +416,6 @@ namespace SidebarDiagnostics.Framework
 
         private double _bgOpacity { get; set; } = 0.85d;
 
-        [JsonProperty]
         public double BGOpacity
         {
             get
@@ -431,9 +430,73 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        private string _blurAmount { get; set; } = "Standard";
+
+        public string BlurAmount
+        {
+            get
+            {
+                return _blurAmount;
+            }
+            set
+            {
+                _blurAmount = value;
+
+                NotifyPropertyChanged("BlurAmount");
+            }
+        }
+
+        private double _blurStrength { get; set; } = 20.0d;
+
+        public double BlurStrength
+        {
+            get
+            {
+                return _blurStrength;
+            }
+            set
+            {
+                _blurStrength = value;
+
+                NotifyPropertyChanged("BlurStrength");
+            }
+        }
+
+        private string _featherDirection { get; set; } = "Auto";
+
+        public string FeatherDirection
+        {
+            get
+            {
+                return _featherDirection;
+            }
+            set
+            {
+                _featherDirection = value;
+
+                NotifyPropertyChanged("FeatherDirection");
+            }
+        }
+
+        private double _featherSize { get; set; } = 10.0d;
+
+        public double FeatherSize
+        {
+            get
+            {
+                return _featherSize;
+            }
+            set
+            {
+                _featherSize = value;
+
+                NotifyPropertyChanged("FeatherSize");
+            }
+        }
+
+
         private TextAlign _textAlign { get; set; } = TextAlign.Left;
 
-        [JsonProperty]
         public TextAlign TextAlign
         {
             get
@@ -450,7 +513,6 @@ namespace SidebarDiagnostics.Framework
 
         private FontSetting _fontSetting { get; set; } = FontSetting.x14;
 
-        [JsonProperty]
         public FontSetting FontSetting
         {
             get
@@ -465,9 +527,24 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        private string _fontFamilyName { get; set; } = SidebarFonts.DefaultName;
+
+        public string FontFamilyName
+        {
+            get
+            {
+                return _fontFamilyName;
+            }
+            set
+            {
+                _fontFamilyName = value;
+
+                NotifyPropertyChanged("FontFamilyName");
+            }
+        }
+
         private string _fontColor { get; set; } = "#FFFFFF";
         
-        [JsonProperty]
         public string FontColor
         {
             get
@@ -484,7 +561,6 @@ namespace SidebarDiagnostics.Framework
 
         private string _alertFontColor { get; set; } = "#FF4136";
 
-        [JsonProperty]
         public string AlertFontColor
         {
             get
@@ -501,7 +577,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _alertBlink { get; set; } = true;
 
-        [JsonProperty]
         public bool AlertBlink
         {
             get
@@ -518,7 +593,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _showMachineName { get; set; } = false;
 
-        [JsonProperty]
         public bool ShowMachineName
         {
             get
@@ -535,7 +609,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _showClock { get; set; } = true;
 
-        [JsonProperty]
         public bool ShowClock
         {
             get
@@ -552,7 +625,6 @@ namespace SidebarDiagnostics.Framework
 
         private bool _clock24HR { get; set; } = false;
 
-        [JsonProperty]
         public bool Clock24HR
         {
             get
@@ -569,7 +641,6 @@ namespace SidebarDiagnostics.Framework
 
         private DateSetting _dateSetting { get; set; } = DateSetting.Short;
 
-        [JsonProperty]
         public DateSetting DateSetting
         {
             get
@@ -586,7 +657,6 @@ namespace SidebarDiagnostics.Framework
 
         private MonitorConfig[] _monitorConfig { get; set; } = null;
 
-        [JsonProperty]
         public MonitorConfig[] MonitorConfig
         {
             get
@@ -603,7 +673,6 @@ namespace SidebarDiagnostics.Framework
 
         private Hotkey[] _hotkeys { get; set; } = new Hotkey[0];
 
-        [JsonProperty]
         public Hotkey[] Hotkeys
         {
             get
@@ -640,10 +709,64 @@ namespace SidebarDiagnostics.Framework
         Right
     }
 
-    [JsonObject(MemberSerialization.OptIn)]
+    public sealed class FontOption
+    {
+        public FontOption(string name, System.Windows.Media.FontFamily family)
+        {
+            Name = name;
+            Family = family;
+        }
+
+        public string Name { get; private set; }
+
+        public System.Windows.Media.FontFamily Family { get; private set; }
+    }
+
+    public static class SidebarFonts
+    {
+        public const string DefaultName = "Segoe UI";
+
+        private static readonly Uri _packUri = new Uri("pack://application:,,,/");
+
+        private static FontOption[] _all;
+
+        public static FontOption[] All
+        {
+            get
+            {
+                if (_all == null)
+                {
+                    _all = new FontOption[]
+                    {
+                        new FontOption(DefaultName, new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Titillium Web", new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Titillium Web")),
+                        new FontOption("Rajdhani", new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Rajdhani")),
+                        new FontOption("Chakra Petch", new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Chakra Petch")),
+                        new FontOption("Share Tech Mono", new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Share Tech Mono"))
+                    };
+                }
+
+                return _all;
+            }
+        }
+
+        public static System.Windows.Media.FontFamily GetFamily(string name)
+        {
+            foreach (FontOption _option in All)
+            {
+                if (string.Equals(_option.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return _option.Family;
+                }
+            }
+
+            return All[0].Family;
+        }
+    }
+
     public sealed class FontSetting
     {
-        internal FontSetting() { }
+        public FontSetting() { }
 
         private FontSetting(int fontSize)
         {
@@ -707,9 +830,9 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
-        [JsonProperty]
         public int FontSize { get; set; }
 
+        [JsonIgnore]
         public int TitleFontSize
         {
             get
@@ -718,6 +841,7 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        [JsonIgnore]
         public int SmallFontSize
         {
             get
@@ -726,6 +850,7 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        [JsonIgnore]
         public int IconSize
         {
             get
@@ -751,6 +876,7 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        [JsonIgnore]
         public int BarHeight
         {
             get
@@ -759,6 +885,7 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        [JsonIgnore]
         public int BarWidth
         {
             get
@@ -767,6 +894,7 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        [JsonIgnore]
         public int BarWidthWide
         {
             get
@@ -776,19 +904,18 @@ namespace SidebarDiagnostics.Framework
         }
     }
 
-    [JsonObject(MemberSerialization.OptIn)]
     public sealed class DateSetting
     {
-        internal DateSetting() { }
+        public DateSetting() { }
 
         private DateSetting(string format)
         {
             Format = format;
         }
 
-        [JsonProperty]
         public string Format { get; set; }
 
+        [JsonIgnore]
         public string Display
         {
             get
