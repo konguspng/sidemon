@@ -80,8 +80,14 @@
                 </Button>
             </StackPanel>
 
-            <ScrollViewer Style="{StaticResource ContentView}" VerticalContentAlignment="{Binding Source={x:Static frame:Settings.Instance}, Path=ContentVerticalAlign, Mode=OneWay}">
-                <StackPanel Style="{StaticResource ContentPanel}">
+            <!-- Viewbox with StretchDirection=DownOnly: content renders at its natural
+                 size whenever it fits, and shrinks uniformly (never scrolls, never
+                 clips) whenever it doesn't, regardless of item count, font size, or
+                 UI scale. The inner StackPanel needs an explicit width because a
+                 Viewbox always measures its child at infinite size, which would
+                 otherwise defeat text wrapping. -->
+            <Viewbox Margin="5,15" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="{Binding Source={x:Static frame:Settings.Instance}, Path=ContentVerticalAlign, Mode=OneWay}">
+                <StackPanel Style="{StaticResource ContentPanel}" Width="{Binding Source={x:Static frame:Settings.Instance}, Path=SidebarWidth, Mode=OneWay, Converter={StaticResource SidebarContentWidthConverter}}">
                     <ContentControl>
                         <ContentControl.Style>
                             <Style TargetType="{x:Type ContentControl}">
@@ -268,7 +274,7 @@
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
                 </StackPanel>
-            </ScrollViewer>
+            </Viewbox>
         </DockPanel>
     </Grid>
 </win:AppBarWindow>

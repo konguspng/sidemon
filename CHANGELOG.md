@@ -4,6 +4,8 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 
 ## 4.1.1 (unreleased, in development)
 
+- New Vertical Align setting (Top/Middle/Bottom, under Customize > Layout & Text) controlling where content sits when it's shorter than the screen.
+- Content that overflows the screen height (many drives, a larger font, a higher UI scale) now shrinks automatically to fit, instead of scrolling or clipping. Scrolling was removed entirely: with Click-Through enabled the sidebar was never actually scrollable in the first place, since click-through makes the whole window mouse-transparent by design. The auto-fit behavior always keeps everything visible without needing any interaction, and only engages when content would otherwise overflow; it renders at full size otherwise.
 - Toggling "Run at Startup" now shows a confirmation dialog on save: success ("SideMon will now start automatically when you log in") or a warning if the scheduled task couldn't be created/removed, instead of failing silently with no feedback at all. This is exactly the kind of failure that hid the 4.0/4.1.0 startup bug for so long.
 
 ## 4.1.0 (released)
