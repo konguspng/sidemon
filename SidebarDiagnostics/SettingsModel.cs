@@ -146,6 +146,8 @@ namespace SidebarDiagnostics.Models
                 MessageBox.Show(Resources.LanguageChangedText, Resources.LanguageChangedTitle, MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK);
             }
 
+            bool _runAtStartupChanged = RunAtStartup != Framework.Settings.Instance.RunAtStartup;
+
             Framework.Settings.Instance.DockEdge = DockEdge;
             Framework.Settings.Instance.ScreenIndex = ScreenIndex;
             Framework.Settings.Instance.Culture = Culture;
@@ -258,11 +260,28 @@ namespace SidebarDiagnostics.Models
 
             if (RunAtStartup)
             {
-                Startup.EnableStartupTask();
+                bool _enabled = Startup.EnableStartupTask();
+
+                if (_runAtStartupChanged)
+                {
+                    if (_enabled)
+                    {
+                        MessageBox.Show("SideMon will now start automatically when you log in.", "Run at Startup Enabled", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Could not enable Run at Startup. See the error log for details.", "Run at Startup", MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                    }
+                }
             }
             else
             {
-                Startup.DisableStartupTask();
+                bool _disabled = Startup.DisableStartupTask();
+
+                if (_runAtStartupChanged && !_disabled)
+                {
+                    MessageBox.Show("Could not fully disable Run at Startup. See the error log for details.", "Run at Startup", MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                }
             }
 
             IsChanged = false;

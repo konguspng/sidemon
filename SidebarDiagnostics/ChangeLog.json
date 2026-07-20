@@ -1,5 +1,11 @@
 [
   {
+    "Version": "4.1.1",
+    "Changes": [
+      "Run at Startup now confirms whether it actually succeeded, instead of failing silently like it did (undetected) for a long time before 4.1.0."
+    ]
+  },
+  {
     "Version": "4.1.0",
     "Changes": [
       "New card panel style: each monitor group is shown as a rounded dashboard card, similar to gaming performance overlays. On by default; switch back under Customize.",

@@ -2,6 +2,10 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.1.1 (unreleased, in development)
+
+- Toggling "Run at Startup" now shows a confirmation dialog on save: success ("SideMon will now start automatically when you log in") or a warning if the scheduled task couldn't be created/removed, instead of failing silently with no feedback at all. This is exactly the kind of failure that hid the 4.0/4.1.0 startup bug for so long.
+
 ## 4.1.0 (released)
 
 ### Card panels

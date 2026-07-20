@@ -389,9 +389,12 @@ namespace SidebarDiagnostics.Utilities
             }
         }
 
-        public static void DisableStartupTask()
+        public static bool DisableStartupTask()
         {
+            // exit code 1 with "cannot find the file" just means it was already gone
             RunSchTasks("/delete /f /tn \"" + Constants.Generic.TASKNAME + "\"");
+
+            return !StartupTaskExists();
         }
 
         private static string RunSchTasks(string args)
