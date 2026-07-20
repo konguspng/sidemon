@@ -80,14 +80,12 @@
                 </Button>
             </StackPanel>
 
-            <!-- Viewbox with StretchDirection=DownOnly: content renders at its natural
-                 size whenever it fits, and shrinks uniformly (never scrolls, never
-                 clips) whenever it doesn't, regardless of item count, font size, or
-                 UI scale. The inner StackPanel needs an explicit width because a
-                 Viewbox always measures its child at infinite size, which would
-                 otherwise defeat text wrapping. -->
-            <Viewbox Margin="5,15" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center" VerticalAlignment="{Binding Source={x:Static frame:Settings.Instance}, Path=ContentVerticalAlign, Mode=OneWay}">
-                <StackPanel Style="{StaticResource ContentPanel}" Width="{Binding Source={x:Static frame:Settings.Instance}, Path=SidebarWidth, Mode=OneWay, Converter={StaticResource SidebarContentWidthConverter}}">
+            <!-- No scrolling and no local scaling here: when content would overflow
+                 the screen, Sidebar.xaml.cs measures it and writes the scale needed
+                 to fit into the real UIScale setting (Advanced tab), which the
+                 window already knows how to apply to everything, sidebar-wide. -->
+            <Border Margin="5,15" VerticalAlignment="{Binding Source={x:Static frame:Settings.Instance}, Path=ContentVerticalAlign, Mode=OneWay}">
+                <StackPanel x:Name="ContentStack" Style="{StaticResource ContentPanel}">
                     <ContentControl>
                         <ContentControl.Style>
                             <Style TargetType="{x:Type ContentControl}">
@@ -274,7 +272,7 @@
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
                 </StackPanel>
-            </Viewbox>
+            </Border>
         </DockPanel>
     </Grid>
 </win:AppBarWindow>

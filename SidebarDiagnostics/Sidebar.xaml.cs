@@ -274,6 +274,44 @@ namespace SidebarDiagnostics
 
                 AppBarHide();
             }
+
+            // let the Ready-triggered layout pass settle before measuring
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, (Action)AutoFitUIScale);
+        }
+
+        // If the enabled monitors/drives don't fit the screen at their natural size,
+        // shrink the whole sidebar just enough to fit by writing the required scale
+        // into the real UI Scale setting (Advanced tab) - the same setting a user
+        // would drag manually, so it renders and persists exactly the same way.
+        private void AutoFitUIScale()
+        {
+            if (ContentStack == null || WindowControls == null)
+            {
+                return;
+            }
+
+            double _availableHeight = MainContent.ActualHeight - WindowControls.ActualHeight - 30d;
+
+            if (_availableHeight <= 0d)
+            {
+                return;
+            }
+
+            double _availableWidth = Math.Max(0d, Framework.Settings.Instance.SidebarWidth - 30d);
+
+            ContentStack.Measure(new Size(_availableWidth, double.PositiveInfinity));
+
+            double _naturalHeight = ContentStack.DesiredSize.Height;
+
+            double _scale = (_naturalHeight > _availableHeight && _naturalHeight > 0d)
+                ? Math.Max(0.5d, Math.Min(3.0d, _availableHeight / _naturalHeight))
+                : 1.0d;
+
+            if (Math.Abs(Framework.Settings.Instance.UIScale - _scale) > 0.01d)
+            {
+                Framework.Settings.Instance.UIScale = _scale;
+                Framework.Settings.Instance.Save();
+            }
         }
 
         private void BindGraphs()

@@ -116,23 +116,4 @@ namespace SidebarDiagnostics.Converters
         }
     }
 
-    // ContentPanel's own margin (15,0 each side) subtracted from the sidebar width,
-    // giving the content a fixed measurement width. Needed inside a Viewbox: Viewbox
-    // always measures its child at infinite size, so without an explicit width, text
-    // wrapping would never kick in and everything would scale down far more than the
-    // actual overflow requires.
-    public class SidebarContentWidthConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            int _value = (int)value;
-
-            return Math.Max(0d, _value - 30d);
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            return null;
-        }
-    }
 }

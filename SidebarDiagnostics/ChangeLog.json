@@ -3,7 +3,7 @@
     "Version": "4.1.1",
     "Changes": [
       "New Vertical Align option (Top/Middle/Bottom) for the sidebar's content.",
-      "Content that overflows the screen height now shrinks automatically to fit instead of scrolling or clipping, so everything stays visible no matter how many drives you show or how large your font/UI scale is.",
+      "Content that overflows the screen height now shrinks automatically to fit instead of scrolling or clipping, by writing the needed scale into UI Scale (Advanced tab), so everything stays visible no matter how many drives you show or how large your font/UI scale is.",
       "Run at Startup now confirms whether it actually succeeded, instead of failing silently like it did (undetected) for a long time before 4.1.0."
     ]
   },

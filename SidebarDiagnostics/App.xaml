@@ -37,7 +37,6 @@
 
             <conv:MetricLabelConverter x:Key="MetricLabelConverter" />
             <conv:FontToSpaceConverter x:Key="FontToSpaceConverter" />
-            <conv:SidebarContentWidthConverter x:Key="SidebarContentWidthConverter" />
             <conv:BoolInverseConverter x:Key="BoolInverseConverter" />
             <conv:PercentConverter x:Key="PercentConverter" />
 
