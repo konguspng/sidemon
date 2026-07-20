@@ -153,14 +153,19 @@ namespace SidebarDiagnostics.Utilities
 
         public static bool Install()
         {
+            return InstallAsync().GetAwaiter().GetResult();
+        }
+
+        public static async System.Threading.Tasks.Task<bool> InstallAsync()
+        {
             string _setup = Path.Combine(Path.GetTempPath(), "PawnIO_setup.exe");
 
             try
             {
                 using (HttpClient _client = new HttpClient() { Timeout = TimeSpan.FromMinutes(2) })
                 {
-                    byte[] _bytes = _client.GetByteArrayAsync(SETUPURL).GetAwaiter().GetResult();
-                    File.WriteAllBytes(_setup, _bytes);
+                    byte[] _bytes = await _client.GetByteArrayAsync(SETUPURL).ConfigureAwait(false);
+                    await File.WriteAllBytesAsync(_setup, _bytes).ConfigureAwait(false);
                 }
 
                 if (!Authenticode.Verify(_setup))
@@ -176,9 +181,18 @@ namespace SidebarDiagnostics.Utilities
                     return false;
                 }
 
-                using (Process _process = Process.Start(new ProcessStartInfo(_setup, "/S") { UseShellExecute = false }))
+                // PawnIOSetup.exe has its own CLI (not NSIS): -install -silent, not /S
+                using (Process _process = Process.Start(new ProcessStartInfo(_setup, "-install -silent") { UseShellExecute = false }))
+                using (var _cts = new System.Threading.CancellationTokenSource(TimeSpan.FromMinutes(2)))
                 {
-                    _process.WaitForExit(120000);
+                    try
+                    {
+                        await _process.WaitForExitAsync(_cts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // installer hung; don't block the app forever waiting on it
+                    }
                 }
 
                 return IsInstalled;
@@ -350,7 +364,7 @@ namespace SidebarDiagnostics.Utilities
             return _xml.IndexOf(Paths.ExePath, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        public static void EnableStartupTask(string exePath = null)
+        public static bool EnableStartupTask(string exePath = null)
         {
             try
             {
@@ -360,13 +374,18 @@ namespace SidebarDiagnostics.Utilities
 
                 File.WriteAllText(_xmlFile, string.Format(TASKXML, System.Security.SecurityElement.Escape(_exe)));
 
-                RunSchTasks("/create /f /rl HIGHEST /tn \"" + Constants.Generic.TASKNAME + "\" /xml \"" + _xmlFile + "\"");
+                // /RL is invalid together with /XML (schtasks rejects the combination
+                // outright); the XML's own Principal/RunLevel already sets HighestAvailable
+                bool _ok = RunSchTasks("/create /f /tn \"" + Constants.Generic.TASKNAME + "\" /xml \"" + _xmlFile + "\"") != null;
 
                 File.Delete(_xmlFile);
+
+                return _ok;
             }
             catch (Exception e)
             {
                 ErrorLog.Write(e);
+                return false;
             }
         }
 
@@ -388,9 +407,18 @@ namespace SidebarDiagnostics.Utilities
                 }))
                 {
                     string _output = _process.StandardOutput.ReadToEnd();
+                    string _error = _process.StandardError.ReadToEnd();
                     _process.WaitForExit(10000);
 
-                    return _process.ExitCode == 0 ? _output : null;
+                    if (_process.ExitCode == 0)
+                    {
+                        return _output;
+                    }
+
+                    // surface the real reason instead of failing silently
+                    ErrorLog.Write(new Exception(string.Format("schtasks {0} failed (exit {1}): {2}", args, _process.ExitCode, _error)));
+
+                    return null;
                 }
             }
             catch (Exception e)

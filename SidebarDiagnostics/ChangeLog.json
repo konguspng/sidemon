@@ -1,5 +1,24 @@
 [
   {
+    "Version": "4.1.0",
+    "Changes": [
+      "New card panel style: each monitor group is shown as a rounded dashboard card, similar to gaming performance overlays. On by default; switch back under Customize.",
+      "Accent color setting for card icons and load bars (default cyan).",
+      "Slim accent load bars under every percentage metric in card mode.",
+      "Background is now one of three styles: Solid Color, Windows Accent Color, or Desktop Blur (Glass).",
+      "Desktop Blur shows your actual wallpaper (blurred), never your open windows, and aligns pixel-perfectly with the desktop.",
+      "New Blur Width slider: the glass can extend beyond the sidebar and fade into the desktop.",
+      "In Desktop Blur mode the sidebar behaves like part of the desktop: windows cover it, and Win+D keeps it visible.",
+      "Settings window redesigned: wider two-column layout with grouped sections; always fits your screen.",
+      "Fixed: GPU VRAM bar showed full when displaying VRAM in GB.",
+      "Fixed: background could vanish when applying settings live.",
+      "Improved first run on a clean machine: the sensor driver installs in the background with a progress indicator instead of appearing to freeze, and a fresh install no longer crashes if hardware access briefly fails.",
+      "Fixed: Run at Startup silently failed to create its scheduled task due to an invalid command, meaning the app never actually started with Windows.",
+      "Fixed: the guided PawnIO driver install used the wrong command-line flag and always failed with \"Unknown argument: /S\".",
+      "After the driver installs, SideMon now asks whether to reload now or later instead of reloading silently."
+    ]
+  },
+  {
     "Version": "4.0.0",
     "Changes": [
       "SideMon is based on Sidebar Diagnostics by ArcadeRenegade. Thank you for the original project!",

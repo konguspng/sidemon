@@ -23,22 +23,34 @@ namespace SidebarDiagnostics.Monitoring
     {
         public MonitorManager(MonitorConfig[] config)
         {
-            _computer = new Computer()
+            try
             {
-                IsCpuEnabled = true,
-                IsControllerEnabled = true,
-                IsGpuEnabled = true,
-                IsStorageEnabled = false,
-                IsMotherboardEnabled = true,
-                IsMemoryEnabled = true,
-                IsNetworkEnabled = false
-            };
-            _computer.Open();
-            _board = GetHardware(HardwareType.Motherboard).FirstOrDefault();
+                _computer = new Computer()
+                {
+                    IsCpuEnabled = true,
+                    IsControllerEnabled = true,
+                    IsGpuEnabled = true,
+                    IsStorageEnabled = false,
+                    IsMotherboardEnabled = true,
+                    IsMemoryEnabled = true,
+                    IsNetworkEnabled = false
+                };
+                _computer.Open();
+                _board = GetHardware(HardwareType.Motherboard).FirstOrDefault();
 
-            UpdateBoard();
+                UpdateBoard();
 
-            MonitorPanels = config.Where(c => c.Enabled).OrderByDescending(c => c.Order).Select(c => NewPanel(c)).ToArray();
+                MonitorPanels = config.Where(c => c.Enabled).OrderByDescending(c => c.Order).Select(c => NewPanel(c)).ToArray();
+            }
+            catch (Exception e)
+            {
+                // a fresh machine may not have the PawnIO driver loaded yet, or the
+                // hardware library can throw on unusual configurations; degrade to no
+                // panels rather than crashing the whole app on first run
+                Utilities.ErrorLog.Write(e);
+
+                MonitorPanels = Array.Empty<MonitorPanel>();
+            }
         }
 
         public void Dispose()
@@ -58,7 +70,7 @@ namespace SidebarDiagnostics.Monitoring
                         _panel.Dispose();
                     }
 
-                    _computer.Close();
+                    _computer?.Close();
 
                     _monitorPanels = null;
                     _computer = null;
@@ -116,7 +128,7 @@ namespace SidebarDiagnostics.Monitoring
 
         private IEnumerable<IHardware> GetHardware(params HardwareType[] types)
         {
-            return _computer.Hardware.Where(h => types.Contains(h.HardwareType));
+            return _computer == null ? Enumerable.Empty<IHardware>() : _computer.Hardware.Where(h => types.Contains(h.HardwareType));
         }
 
         private MonitorPanel NewPanel(MonitorConfig config)
@@ -203,7 +215,7 @@ namespace SidebarDiagnostics.Monitoring
 
         private void UpdateBoard()
         {
-            _board.Update();
+            _board?.Update();
         }
 
         private MonitorPanel[] _monitorPanels { get; set; }

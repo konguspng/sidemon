@@ -179,6 +179,7 @@ namespace SidebarDiagnostics.Windows
 
         private const string WORKERW = "WorkerW";
         private const string PROGMAN = "Progman";
+        private const string TRAYWND = "Shell_TrayWnd";
 
         public static void AddHook(Sidebar sidebar)
         {
@@ -227,15 +228,131 @@ namespace SidebarDiagnostics.Windows
             {
                 string _class = GetWindowClass(hwnd);
 
-                if (string.Equals(_class, WORKERW, StringComparison.Ordinal) /*|| string.Equals(_class, PROGMAN, StringComparison.Ordinal)*/ )
+                // shell surfaces (desktop, taskbar, tray flyouts) in the foreground can
+                // mean show-desktop or just a shell popup; re-evaluate instead of
+                // reacting blindly. Only a real app window forces us back down.
+                if (IsShellClass(_class))
                 {
-                    _sidebar.SetTopMost(false);
+                    _ = LiftIfDesktopShown();
                 }
                 else if (_sidebar.IsTopMost)
                 {
                     _sidebar.SetBottom(false);
                 }
             }
+        }
+
+        private static bool IsShellClass(string cls)
+        {
+            foreach (string _shell in SHELLCLASSES)
+            {
+                if (string.Equals(cls, _shell, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static async System.Threading.Tasks.Task LiftIfDesktopShown()
+        {
+            // evaluate immediately to avoid a visible flicker, then once more after
+            // the minimize-all animation has settled window states
+            EvaluateDesktop();
+
+            await System.Threading.Tasks.Task.Delay(250);
+
+            if (IsHooked)
+            {
+                EvaluateDesktop();
+            }
+        }
+
+        private static void EvaluateDesktop()
+        {
+            if (!AnyNormalWindowVisible())
+            {
+                _sidebar.SetTop(false);
+            }
+            else if (_sidebar.IsTopMost)
+            {
+                _sidebar.SetBottom(false);
+            }
+        }
+
+        private static readonly string[] SHELLCLASSES = { WORKERW, PROGMAN, TRAYWND, "Shell_SecondaryTrayWnd", "Windows.UI.Core.CoreWindow", "XamlExplorerHostIslandWindow", "TopLevelWindowForOverflowXamlIsland", "NotifyIconOverflowWindow" };
+
+        private static bool AnyNormalWindowVisible()
+        {
+            bool _found = false;
+
+            DesktopNative.EnumWindows((hwnd, lparam) =>
+            {
+                if (_sidebarHwnd.HasValue && hwnd == _sidebarHwnd.Value)
+                {
+                    return true;
+                }
+
+                if (!DesktopNative.IsWindowVisible(hwnd) || DesktopNative.IsIconic(hwnd))
+                {
+                    return true;
+                }
+
+                long _exstyle = DesktopNative.GetWindowLongPtr(hwnd, -20).ToInt64();
+
+                if ((_exstyle & 128L) != 0L) // WS_EX_TOOLWINDOW
+                {
+                    return true;
+                }
+
+                string _class = GetWindowClass(hwnd);
+
+                foreach (string _shell in SHELLCLASSES)
+                {
+                    if (string.Equals(_class, _shell, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+
+                // skip DWM-cloaked ghosts (suspended UWP apps, other virtual desktops)
+                int _cloaked;
+                DesktopNative.DwmGetWindowAttribute(hwnd, 14, out _cloaked, sizeof(int));
+
+                if (_cloaked != 0)
+                {
+                    return true;
+                }
+
+                _found = true;
+                return false;
+            }, IntPtr.Zero);
+
+            return _found;
+        }
+
+        private static class DesktopNative
+        {
+            public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool IsWindowVisible(IntPtr hWnd);
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool IsIconic(IntPtr hWnd);
+
+            [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+            public static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
+
+            [DllImport("dwmapi.dll")]
+            public static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out int pvAttribute, int cbAttribute);
         }
 
         public static bool IsHooked { get; private set; } = false;
@@ -905,6 +1022,12 @@ namespace SidebarDiagnostics.Windows
 
             double _windowWidth = Framework.Settings.Instance.SidebarWidth * _uiScale;
 
+            // in glass mode the blur area may extend beyond the sidebar content
+            if (Framework.Settings.Instance.GlassBackground)
+            {
+                _windowWidth = Math.Max(_windowWidth, Framework.Settings.Instance.BlurWidth * _uiScale);
+            }
+
             windowWA.SetWidth(edge, _windowWidth);
 
             int _offsetX = Framework.Settings.Instance.XOffset;
@@ -916,7 +1039,8 @@ namespace SidebarDiagnostics.Windows
 
             appbarWA.Offset(_modifyX, _modifyY);
 
-            double _appbarWidth = Framework.Settings.Instance.UseAppBar ? windowWA.Width * _active.ScaleX : 0;
+            // reserve only the sidebar content width, never the extra blur area
+            double _appbarWidth = Framework.Settings.Instance.UseAppBar ? (Framework.Settings.Instance.SidebarWidth * _uiScale) * _active.ScaleX : 0;
 
             appbarWA.SetWidth(edge, _appbarWidth);
 
@@ -1144,6 +1268,7 @@ namespace SidebarDiagnostics.Windows
 
         private static class HWND_FLAG
         {
+            public static readonly IntPtr HWND_TOP = IntPtr.Zero;
             public static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
             public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
             public static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
@@ -1272,6 +1397,15 @@ namespace SidebarDiagnostics.Windows
             IsTopMost = false;
 
             SetPos(HWND_FLAG.HWND_BOTTOM, activate);
+        }
+
+        // top of the normal band only: stays above the bare desktop but below the
+        // taskbar, tray flyouts, and anything genuinely topmost
+        public void SetTop(bool activate)
+        {
+            IsTopMost = true;
+
+            SetPos(HWND_FLAG.HWND_TOP, activate);
         }
 
         private void SetPos(IntPtr hwnd_after, bool activate)

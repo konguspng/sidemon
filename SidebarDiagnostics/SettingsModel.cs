@@ -57,6 +57,7 @@ namespace SidebarDiagnostics.Models
             BGOpacity = Framework.Settings.Instance.BGOpacity;
             BlurAmount = Framework.Settings.Instance.BlurAmount;
             BlurStrength = Framework.Settings.Instance.BlurStrength;
+            BlurWidth = Framework.Settings.Instance.BlurWidth;
             FeatherDirection = Framework.Settings.Instance.FeatherDirection;
             FeatherSize = Framework.Settings.Instance.FeatherSize;
 
@@ -78,6 +79,9 @@ namespace SidebarDiagnostics.Models
             };
 
             FontSetting = Framework.Settings.Instance.FontSetting;
+
+            UseCardStyle = Framework.Settings.Instance.UseCardStyle;
+            AccentColor = Framework.Settings.Instance.AccentColor;
 
             FontFamilyItems = SidebarFonts.All;
             FontOption = FontFamilyItems.FirstOrDefault(f => string.Equals(f.Name, Framework.Settings.Instance.FontFamilyName, StringComparison.OrdinalIgnoreCase)) ?? FontFamilyItems[0];
@@ -162,11 +166,14 @@ namespace SidebarDiagnostics.Models
             Framework.Settings.Instance.BGOpacity = BGOpacity;
             Framework.Settings.Instance.BlurAmount = BlurAmount;
             Framework.Settings.Instance.BlurStrength = BlurStrength;
+            Framework.Settings.Instance.BlurWidth = BlurWidth;
             Framework.Settings.Instance.FeatherDirection = FeatherDirection;
             Framework.Settings.Instance.FeatherSize = FeatherSize;
             Framework.Settings.Instance.TextAlign = TextAlign;
             Framework.Settings.Instance.FontSetting = FontSetting;
             Framework.Settings.Instance.FontFamilyName = FontOption != null ? FontOption.Name : SidebarFonts.DefaultName;
+            Framework.Settings.Instance.UseCardStyle = UseCardStyle;
+            Framework.Settings.Instance.AccentColor = AccentColor;
             Framework.Settings.Instance.FontColor = FontColor;
             Framework.Settings.Instance.AlertFontColor = AlertFontColor;
             Framework.Settings.Instance.AlertBlink = AlertBlink;
@@ -616,6 +623,73 @@ namespace SidebarDiagnostics.Models
 
         private bool _initialized = false;
 
+        // one background style at a time: solid color, accent color, or desktop blur
+        public bool BGModeSolid
+        {
+            get
+            {
+                return !GlassBackground && !AutoBGColor;
+            }
+            set
+            {
+                if (value)
+                {
+                    GlassBackground = false;
+                    AutoBGColor = false;
+                    NotifyBGMode();
+                }
+            }
+        }
+
+        public bool BGModeAccent
+        {
+            get
+            {
+                return !GlassBackground && AutoBGColor;
+            }
+            set
+            {
+                if (value)
+                {
+                    GlassBackground = false;
+                    AutoBGColor = true;
+                    NotifyBGMode();
+                }
+            }
+        }
+
+        public bool BGModeBlur
+        {
+            get
+            {
+                return GlassBackground;
+            }
+            set
+            {
+                if (value)
+                {
+                    GlassBackground = true;
+                    AutoBGColor = false;
+
+                    // glass blends into the desktop, which is incompatible with
+                    // floating above other windows
+                    if (AlwaysTop)
+                    {
+                        AlwaysTop = false;
+                    }
+
+                    NotifyBGMode();
+                }
+            }
+        }
+
+        private void NotifyBGMode()
+        {
+            NotifyPropertyChanged("BGModeSolid");
+            NotifyPropertyChanged("BGModeAccent");
+            NotifyPropertyChanged("BGModeBlur");
+        }
+
         private string _bgColor { get; set; }
 
         public string BGColor
@@ -679,6 +753,22 @@ namespace SidebarDiagnostics.Models
                 _blurStrength = value;
 
                 NotifyPropertyChanged("BlurStrength");
+            }
+        }
+
+        private int _blurWidth { get; set; }
+
+        public int BlurWidth
+        {
+            get
+            {
+                return _blurWidth;
+            }
+            set
+            {
+                _blurWidth = value;
+
+                NotifyPropertyChanged("BlurWidth");
             }
         }
 
@@ -778,6 +868,38 @@ namespace SidebarDiagnostics.Models
                 _fontSettingItems = value;
 
                 NotifyPropertyChanged("FontSizeItems");
+            }
+        }
+
+        private bool _useCardStyle { get; set; }
+
+        public bool UseCardStyle
+        {
+            get
+            {
+                return _useCardStyle;
+            }
+            set
+            {
+                _useCardStyle = value;
+
+                NotifyPropertyChanged("UseCardStyle");
+            }
+        }
+
+        private string _accentColor { get; set; }
+
+        public string AccentColor
+        {
+            get
+            {
+                return _accentColor;
+            }
+            set
+            {
+                _accentColor = value;
+
+                NotifyPropertyChanged("AccentColor");
             }
         }
 

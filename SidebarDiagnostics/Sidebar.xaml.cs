@@ -151,7 +151,16 @@ namespace SidebarDiagnostics
         {
             await BindPosition();
 
-            if (Framework.Settings.Instance.AlwaysTop)
+            if (Framework.Settings.Instance.GlassBackground)
+            {
+                // glass imitates the wallpaper, so the sidebar must sit at the bottom
+                // of the window stack: other windows always cover it, never the reverse
+                ClearTopMost(false);
+                SetBottom(false);
+
+                ShowDesktop.AddHook(this);
+            }
+            else if (Framework.Settings.Instance.AlwaysTop)
             {
                 SetTopMost(false);
 
@@ -174,6 +183,19 @@ namespace SidebarDiagnostics
             }
 
             FontFamily = Framework.SidebarFonts.GetFamily(Framework.Settings.Instance.FontFamilyName);
+
+            // when the glass area is wider than the sidebar, keep the content pinned
+            // to the docked edge at the configured sidebar width
+            if (Framework.Settings.Instance.GlassBackground && Framework.Settings.Instance.BlurWidth > Framework.Settings.Instance.SidebarWidth)
+            {
+                MainContent.Width = Framework.Settings.Instance.SidebarWidth;
+                MainContent.HorizontalAlignment = Framework.Settings.Instance.DockEdge == DockEdge.Right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+            }
+            else
+            {
+                MainContent.Width = double.NaN;
+                MainContent.HorizontalAlignment = HorizontalAlignment.Stretch;
+            }
 
             ClearGlass();
             await CaptureScreenBehind();
@@ -365,6 +387,25 @@ namespace SidebarDiagnostics
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool DeleteObject([In] IntPtr hObject);
 
+        private static class NativeMethods
+        {
+            [DllImport("user32.dll")]
+            public static extern int GetSystemMetrics(int nIndex);
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct WINRECT
+            {
+                public int Left;
+                public int Top;
+                public int Right;
+                public int Bottom;
+            }
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern bool GetWindowRect(IntPtr hWnd, out WINRECT lpRect);
+        }
+
         private async Task CaptureScreenBehind()
         {
             if (CapturedBackgroundImage == null || !Framework.Settings.Instance.GlassBackground) return;
@@ -377,25 +418,52 @@ namespace SidebarDiagnostics
 
             if (width <= 0 || height <= 0) return;
 
-            // Temporarily set window opacity to 0 to capture the background desktop correctly
-            double oldOpacity = this.Opacity;
-            this.Opacity = 0;
-
-            // Wait for 100ms to allow DWM to update the desktop composition without our window
-            await Task.Delay(100);
+            await Task.CompletedTask;
 
             try
             {
-                int x = (int)left;
-                int y = (int)top;
-                int w = (int)width;
-                int h = (int)height;
+                // exact window rectangle in physical virtual-screen pixels
+                int x, y, w, h;
+                IntPtr _hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                NativeMethods.WINRECT _rect;
 
-                using (var bmp = new System.Drawing.Bitmap(w, h))
+                if (_hwnd != IntPtr.Zero && NativeMethods.GetWindowRect(_hwnd, out _rect) && _rect.Right > _rect.Left && _rect.Bottom > _rect.Top)
                 {
-                    using (var g = System.Drawing.Graphics.FromImage(bmp))
+                    x = _rect.Left;
+                    y = _rect.Top;
+                    w = _rect.Right - _rect.Left;
+                    h = _rect.Bottom - _rect.Top;
+                }
+                else
+                {
+                    double _scaleX = 1d, _scaleY = 1d;
+                    PresentationSource _source = PresentationSource.FromVisual(this);
+
+                    if (_source?.CompositionTarget != null)
                     {
-                        g.CopyFromScreen(x, y, 0, 0, new System.Drawing.Size(w, h));
+                        _scaleX = _source.CompositionTarget.TransformToDevice.M11;
+                        _scaleY = _source.CompositionTarget.TransformToDevice.M22;
+                    }
+
+                    x = (int)Math.Round(left * _scaleX);
+                    y = (int)Math.Round(top * _scaleY);
+                    w = (int)Math.Round(width * _scaleX);
+                    h = (int)Math.Round(height * _scaleY);
+                }
+
+                // pad the rendered region by the blur radius so the gaussian never
+                // samples past the edge, then crop the padding back off afterwards;
+                // this keeps the visible pixels perfectly aligned with the desktop
+                int _pad = (int)Math.Ceiling(Math.Max(0d, Framework.Settings.Instance.BlurStrength)) + 2;
+
+                // render the wallpaper file the way Windows lays it out, rather than
+                // photographing the screen, so open windows never leak into the glass
+                using (System.Drawing.Bitmap bmp = RenderWallpaperRegion(x - _pad, y - _pad, w + (2 * _pad), h + (2 * _pad)))
+                {
+                    if (bmp == null)
+                    {
+                        CapturedBackgroundImage.Source = null;
+                        return;
                     }
 
                     var handle = bmp.GetHbitmap();
@@ -409,7 +477,12 @@ namespace SidebarDiagnostics
                         imgSource.Freeze();
 
                         // blur once here instead of running a live shader every frame
-                        CapturedBackgroundImage.Source = BlurOnce(imgSource, Framework.Settings.Instance.BlurStrength);
+                        BitmapSource _blurred = BlurOnce(imgSource, Framework.Settings.Instance.BlurStrength);
+
+                        var _cropped = new CroppedBitmap(_blurred, new Int32Rect(_pad, _pad, w, h));
+                        _cropped.Freeze();
+
+                        CapturedBackgroundImage.Source = _cropped;
                     }
                     finally
                     {
@@ -421,10 +494,122 @@ namespace SidebarDiagnostics
             {
                 CapturedBackgroundImage.Source = null;
             }
-            finally
+        }
+
+        // paints the region [x,y,w,h] (virtual-screen pixels) of the desktop wallpaper
+        // as Windows composes it for the sidebar's monitor: Fill/Fit/Stretch/Center/Tile/Span
+        private System.Drawing.Bitmap RenderWallpaperRegion(int x, int y, int w, int h)
+        {
+            try
             {
-                // Restore window opacity to fully visible
-                this.Opacity = 1.0;
+                string _path = null;
+                int _style = 10;
+                bool _tile = false;
+
+                using (Microsoft.Win32.RegistryKey _key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop"))
+                {
+                    if (_key != null)
+                    {
+                        _path = _key.GetValue("WallPaper") as string;
+
+                        int _parsed;
+                        if (int.TryParse(_key.GetValue("WallpaperStyle") as string, out _parsed))
+                        {
+                            _style = _parsed;
+                        }
+
+                        _tile = string.Equals(_key.GetValue("TileWallpaper") as string, "1", StringComparison.Ordinal);
+                    }
+                }
+
+                System.Drawing.Color _bgColor = System.Drawing.Color.Black;
+
+                using (Microsoft.Win32.RegistryKey _key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Control Panel\Colors"))
+                {
+                    string[] _rgb = (_key?.GetValue("Background") as string)?.Split(' ');
+
+                    int _r, _g, _b;
+                    if (_rgb != null && _rgb.Length == 3 && int.TryParse(_rgb[0], out _r) && int.TryParse(_rgb[1], out _g) && int.TryParse(_rgb[2], out _b))
+                    {
+                        _bgColor = System.Drawing.Color.FromArgb(_r, _g, _b);
+                    }
+                }
+
+                Windows.Monitor _monitor = Windows.Monitor.GetMonitorFromIndex(Framework.Settings.Instance.ScreenIndex);
+
+                int _areaX = _monitor.Size.Left;
+                int _areaY = _monitor.Size.Top;
+                int _areaW = _monitor.Size.Right - _monitor.Size.Left;
+                int _areaH = _monitor.Size.Bottom - _monitor.Size.Top;
+
+                if (_style == 22) // span: one image across the whole virtual desktop
+                {
+                    _areaX = NativeMethods.GetSystemMetrics(76);
+                    _areaY = NativeMethods.GetSystemMetrics(77);
+                    _areaW = NativeMethods.GetSystemMetrics(78);
+                    _areaH = NativeMethods.GetSystemMetrics(79);
+                }
+
+                var _dest = new System.Drawing.Bitmap(w, h);
+
+                using (var _gfx = System.Drawing.Graphics.FromImage(_dest))
+                {
+                    _gfx.Clear(_bgColor);
+
+                    if (!string.IsNullOrEmpty(_path) && System.IO.File.Exists(_path))
+                    {
+                        using (var _wall = new System.Drawing.Bitmap(_path))
+                        {
+                            _gfx.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                            _gfx.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+
+                            // shift so that drawing in monitor-area coordinates lands on our region
+                            _gfx.TranslateTransform(_areaX - x, _areaY - y);
+
+                            if (_tile && _style == 0)
+                            {
+                                using (var _brush = new System.Drawing.TextureBrush(_wall))
+                                {
+                                    _gfx.FillRectangle(_brush, 0, 0, _areaW, _areaH);
+                                }
+                            }
+                            else
+                            {
+                                float _dw, _dh;
+
+                                switch (_style)
+                                {
+                                    case 2: // stretch
+                                        _dw = _areaW;
+                                        _dh = _areaH;
+                                        break;
+                                    case 6: // fit
+                                        float _fit = Math.Min((float)_areaW / _wall.Width, (float)_areaH / _wall.Height);
+                                        _dw = _wall.Width * _fit;
+                                        _dh = _wall.Height * _fit;
+                                        break;
+                                    case 0: // center
+                                        _dw = _wall.Width;
+                                        _dh = _wall.Height;
+                                        break;
+                                    default: // fill (10) and span (22)
+                                        float _fill = Math.Max((float)_areaW / _wall.Width, (float)_areaH / _wall.Height);
+                                        _dw = _wall.Width * _fill;
+                                        _dh = _wall.Height * _fill;
+                                        break;
+                                }
+
+                                _gfx.DrawImage(_wall, (_areaW - _dw) / 2f, (_areaH - _dh) / 2f, _dw, _dh);
+                            }
+                        }
+                    }
+                }
+
+                return _dest;
+            }
+            catch
+            {
+                return null;
             }
         }
 
@@ -518,8 +703,9 @@ namespace SidebarDiagnostics
                     BackgroundBorder.Background = tintBrush;
                 }
 
-                // Determine fade direction
-                string direction = settings.FeatherDirection;
+                // the edge fade belongs to the glass effect only; solid and accent
+                // backgrounds must never be masked
+                string direction = settings.GlassBackground ? settings.FeatherDirection : "None";
                 if (direction == "Auto")
                 {
                     // Opposite of docked edge. Usually, if docked on Right, we want to fade on Left.

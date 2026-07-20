@@ -16,7 +16,7 @@
         Closed="Window_Closed"
         Title="{x:Static frame:Resources.SettingsTitle}"
         Icon="Settings.ico"
-        Width="420"
+        Width="800"
         SizeToContent="Height"
         ShowMaximize="False"
         WindowStartupLocation="CenterScreen"
@@ -71,8 +71,8 @@
                     <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsReserveSpace}" />
                     <CheckBox Grid.Column="1" Grid.Row="3" IsChecked="{Binding Path=UseAppBar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsReserveSpaceTooltip}" />
 
-                    <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsAlwaysOnTop}" />
-                    <CheckBox Grid.Column="1" Grid.Row="4" IsChecked="{Binding Path=AlwaysTop, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsAlwaysOnTopTooltip}" />
+                    <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsAlwaysOnTop}" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" />
+                    <CheckBox Grid.Column="1" Grid.Row="4" IsChecked="{Binding Path=AlwaysTop, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" ToolTip="Keep the sidebar above other windows. Not available with the Desktop Blur background, which blends into the wallpaper and stays behind other windows." />
 
                     <Label Grid.Column="0" Grid.Row="5" Content="{x:Static frame:Resources.SettingsRunAtStartup}" />
                     <CheckBox Grid.Column="1" Grid.Row="5" IsChecked="{Binding Path=RunAtStartup, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsRunAtStartupTooltip}" />
@@ -137,113 +137,186 @@
                 </Grid>
             </TabItem>
             <TabItem Header="{x:Static frame:Resources.SettingsCustomizeTab}">
-                <Grid Style="{StaticResource SettingGrid}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"></ColumnDefinition>
-                        <ColumnDefinition Width="*"></ColumnDefinition>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                    </Grid.RowDefinitions>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <Grid Margin="0,0,6,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                            <ColumnDefinition Width="28"></ColumnDefinition>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Vertical">
+                        <TextBlock Text="Layout &amp; Text" FontWeight="SemiBold" FontSize="13" Foreground="#666" Margin="2,8,0,2" />
+                        <Grid Style="{StaticResource SettingGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                            </Grid.RowDefinitions>
 
-                    <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsSidebarWidth}" />
-                    <DockPanel Grid.Column="1" Grid.Row="0">
-                        <TextBox Text="{Binding ElementName=SidebarWidthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumberBox_PreviewTextInput" />
-                        <Slider x:Name="SidebarWidthSlider" Value="{Binding Path=SidebarWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="100" Maximum="300" TickFrequency="5" LargeChange="100" ToolTip="{x:Static frame:Resources.SettingsSidebarWidthTooltip}" />
-                    </DockPanel>
+                            <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsSidebarWidth}" />
+                            <DockPanel Grid.Column="1" Grid.Row="0">
+                                <TextBox Text="{Binding ElementName=SidebarWidthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumberBox_PreviewTextInput" />
+                                <Slider x:Name="SidebarWidthSlider" Value="{Binding Path=SidebarWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="100" Maximum="300" TickFrequency="5" LargeChange="100" ToolTip="{x:Static frame:Resources.SettingsSidebarWidthTooltip}" />
+                            </DockPanel>
 
-                    <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsAutoBackground}" />
-                    <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding Path=AutoBGColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsAutoBackgroundTooltip}" />
+                            <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsTextAlign}" />
+                            <ComboBox Grid.Column="1" Grid.Row="1" ItemsSource="{Binding Path=TextAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=TextAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsTextAlignTooltip}" />
 
-                    <Label Grid.Column="0" Grid.Row="2" Content="Blur Behind Background" />
-                    <CheckBox Grid.Column="1" Grid.Row="2" IsChecked="{Binding Path=GlassBackground, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Frosted glass (desktop blur-behind) background with edge fading." />
+                            <Label Grid.Column="0" Grid.Row="2" Content="Font" />
+                            <ComboBox Grid.Column="1" Grid.Row="2" ItemsSource="{Binding Path=FontFamilyItems, Mode=OneWay}" SelectedValue="{Binding Path=FontOption, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Font used for all sidebar text. These fonts ship with the app.">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Path=Name, Mode=OneWay}" FontFamily="{Binding Path=Family, Mode=OneWay}" FontSize="14" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
 
-                    <Label Grid.Column="0" Grid.Row="3" Content="   Blur Strength" IsEnabled="{Binding Path=GlassBackground, Mode=OneWay}" />
-                    <DockPanel Grid.Column="1" Grid.Row="3" IsEnabled="{Binding Path=GlassBackground, Mode=OneWay}">
-                        <TextBox Text="{Binding ElementName=BlurStrengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource PercentConverter}}" IsEnabled="False" Width="40" />
-                        <Slider x:Name="BlurStrengthSlider" Value="{Binding Path=BlurStrength, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="100" TickFrequency="1" LargeChange="10" ToolTip="Percentage of blur intensity (from 1% to 100%)." />
-                    </DockPanel>
+                            <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsFontSize}" />
+                            <ComboBox Grid.Column="1" Grid.Row="3" ItemsSource="{Binding Path=FontSettingItems, Mode=OneWay}" DisplayMemberPath="FontSize" SelectedValue="{Binding Path=FontSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsFontSizeTooltip}" />
 
-                    <Label Grid.Column="0" Grid.Row="4" Content="   Fade Direction" IsEnabled="{Binding Path=GlassBackground, Mode=OneWay}" />
-                    <ComboBox Grid.Column="1" Grid.Row="4" ItemsSource="{Binding Path=FeatherDirectionItems, Mode=OneWay}" SelectedValue="{Binding Path=FeatherDirection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=GlassBackground, Mode=OneWay}" ToolTip="Direction on which the blur and background fade out. Auto matches the screen edge opposite to docking." />
+                            <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsFontColor}" />
+                            <DockPanel Grid.Column="1" Grid.Row="4" LastChildFill="True">
+                                <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=FontColor, Mode=OneWay}" Tag="FontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select font color from color picker." />
+                                <TextBox Width="Auto" Text="{Binding Path=FontColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="{x:Static frame:Resources.SettingsFontColorTooltip}" />
+                            </DockPanel>
+                        </Grid>
 
-                    <Label Grid.Column="0" Grid.Row="5" Content="   Fade Size" IsEnabled="{Binding Path=GlassBackground, Mode=OneWay}" />
-                    <DockPanel Grid.Column="1" Grid.Row="5" IsEnabled="{Binding Path=GlassBackground, Mode=OneWay}">
-                        <TextBox Text="{Binding ElementName=FeatherSizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource PercentConverter}}" IsEnabled="False" Width="40" />
-                        <Slider x:Name="FeatherSizeSlider" Value="{Binding Path=FeatherSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="50" TickFrequency="1" LargeChange="5" ToolTip="Percentage of the sidebar width over which the fade out occurs." />
-                    </DockPanel>
+                        <TextBlock Text="Alerts" FontWeight="SemiBold" FontSize="13" Foreground="#666" Margin="2,14,0,2" />
+                        <Grid Style="{StaticResource SettingGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                            </Grid.RowDefinitions>
 
-                    <Label Grid.Column="0" Grid.Row="6" Content="{x:Static frame:Resources.SettingsBackgroundColor}" />
-                    <DockPanel Grid.Column="1" Grid.Row="6" IsEnabled="{Binding Path=AutoBGColor, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" LastChildFill="True">
-                        <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=BGColor, Mode=OneWay}" Tag="BGColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select background color from color picker." />
-                        <TextBox Width="Auto" Text="{Binding Path=BGColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="{x:Static frame:Resources.SettingsBackgroundColorTooltip}" />
-                    </DockPanel>
+                            <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsAlertFontColor}" />
+                            <DockPanel Grid.Column="1" Grid.Row="0" LastChildFill="True">
+                                <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=AlertFontColor, Mode=OneWay}" Tag="AlertFontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select alert font color from color picker." />
+                                <TextBox Width="Auto" Text="{Binding Path=AlertFontColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="{x:Static frame:Resources.SettingsAlertFontColorTooltip}" />
+                            </DockPanel>
 
-                    <Label Grid.Column="0" Grid.Row="7" Content="{x:Static frame:Resources.SettingsBackgroundOpacity}" />
-                    <DockPanel Grid.Column="1" Grid.Row="7">
-                        <TextBox Text="{Binding ElementName=BGOpacitySlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumberBox_PreviewTextInput" />
-                        <Slider x:Name="BGOpacitySlider" Value="{Binding Path=BGOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.01" Maximum="1.0" LargeChange="0.1" TickFrequency="0.01" ToolTip="{x:Static frame:Resources.SettingsBackgroundOpacityTooltip}" />
-                    </DockPanel>
+                            <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsAlertBlink}" />
+                            <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding Path=AlertBlink, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsAlertBlinkTooltip}" />
+                        </Grid>
 
-                    <Label Grid.Column="0" Grid.Row="8" Content="{x:Static frame:Resources.SettingsTextAlign}" />
-                    <ComboBox Grid.Column="1" Grid.Row="8" ItemsSource="{Binding Path=TextAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=TextAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsTextAlignTooltip}" />
+                        <TextBlock Text="Clock &amp; Header" FontWeight="SemiBold" FontSize="13" Foreground="#666" Margin="2,14,0,2" />
+                        <Grid Style="{StaticResource SettingGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                            </Grid.RowDefinitions>
 
-                    <Label Grid.Column="0" Grid.Row="9" Content="{x:Static frame:Resources.SettingsFontSize}" />
-                    <ComboBox Grid.Column="1" Grid.Row="9" ItemsSource="{Binding Path=FontSettingItems, Mode=OneWay}" DisplayMemberPath="FontSize" SelectedValue="{Binding Path=FontSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsFontSizeTooltip}" />
+                            <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsShowMachineName}" />
+                            <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding Path=ShowMachineName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsShowMachineNameTooltip}" />
 
-                    <Label Grid.Column="0" Grid.Row="10" Content="Font" />
-                    <ComboBox Grid.Column="1" Grid.Row="10" ItemsSource="{Binding Path=FontFamilyItems, Mode=OneWay}" SelectedValue="{Binding Path=FontOption, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Font used for all sidebar text. These fonts ship with the app.">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Path=Name, Mode=OneWay}" FontFamily="{Binding Path=Family, Mode=OneWay}" FontSize="14" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                            <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsShowClock}" />
+                            <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding Path=ShowClock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsShowClockTooltip}" />
 
-                    <Label Grid.Column="0" Grid.Row="11" Content="{x:Static frame:Resources.SettingsFontColor}" />
-                    <DockPanel Grid.Column="1" Grid.Row="11" LastChildFill="True">
-                        <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=FontColor, Mode=OneWay}" Tag="FontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select font color from color picker." />
-                        <TextBox Width="Auto" Text="{Binding Path=FontColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="{x:Static frame:Resources.SettingsFontColorTooltip}" />
-                    </DockPanel>
+                            <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.Settings24HourClock}" />
+                            <CheckBox Grid.Column="1" Grid.Row="2" IsChecked="{Binding Path=Clock24HR, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=ShowClock, Mode=OneWay}" ToolTip="{x:Static frame:Resources.Settings24HourClockTooltip}" />
 
-                    <Label Grid.Column="0" Grid.Row="12" Content="{x:Static frame:Resources.SettingsAlertFontColor}" />
-                    <DockPanel Grid.Column="1" Grid.Row="12" LastChildFill="True">
-                        <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=AlertFontColor, Mode=OneWay}" Tag="AlertFontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select alert font color from color picker." />
-                        <TextBox Width="Auto" Text="{Binding Path=AlertFontColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="{x:Static frame:Resources.SettingsAlertFontColorTooltip}" />
-                    </DockPanel>
+                            <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsDateFormat}" />
+                            <ComboBox Grid.Column="1" Grid.Row="3" ItemsSource="{Binding Path=DateSettingItems}" DisplayMemberPath="Display" SelectedValue="{Binding Path=DateSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=ShowClock, Mode=OneWay}" ToolTip="{x:Static frame:Resources.SettingsDateFormatTooltip}" />
+                        </Grid>
 
-                    <Label Grid.Column="0" Grid.Row="13" Content="{x:Static frame:Resources.SettingsAlertBlink}" />
-                    <CheckBox Grid.Column="1" Grid.Row="13" IsChecked="{Binding Path=AlertBlink, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsAlertBlinkTooltip}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Vertical">
+                        <TextBlock Text="Background" FontWeight="SemiBold" FontSize="13" Foreground="#444" Margin="2,14,0,2" />
+                        <Grid Style="{StaticResource SettingGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="32px"></RowDefinition>
+                                <RowDefinition Height="32px"></RowDefinition>
+                                <RowDefinition Height="32px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                            </Grid.RowDefinitions>
 
-                    <Label Grid.Column="0" Grid.Row="14" Content="{x:Static frame:Resources.SettingsShowMachineName}" />
-                    <CheckBox Grid.Column="1" Grid.Row="14" IsChecked="{Binding Path=ShowMachineName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsShowMachineNameTooltip}" />
+                            <Label Grid.Column="0" Grid.Row="0" Content="Style" />
+                            <RadioButton Grid.Column="1" Grid.Row="0" GroupName="BGMode" Content="Solid Color" VerticalAlignment="Center" IsChecked="{Binding Path=BGModeSolid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="One flat background color of your choice." />
+                            <RadioButton Grid.Column="1" Grid.Row="1" GroupName="BGMode" Content="Windows Accent Color" VerticalAlignment="Center" IsChecked="{Binding Path=BGModeAccent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Follows the accent color from your Windows personalization settings." />
+                            <RadioButton Grid.Column="1" Grid.Row="2" GroupName="BGMode" Content="Desktop Blur (Glass)" VerticalAlignment="Center" IsChecked="{Binding Path=BGModeBlur, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Frosted glass: the desktop behind the sidebar is blurred, tinted with the color below." />
 
-                    <Label Grid.Column="0" Grid.Row="15" Content="{x:Static frame:Resources.SettingsShowClock}" />
-                    <CheckBox Grid.Column="1" Grid.Row="15" IsChecked="{Binding Path=ShowClock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsShowClockTooltip}" />
+                            <Label Grid.Column="0" Grid.Row="3" Content="Color" IsEnabled="{Binding Path=BGModeAccent, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" />
+                            <DockPanel Grid.Column="1" Grid.Row="3" IsEnabled="{Binding Path=BGModeAccent, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" LastChildFill="True">
+                                <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=BGColor, Mode=OneWay}" Tag="BGColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select the color from a color picker." />
+                                <TextBox Width="Auto" Text="{Binding Path=BGColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="The background color. In Desktop Blur mode this is the tint over the blurred desktop." />
+                            </DockPanel>
 
-                    <Label Grid.Column="0" Grid.Row="16" Content="{x:Static frame:Resources.Settings24HourClock}" />
-                    <CheckBox Grid.Column="1" Grid.Row="16" IsChecked="{Binding Path=Clock24HR, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=ShowClock, Mode=OneWay}" ToolTip="{x:Static frame:Resources.Settings24HourClockTooltip}" />
+                            <Label Grid.Column="0" Grid.Row="4" Content="Opacity" />
+                            <DockPanel Grid.Column="1" Grid.Row="4">
+                                <TextBox Text="{Binding ElementName=BGOpacitySlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumberBox_PreviewTextInput" />
+                                <Slider x:Name="BGOpacitySlider" Value="{Binding Path=BGOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.01" Maximum="1.0" LargeChange="0.1" TickFrequency="0.01" ToolTip="How solid the background is. Lower values are more see-through; in Desktop Blur mode, lower shows more of the blur." />
+                            </DockPanel>
 
-                    <Label Grid.Column="0" Grid.Row="17" Content="{x:Static frame:Resources.SettingsDateFormat}" />
-                    <ComboBox Grid.Column="1" Grid.Row="17" ItemsSource="{Binding Path=DateSettingItems}" DisplayMemberPath="Display" SelectedValue="{Binding Path=DateSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=ShowClock, Mode=OneWay}" ToolTip="{x:Static frame:Resources.SettingsDateFormatTooltip}" />
-                </Grid>
+                            <Label Grid.Column="0" Grid.Row="5" Content="Blur Strength" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}" />
+                            <DockPanel Grid.Column="1" Grid.Row="5" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}">
+                                <TextBox Text="{Binding ElementName=BlurStrengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource PercentConverter}}" IsEnabled="False" Width="40" />
+                                <Slider x:Name="BlurStrengthSlider" Value="{Binding Path=BlurStrength, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="100" TickFrequency="1" LargeChange="10" ToolTip="How strongly the desktop behind the sidebar is blurred." />
+                            </DockPanel>
+
+                            <Label Grid.Column="0" Grid.Row="6" Content="Blur Width" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}" />
+                            <DockPanel Grid.Column="1" Grid.Row="6" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}">
+                                <TextBox Text="{Binding ElementName=BlurWidthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumberBox_PreviewTextInput" />
+                                <Slider x:Name="BlurWidthSlider" Value="{Binding Path=BlurWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="100" Maximum="600" TickFrequency="10" LargeChange="50" ToolTip="Width of the glass area in pixels. Wider than the sidebar makes the blur spill out over the desktop; combine with Edge Fade so it dissolves smoothly." />
+                            </DockPanel>
+
+                            <Label Grid.Column="0" Grid.Row="7" Content="Edge Fade" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}" />
+                            <ComboBox Grid.Column="1" Grid.Row="7" ItemsSource="{Binding Path=FeatherDirectionItems, Mode=OneWay}" SelectedValue="{Binding Path=FeatherDirection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}" ToolTip="Which side the background fades out on. Auto fades the side facing the desktop." />
+
+                            <Label Grid.Column="0" Grid.Row="8" Content="Edge Fade Size" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}" />
+                            <DockPanel Grid.Column="1" Grid.Row="8" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}">
+                                <TextBox Text="{Binding ElementName=FeatherSizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource PercentConverter}}" IsEnabled="False" Width="40" />
+                                <Slider x:Name="FeatherSizeSlider" Value="{Binding Path=FeatherSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="50" TickFrequency="1" LargeChange="5" ToolTip="How much of the sidebar width the fade covers." />
+                            </DockPanel>
+                        </Grid>
+
+                        <TextBlock Text="Panels" FontWeight="SemiBold" FontSize="13" Foreground="#666" Margin="2,14,0,2" />
+                        <Grid Style="{StaticResource SettingGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
+                            </Grid.RowDefinitions>
+
+                            <Label Grid.Column="0" Grid.Row="0" Content="Card Panels" />
+                            <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding Path=UseCardStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show each monitor group as a rounded card with accent load bars, similar to gaming dashboards. The background settings above still show through between and behind the cards." />
+
+                            <Label Grid.Column="0" Grid.Row="1" Content="Accent Color" IsEnabled="{Binding Path=UseCardStyle, Mode=OneWay}" />
+                            <DockPanel Grid.Column="1" Grid.Row="1" LastChildFill="True" IsEnabled="{Binding Path=UseCardStyle, Mode=OneWay}">
+                                <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=AccentColor, Mode=OneWay}" Tag="AccentColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select accent color from color picker." />
+                                <TextBox Width="Auto" Text="{Binding Path=AccentColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="Accent color used for card icons and load bars." />
+                            </DockPanel>
+                        </Grid>
+
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
             </TabItem>
             <TabItem Header="{x:Static frame:Resources.SettingsMonitorsTab}">
                 <StackPanel Style="{StaticResource VerticalPanel}">

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Hardcodet.Wpf.TaskbarNotification;
 using SidebarDiagnostics.Monitoring;
 using SidebarDiagnostics.Utilities;
@@ -33,9 +34,6 @@ namespace SidebarDiagnostics
             // SETTINGS
             CheckSettings();
 
-            // SENSOR DRIVER
-            CheckPawnIO();
-
             // VERSION
             Version _version = Assembly.GetExecutingAssembly().GetName().Version;
             string _vstring = _version.ToString(3);
@@ -61,6 +59,13 @@ namespace SidebarDiagnostics
             {
                 StartApp(false);
             }
+
+            // SENSOR DRIVER: checked after the app is visible, so a fresh install
+            // never looks frozen while this runs
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, (Action)(() =>
+            {
+                _ = CheckPawnIOAsync();
+            }));
         }
 
         protected override void OnExit(ExitEventArgs e)
@@ -141,7 +146,7 @@ namespace SidebarDiagnostics
             new Graph(_sidebar);
         }
 
-        private void CheckPawnIO()
+        private async System.Threading.Tasks.Task CheckPawnIOAsync()
         {
             if (PawnIO.IsInstalled)
             {
@@ -150,8 +155,8 @@ namespace SidebarDiagnostics
 
             MessageBoxResult _result = MessageBox.Show(
                 "CPU and GPU sensors (clock, temperature, voltage) require the PawnIO driver, which is not installed.\n\n" +
-                "Install it now? It will be downloaded from its official source (pawnio.eu, by namazso), the digital signature will be verified, and setup runs silently.\n\n" +
-                "If you skip this, those sensors will show \"No Value\".",
+                "Install it now? It will be downloaded from its official source (pawnio.eu, by namazso), the digital signature will be verified, and setup runs silently in the background.\n\n" +
+                "If you skip this, those sensors will show \"No Value\" until you install it later.",
                 Framework.Resources.AppName,
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question,
@@ -163,7 +168,21 @@ namespace SidebarDiagnostics
                 return;
             }
 
-            if (!PawnIO.Install())
+            var _progress = new ProgressDialog("Downloading and installing the sensor driver...");
+            _progress.Show();
+
+            bool _installed;
+
+            try
+            {
+                _installed = await PawnIO.InstallAsync();
+            }
+            finally
+            {
+                _progress.Close();
+            }
+
+            if (!_installed)
             {
                 MessageBoxResult _fallback = MessageBox.Show(
                     "Automatic installation failed. Open pawnio.eu in your browser to install it manually?",
@@ -177,6 +196,25 @@ namespace SidebarDiagnostics
                 {
                     OpenURL("https://pawnio.eu");
                 }
+
+                return;
+            }
+
+            // sensors already tried to read once at startup with no driver; offer to
+            // reload now so CPU/GPU values populate without waiting for a restart
+            Sidebar _sidebar = Sidebar;
+
+            if (_sidebar == null || !_sidebar.Ready)
+            {
+                return;
+            }
+
+            var _prompt = new ReloadPromptDialog("PawnIO installed successfully. Reload SideMon now to start showing CPU and GPU sensor data?");
+            _prompt.ShowDialog();
+
+            if (_prompt.ReloadRequested)
+            {
+                _sidebar.Reload();
             }
         }
 
@@ -306,7 +344,23 @@ namespace SidebarDiagnostics
 
             ErrorLog.Write(ex);
 
-            MessageBox.Show(ex.ToString(), Framework.Resources.ErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+            MessageBoxResult _result = MessageBox.Show(
+                "Something went wrong and SideMon needs to close.\n\n" +
+                "Details have been saved to the error log. Open it now?",
+                Framework.Resources.ErrorTitle,
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Error,
+                MessageBoxResult.No,
+                MessageBoxOptions.DefaultDesktopOnly);
+
+            if (_result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo(Paths.ErrorLogFile) { UseShellExecute = true });
+                }
+                catch { }
+            }
         }
 
         public Sidebar Sidebar

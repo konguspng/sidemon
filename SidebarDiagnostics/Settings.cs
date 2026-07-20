@@ -527,6 +527,54 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        private bool _useCardStyle { get; set; } = true;
+
+        public bool UseCardStyle
+        {
+            get
+            {
+                return _useCardStyle;
+            }
+            set
+            {
+                _useCardStyle = value;
+
+                NotifyPropertyChanged("UseCardStyle");
+            }
+        }
+
+        private string _accentColor { get; set; } = "#22D3EE";
+
+        public string AccentColor
+        {
+            get
+            {
+                return _accentColor;
+            }
+            set
+            {
+                _accentColor = value;
+
+                NotifyPropertyChanged("AccentColor");
+            }
+        }
+
+        private int _blurWidth { get; set; } = 180;
+
+        public int BlurWidth
+        {
+            get
+            {
+                return _blurWidth;
+            }
+            set
+            {
+                _blurWidth = value;
+
+                NotifyPropertyChanged("BlurWidth");
+            }
+        }
+
         private bool _checkForUpdates { get; set; } = true;
 
         public bool CheckForUpdates

@@ -26,7 +26,7 @@
                 <!-- Clip the blur halo away -->
                 <Grid ClipToBounds="True">
                     <!-- Captured desktop background image, blurred once at capture -->
-                    <Image x:Name="CapturedBackgroundImage" Stretch="UniformToFill" Margin="-50" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                    <Image x:Name="CapturedBackgroundImage" Stretch="Fill" Margin="0" />
                 </Grid>
                 <!-- Tint overlay layer -->
                 <Border x:Name="TintOverlay" />
@@ -65,7 +65,7 @@
             </Ellipse.Style>
         </Ellipse>
         
-        <DockPanel Style="{StaticResource MainPanel}">
+        <DockPanel x:Name="MainContent" Style="{StaticResource MainPanel}">
             <StackPanel x:Name="WindowControls" Style="{StaticResource MenuBar}">
                 <Button Click="GraphButton_Click" Style="{StaticResource MenuButton}">
                     <Path Width="12" Height="12" Data="M3 3v18h18 M7 15l4-5 3 3 5-7" />
@@ -107,6 +107,7 @@
                                     <DataTrigger Binding="{Binding Path=ShowClock, Mode=OneWay}" Value="True">
                                         <Setter Property="Content">
                                             <Setter.Value>
+                                                <Border Style="{StaticResource GroupCard}">
                                                 <StackPanel Style="{StaticResource GroupPanel}">
                                                     <StackPanel Style="{StaticResource MonitorTitle}">
                                                         <Path Style="{StaticResource AppIcon}" Data="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z M12 7v5l3 2"></Path>
@@ -132,6 +133,7 @@
                                                         </ContentControl>
                                                     </StackPanel>
                                                 </StackPanel>
+                                                </Border>
                                             </Setter.Value>
                                         </Setter>
                                     </DataTrigger>
@@ -143,6 +145,7 @@
                     <ItemsControl DataContext="{Binding Path=MonitorManager, Mode=OneWay}" ItemsSource="{Binding Path=MonitorPanels, Mode=OneWay}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type monitor:MonitorPanel}">
+                                <Border Style="{StaticResource GroupCard}">
                                 <StackPanel Style="{StaticResource GroupPanel}">
                                     <StackPanel Style="{StaticResource MonitorTitle}">
                                         <Path Data="{Binding Path=IconPath, Mode=OneWay}" Style="{StaticResource AppIcon}" />
@@ -172,10 +175,13 @@
                                                     <ItemsControl ItemsSource="{Binding Path=Metrics, Mode=OneWay}">
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate DataType="{x:Type monitor:iMetric}">
-                                                                <DockPanel Style="{StaticResource MetricPanel}">
-                                                                    <TextBlock Text="{Binding Path=Label, Mode=OneWay, Converter={StaticResource MetricLabelConverter}}" Style="{StaticResource MetricLabel}" />
-                                                                    <TextBlock Text="{Binding Path=Text, Mode=OneWay}" Style="{StaticResource MetricValue}" />
-                                                                </DockPanel>
+                                                                <StackPanel Style="{StaticResource VerticalPanel}">
+                                                                    <DockPanel Style="{StaticResource MetricPanel}">
+                                                                        <TextBlock Text="{Binding Path=Label, Mode=OneWay, Converter={StaticResource MetricLabelConverter}}" Style="{StaticResource MetricLabel}" />
+                                                                        <TextBlock Text="{Binding Path=Text, Mode=OneWay}" Style="{StaticResource MetricValue}" />
+                                                                    </DockPanel>
+                                                                    <ProgressBar Value="{Binding Path=nValue, Mode=OneWay}" Style="{StaticResource AccentBar}" />
+                                                                </StackPanel>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
                                                         <ItemsControl.ItemsPanel>
@@ -227,10 +233,13 @@
                                                     <ItemsControl ItemsSource="{Binding Path=DriveMetrics, Mode=OneWay}">
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate DataType="{x:Type monitor:iMetric}">
-                                                                <DockPanel Style="{StaticResource MetricPanel}">
-                                                                    <TextBlock Text="{Binding Path=Label, Mode=OneWay, Converter={StaticResource MetricLabelConverter}}" Style="{StaticResource MetricLabel}" />
-                                                                    <TextBlock Text="{Binding Path=Text, Mode=OneWay}" Style="{StaticResource MetricValue}" />
-                                                                </DockPanel>
+                                                                <StackPanel Style="{StaticResource VerticalPanel}">
+                                                                    <DockPanel Style="{StaticResource MetricPanel}">
+                                                                        <TextBlock Text="{Binding Path=Label, Mode=OneWay, Converter={StaticResource MetricLabelConverter}}" Style="{StaticResource MetricLabel}" />
+                                                                        <TextBlock Text="{Binding Path=Text, Mode=OneWay}" Style="{StaticResource MetricValue}" />
+                                                                    </DockPanel>
+                                                                    <ProgressBar Value="{Binding Path=nValue, Mode=OneWay}" Style="{StaticResource AccentBar}" />
+                                                                </StackPanel>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
                                                         <ItemsControl.ItemsPanel>
@@ -249,6 +258,7 @@
                                         </ItemsControl.ItemsPanel>
                                     </ItemsControl>
                                 </StackPanel>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                         <ItemsControl.ItemsPanel>

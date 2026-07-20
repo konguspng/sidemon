@@ -1,5 +1,5 @@
 #define MyAppName "SideMon"
-#define MyAppVersion "4.0.0"
+#define MyAppVersion "4.1.0"
 #define MyAppExeName "SideMon.exe"
 
 [Setup]
@@ -12,7 +12,7 @@ DefaultGroupName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 PrivilegesRequired=admin
 OutputDir=.
-OutputBaseFilename=SideMon-4.0.0-Setup
+OutputBaseFilename=SideMon-4.1.0-Setup
 Compression=lzma2/max
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
@@ -38,7 +38,11 @@ Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+; shellexec (not plain CreateProcess) is required here: SideMon.exe's own manifest
+; requires elevation, and only ShellExecute knows how to broker that UAC handshake.
+; Without it, launching the freshly installed app immediately fails with error 740
+; (ERROR_ELEVATION_REQUIRED), even though Setup itself is already running elevated.
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent shellexec
 
 [UninstallRun]
 Filename: "taskkill.exe"; Parameters: "/f /im {#MyAppExeName}"; Flags: runhidden; RunOnceId: "KillApp"
@@ -60,5 +64,55 @@ begin
     Exec('schtasks.exe', '/delete /f /tn "SidebarStartup"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Exec('schtasks.exe', '/delete /f /tn "SideMonStartup"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
     Sleep(500);
+  end;
+end;
+
+{ SideMon ships its own .NET runtime (self-contained) and never installs one
+  system-wide, so there is nothing of .NET's to offer removing here.
+  PawnIO is a separate, optionally-installed kernel driver (namazso.eu) that
+  other hardware-monitoring tools may also depend on, so removing it is opt-in
+  and defaults to No. }
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  UninstallString: String;
+  ExePath, Params: String;
+  SpacePos: Integer;
+  ResultCode: Integer;
+begin
+  if CurUninstallStep = usPostUninstall then
+  begin
+    if RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO', 'UninstallString', UninstallString) then
+    begin
+      if MsgBox('Also remove the PawnIO sensor driver?' + #13#10 + #13#10 +
+                'PawnIO is a separate driver used for CPU/GPU sensor readings. Other hardware-monitoring apps on this PC may also depend on it, so only remove it if you are sure SideMon was the only thing using it.',
+                mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+      begin
+        { UninstallString looks like: "C:\Program Files\PawnIO\uninstall.exe" -uninstall }
+        UninstallString := Trim(UninstallString);
+        if (Length(UninstallString) > 0) and (UninstallString[1] = '"') then
+        begin
+          SpacePos := Pos('"', Copy(UninstallString, 2, Length(UninstallString) - 1)) + 1;
+          ExePath := Copy(UninstallString, 2, SpacePos - 2);
+          Params := Trim(Copy(UninstallString, SpacePos + 1, Length(UninstallString)));
+        end
+        else
+        begin
+          SpacePos := Pos(' ', UninstallString);
+          if SpacePos = 0 then
+          begin
+            ExePath := UninstallString;
+            Params := '';
+          end
+          else
+          begin
+            ExePath := Copy(UninstallString, 1, SpacePos - 1);
+            Params := Trim(Copy(UninstallString, SpacePos + 1, Length(UninstallString)));
+          end;
+        end;
+
+        { run PawnIO's own uninstaller as registered; it may show its own brief UI }
+        Exec(ExePath, Params, '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode);
+      end;
+    end;
   end;
 end;

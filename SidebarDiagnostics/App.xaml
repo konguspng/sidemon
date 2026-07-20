@@ -146,6 +146,11 @@
                 <Setter Property="StrokeStartLineCap" Value="Round" />
                 <Setter Property="StrokeEndLineCap" Value="Round" />
                 <Setter Property="VerticalAlignment" Value="Center" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=UseCardStyle, Mode=OneWay}" Value="True">
+                        <Setter Property="Stroke" Value="{Binding Source={x:Static frame:Settings.Instance}, Path=AccentColor, Mode=OneWay}" />
+                    </DataTrigger>
+                </Style.Triggers>
             </Style>
 
             <Style x:Key="AppTitle" TargetType="{x:Type Label}">
@@ -154,6 +159,11 @@
                 <Setter Property="VerticalAlignment" Value="Center" />
                 <Setter Property="Foreground" Value="{Binding Source={x:Static frame:Settings.Instance}, Path=FontColor, Mode=OneWay}" />
                 <Setter Property="FontSize" Value="{Binding Source={x:Static frame:Settings.Instance}, Path=FontSetting.TitleFontSize, Mode=OneWay}" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=UseCardStyle, Mode=OneWay}" Value="True">
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                    </DataTrigger>
+                </Style.Triggers>
             </Style>
 
             <Style x:Key="AppText" TargetType="{x:Type TextBlock}">
@@ -183,6 +193,70 @@
             <Style x:Key="GroupPanel" TargetType="{x:Type StackPanel}">
                 <Setter Property="Orientation" Value="Vertical" />
                 <Setter Property="Margin" Value="0,10" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=UseCardStyle, Mode=OneWay}" Value="True">
+                        <Setter Property="Margin" Value="0" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- card chrome around each monitor group; flat/invisible unless card style is on -->
+            <Style x:Key="GroupCard" TargetType="{x:Type Border}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=UseCardStyle, Mode=OneWay}" Value="True">
+                        <Setter Property="Background" Value="#4C000000" />
+                        <Setter Property="BorderBrush" Value="#26FFFFFF" />
+                        <Setter Property="BorderThickness" Value="1" />
+                        <Setter Property="CornerRadius" Value="8" />
+                        <Setter Property="Padding" Value="12,9,12,11" />
+                        <Setter Property="Margin" Value="0,5" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- slim accent bar under percentage metrics; card style only -->
+            <Style x:Key="AccentBar" TargetType="{x:Type ProgressBar}">
+                <Setter Property="Minimum" Value="0" />
+                <Setter Property="Maximum" Value="100" />
+                <Setter Property="Height" Value="3" />
+                <Setter Property="Margin" Value="0,3,0,2" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="Foreground" Value="{Binding Source={x:Static frame:Settings.Instance}, Path=AccentColor, Mode=OneWay}" />
+                <Setter Property="Background" Value="#26FFFFFF" />
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ProgressBar}">
+                            <Border Name="PART_Track" CornerRadius="1.5" Background="{TemplateBinding Background}">
+                                <Border Name="PART_Indicator" CornerRadius="1.5" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Path=IsAlert, Mode=OneWay}" Value="True">
+                                    <Setter Property="Foreground" Value="{Binding Source={x:Static frame:Settings.Instance}, Path=AlertFontColor, Mode=OneWay}" />
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=UseCardStyle, Mode=OneWay}" Value="True" />
+                            <Condition Binding="{Binding Path=Append, Mode=OneWay}" Value=" %" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Visibility" Value="Visible" />
+                    </MultiDataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=UseCardStyle, Mode=OneWay}" Value="True" />
+                            <Condition Binding="{Binding Path=Append, Mode=OneWay}" Value="%" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Visibility" Value="Visible" />
+                    </MultiDataTrigger>
+                </Style.Triggers>
             </Style>
 
             <Style x:Key="MonitorPanel" TargetType="{x:Type StackPanel}">

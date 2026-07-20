@@ -33,7 +33,13 @@ namespace SidebarDiagnostics
 
         private async Task Save(bool finalize)
         {
-            bool _glassChanged = Model.GlassBackground != Framework.Settings.Instance.GlassBackground;
+            // any save involving glass must recreate the sidebar: the in-place reset
+            // re-captures the desktop while this dialog may overlap the sidebar, which
+            // pollutes the captured background; card toggles restyle enough to need it too
+            bool _reloadNeeded =
+                Model.GlassBackground != Framework.Settings.Instance.GlassBackground ||
+                Model.UseCardStyle != Framework.Settings.Instance.UseCardStyle ||
+                Model.GlassBackground;
 
             Model.Save();
 
@@ -46,7 +52,7 @@ namespace SidebarDiagnostics
                     return;
                 }
 
-                if (_glassChanged)
+                if (_reloadNeeded)
                 {
                     // glass toggles the window's layered mode, which can only be set
                     // at creation, so the sidebar (and this dialog) must be recreated
@@ -398,6 +404,7 @@ namespace SidebarDiagnostics
             if (propertyName == "BGColor") currentColorStr = Model.BGColor;
             else if (propertyName == "FontColor") currentColorStr = Model.FontColor;
             else if (propertyName == "AlertFontColor") currentColorStr = Model.AlertFontColor;
+            else if (propertyName == "AccentColor") currentColorStr = Model.AccentColor;
 
             using (var dialog = new System.Windows.Forms.ColorDialog())
             {
@@ -419,6 +426,7 @@ namespace SidebarDiagnostics
                     if (propertyName == "BGColor") Model.BGColor = hexColor;
                     else if (propertyName == "FontColor") Model.FontColor = hexColor;
                     else if (propertyName == "AlertFontColor") Model.AlertFontColor = hexColor;
+                    else if (propertyName == "AccentColor") Model.AccentColor = hexColor;
                 }
             }
         }
@@ -426,6 +434,14 @@ namespace SidebarDiagnostics
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             Hotkey.Disable();
+
+            // keep the whole dialog (incl. Save/Apply) above the taskbar on any resolution
+            MaxHeight = SystemParameters.WorkArea.Height;
+
+            if (Top + ActualHeight > SystemParameters.WorkArea.Bottom)
+            {
+                Top = Math.Max(SystemParameters.WorkArea.Top, SystemParameters.WorkArea.Bottom - ActualHeight);
+            }
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
