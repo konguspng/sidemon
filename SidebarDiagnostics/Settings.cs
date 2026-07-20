@@ -511,6 +511,22 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        private System.Windows.VerticalAlignment _contentVerticalAlign { get; set; } = System.Windows.VerticalAlignment.Top;
+
+        public System.Windows.VerticalAlignment ContentVerticalAlign
+        {
+            get
+            {
+                return _contentVerticalAlign;
+            }
+            set
+            {
+                _contentVerticalAlign = value;
+
+                NotifyPropertyChanged("ContentVerticalAlign");
+            }
+        }
+
         private FontSetting _fontSetting { get; set; } = FontSetting.x14;
 
         public FontSetting FontSetting

@@ -157,6 +157,7 @@
                                 <RowDefinition Height="38px"></RowDefinition>
                                 <RowDefinition Height="38px"></RowDefinition>
                                 <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
                             </Grid.RowDefinitions>
 
                             <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsSidebarWidth}" />
@@ -165,11 +166,14 @@
                                 <Slider x:Name="SidebarWidthSlider" Value="{Binding Path=SidebarWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="100" Maximum="300" TickFrequency="5" LargeChange="100" ToolTip="{x:Static frame:Resources.SettingsSidebarWidthTooltip}" />
                             </DockPanel>
 
-                            <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsTextAlign}" />
-                            <ComboBox Grid.Column="1" Grid.Row="1" ItemsSource="{Binding Path=TextAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=TextAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsTextAlignTooltip}" />
+                            <Label Grid.Column="0" Grid.Row="1" Content="Vertical Align" />
+                            <ComboBox Grid.Column="1" Grid.Row="1" ItemsSource="{Binding Path=ContentVerticalAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=ContentVerticalAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Where the sidebar's content sits vertically when it's shorter than the screen. Has no effect once content overflows; it always scrolls from the top in that case." />
 
-                            <Label Grid.Column="0" Grid.Row="2" Content="Font" />
-                            <ComboBox Grid.Column="1" Grid.Row="2" ItemsSource="{Binding Path=FontFamilyItems, Mode=OneWay}" SelectedValue="{Binding Path=FontOption, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Font used for all sidebar text. These fonts ship with the app.">
+                            <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.SettingsTextAlign}" />
+                            <ComboBox Grid.Column="1" Grid.Row="2" ItemsSource="{Binding Path=TextAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=TextAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsTextAlignTooltip}" />
+
+                            <Label Grid.Column="0" Grid.Row="3" Content="Font" />
+                            <ComboBox Grid.Column="1" Grid.Row="3" ItemsSource="{Binding Path=FontFamilyItems, Mode=OneWay}" SelectedValue="{Binding Path=FontOption, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Font used for all sidebar text. These fonts ship with the app.">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding Path=Name, Mode=OneWay}" FontFamily="{Binding Path=Family, Mode=OneWay}" FontSize="14" />
@@ -177,11 +181,11 @@
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
 
-                            <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsFontSize}" />
-                            <ComboBox Grid.Column="1" Grid.Row="3" ItemsSource="{Binding Path=FontSettingItems, Mode=OneWay}" DisplayMemberPath="FontSize" SelectedValue="{Binding Path=FontSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsFontSizeTooltip}" />
+                            <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsFontSize}" />
+                            <ComboBox Grid.Column="1" Grid.Row="4" ItemsSource="{Binding Path=FontSettingItems, Mode=OneWay}" DisplayMemberPath="FontSize" SelectedValue="{Binding Path=FontSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsFontSizeTooltip}" />
 
-                            <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsFontColor}" />
-                            <DockPanel Grid.Column="1" Grid.Row="4" LastChildFill="True">
+                            <Label Grid.Column="0" Grid.Row="5" Content="{x:Static frame:Resources.SettingsFontColor}" />
+                            <DockPanel Grid.Column="1" Grid.Row="5" LastChildFill="True">
                                 <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=FontColor, Mode=OneWay}" Tag="FontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select font color from color picker." />
                                 <TextBox Width="Auto" Text="{Binding Path=FontColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="{x:Static frame:Resources.SettingsFontColorTooltip}" />
                             </DockPanel>

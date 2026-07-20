@@ -80,7 +80,7 @@
                 </Button>
             </StackPanel>
 
-            <ScrollViewer Style="{StaticResource ContentView}">
+            <ScrollViewer Style="{StaticResource ContentView}" VerticalContentAlignment="{Binding Source={x:Static frame:Settings.Instance}, Path=ContentVerticalAlign, Mode=OneWay}">
                 <StackPanel Style="{StaticResource ContentPanel}">
                     <ContentControl>
                         <ContentControl.Style>

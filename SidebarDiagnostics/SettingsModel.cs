@@ -67,6 +67,15 @@ namespace SidebarDiagnostics.Models
                 new TextAlignItem() { Text = Resources.SettingsTextAlignRight, Value = TextAlign.Right }
             };
 
+            ContentVerticalAlignItems = new VerticalAlignItem[3]
+            {
+                new VerticalAlignItem() { Text = "Top", Value = System.Windows.VerticalAlignment.Top },
+                new VerticalAlignItem() { Text = "Middle", Value = System.Windows.VerticalAlignment.Center },
+                new VerticalAlignItem() { Text = "Bottom", Value = System.Windows.VerticalAlignment.Bottom }
+            };
+
+            ContentVerticalAlign = Framework.Settings.Instance.ContentVerticalAlign;
+
             TextAlign = Framework.Settings.Instance.TextAlign;
 
             FontSettingItems = new FontSetting[5]
@@ -172,6 +181,7 @@ namespace SidebarDiagnostics.Models
             Framework.Settings.Instance.FeatherDirection = FeatherDirection;
             Framework.Settings.Instance.FeatherSize = FeatherSize;
             Framework.Settings.Instance.TextAlign = TextAlign;
+            Framework.Settings.Instance.ContentVerticalAlign = ContentVerticalAlign;
             Framework.Settings.Instance.FontSetting = FontSetting;
             Framework.Settings.Instance.FontFamilyName = FontOption != null ? FontOption.Name : SidebarFonts.DefaultName;
             Framework.Settings.Instance.UseCardStyle = UseCardStyle;
@@ -858,6 +868,38 @@ namespace SidebarDiagnostics.Models
             }
         }
 
+        private System.Windows.VerticalAlignment _contentVerticalAlign { get; set; }
+
+        public System.Windows.VerticalAlignment ContentVerticalAlign
+        {
+            get
+            {
+                return _contentVerticalAlign;
+            }
+            set
+            {
+                _contentVerticalAlign = value;
+
+                NotifyPropertyChanged("ContentVerticalAlign");
+            }
+        }
+
+        private VerticalAlignItem[] _contentVerticalAlignItems { get; set; }
+
+        public VerticalAlignItem[] ContentVerticalAlignItems
+        {
+            get
+            {
+                return _contentVerticalAlignItems;
+            }
+            set
+            {
+                _contentVerticalAlignItems = value;
+
+                NotifyPropertyChanged("ContentVerticalAlignItems");
+            }
+        }
+
         private FontSetting _fontSetting { get; set; }
 
         public FontSetting FontSetting
@@ -1300,6 +1342,13 @@ namespace SidebarDiagnostics.Models
     public class TextAlignItem
     {
         public TextAlign Value { get; set; }
+
+        public string Text { get; set; }
+    }
+
+    public class VerticalAlignItem
+    {
+        public System.Windows.VerticalAlignment Value { get; set; }
 
         public string Text { get; set; }
     }
