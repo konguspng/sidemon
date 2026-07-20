@@ -275,8 +275,20 @@ namespace SidebarDiagnostics
                 AppBarHide();
             }
 
-            // let the Ready-triggered layout pass settle before measuring
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, (Action)AutoFitUIScale);
+            // ItemsControl content bound via DataContext isn't realized synchronously;
+            // LayoutUpdated reliably fires once WPF has actually measured/arranged the
+            // new items, unlike a fixed DispatcherPriority guess which measured too
+            // early and saw a near-empty tree.
+            EventHandler _handler = null;
+
+            _handler = (s, e) =>
+            {
+                LayoutUpdated -= _handler;
+
+                AutoFitUIScale();
+            };
+
+            LayoutUpdated += _handler;
         }
 
         // If the enabled monitors/drives don't fit the screen at their natural size,
@@ -290,7 +302,7 @@ namespace SidebarDiagnostics
                 return;
             }
 
-            double _availableHeight = MainContent.ActualHeight - WindowControls.ActualHeight - 30d;
+            double _availableHeight = ActualHeight - WindowControls.ActualHeight - 30d;
 
             if (_availableHeight <= 0d)
             {
@@ -306,6 +318,8 @@ namespace SidebarDiagnostics
             double _scale = (_naturalHeight > _availableHeight && _naturalHeight > 0d)
                 ? Math.Max(0.5d, Math.Min(3.0d, _availableHeight / _naturalHeight))
                 : 1.0d;
+
+            _scale = Math.Round(_scale, 2);
 
             if (Math.Abs(Framework.Settings.Instance.UIScale - _scale) > 0.01d)
             {
