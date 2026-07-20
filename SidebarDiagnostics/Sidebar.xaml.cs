@@ -275,20 +275,52 @@ namespace SidebarDiagnostics
                 AppBarHide();
             }
 
-            // ItemsControl content bound via DataContext isn't realized synchronously;
-            // LayoutUpdated reliably fires once WPF has actually measured/arranged the
-            // new items, unlike a fixed DispatcherPriority guess which measured too
-            // early and saw a near-empty tree.
-            EventHandler _handler = null;
+            ScheduleAutoFit();
+        }
 
-            _handler = (s, e) =>
+        private DispatcherTimer _autoFitSettleTimer;
+
+        private EventHandler _autoFitLayoutHandler;
+
+        // ItemsControl content bound via DataContext isn't realized synchronously,
+        // and a single LayoutUpdated event isn't a reliable "fully settled" signal -
+        // it can fire multiple times as items are incrementally realized. Instead,
+        // restart a short timer on every LayoutUpdated; once layout goes quiet for
+        // that long, it's actually settled, and only then do we measure.
+        private void ScheduleAutoFit()
+        {
+            if (_autoFitLayoutHandler == null)
             {
-                LayoutUpdated -= _handler;
+                _autoFitLayoutHandler = (s, e) => RestartAutoFitSettleTimer();
 
-                AutoFitUIScale();
-            };
+                LayoutUpdated += _autoFitLayoutHandler;
+            }
 
-            LayoutUpdated += _handler;
+            RestartAutoFitSettleTimer();
+        }
+
+        private void RestartAutoFitSettleTimer()
+        {
+            if (_autoFitSettleTimer == null)
+            {
+                _autoFitSettleTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+
+                _autoFitSettleTimer.Tick += (s, e) =>
+                {
+                    _autoFitSettleTimer.Stop();
+
+                    if (_autoFitLayoutHandler != null)
+                    {
+                        LayoutUpdated -= _autoFitLayoutHandler;
+                        _autoFitLayoutHandler = null;
+                    }
+
+                    AutoFitUIScale();
+                };
+            }
+
+            _autoFitSettleTimer.Stop();
+            _autoFitSettleTimer.Start();
         }
 
         // If the enabled monitors/drives don't fit the screen at their natural size,
@@ -315,14 +347,23 @@ namespace SidebarDiagnostics
 
             double _naturalHeight = ContentStack.DesiredSize.Height;
 
-            double _scale = (_naturalHeight > _availableHeight && _naturalHeight > 0d)
-                ? Math.Max(0.5d, Math.Min(3.0d, _availableHeight / _naturalHeight))
+            bool _overflowing = _naturalHeight > _availableHeight && _naturalHeight > 0d;
+
+            double _scale = _overflowing
+                ? Math.Round(Math.Max(0.5d, Math.Min(3.0d, _availableHeight / _naturalHeight)), 2)
                 : 1.0d;
 
-            _scale = Math.Round(_scale, 2);
+            // hard cap: once the enabled monitors need more room than the screen at
+            // full size, the user can no longer scale back up past the point where
+            // it would overflow again
+            double _maxScale = _overflowing ? _scale : 3.0d;
 
-            if (Math.Abs(Framework.Settings.Instance.UIScale - _scale) > 0.01d)
+            bool _changed = Math.Abs(Framework.Settings.Instance.UIScale - _scale) > 0.01d
+                || Math.Abs(Framework.Settings.Instance.MaxUIScale - _maxScale) > 0.01d;
+
+            if (_changed)
             {
+                Framework.Settings.Instance.MaxUIScale = _maxScale;
                 Framework.Settings.Instance.UIScale = _scale;
                 Framework.Settings.Instance.Save();
             }

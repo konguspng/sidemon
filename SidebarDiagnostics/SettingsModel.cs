@@ -41,6 +41,7 @@ namespace SidebarDiagnostics.Models
             Culture = Framework.Settings.Instance.Culture;
 
             UIScale = Framework.Settings.Instance.UIScale;
+            MaxUIScale = Framework.Settings.Instance.MaxUIScale;
             XOffset = Framework.Settings.Instance.XOffset;
             YOffset = Framework.Settings.Instance.YOffset;
             PollingInterval = Framework.Settings.Instance.PollingInterval;
@@ -160,7 +161,7 @@ namespace SidebarDiagnostics.Models
             Framework.Settings.Instance.DockEdge = DockEdge;
             Framework.Settings.Instance.ScreenIndex = ScreenIndex;
             Framework.Settings.Instance.Culture = Culture;
-            Framework.Settings.Instance.UIScale = UIScale;
+            Framework.Settings.Instance.UIScale = Math.Round(UIScale, 2);
             Framework.Settings.Instance.XOffset = XOffset;
             Framework.Settings.Instance.YOffset = YOffset;
             Framework.Settings.Instance.PollingInterval = PollingInterval;
@@ -447,6 +448,31 @@ namespace SidebarDiagnostics.Models
                 _uiScale = value;
 
                 NotifyPropertyChanged("UIScale");
+            }
+        }
+
+        private double _maxUIScale { get; set; } = 3d;
+
+        public double MaxUIScale
+        {
+            get
+            {
+                return _maxUIScale;
+            }
+            set
+            {
+                _maxUIScale = value;
+
+                NotifyPropertyChanged("MaxUIScale");
+                NotifyPropertyChanged("UIScaleCapped");
+            }
+        }
+
+        public bool UIScaleCapped
+        {
+            get
+            {
+                return MaxUIScale < 2.999d;
             }
         }
 

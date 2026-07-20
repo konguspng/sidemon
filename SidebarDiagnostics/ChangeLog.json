@@ -4,6 +4,8 @@
     "Changes": [
       "New Vertical Align option (Top/Middle/Bottom) for the sidebar's content.",
       "Content that overflows the screen height now shrinks automatically to fit instead of scrolling or clipping, by writing the needed scale into UI Scale (Advanced tab), so everything stays visible no matter how many drives you show or how large your font/UI scale is.",
+      "UI Scale is now hard-capped once your monitors need more room than the screen, with a note in Advanced explaining why.",
+      "Fixed: auto-fit only worked reliably on first launch; toggling monitors afterward could leave items overflowing uncorrected. Fixed: the shown UI Scale value could have too many decimal places.",
       "Run at Startup now confirms whether it actually succeeded, instead of failing silently like it did (undetected) for a long time before 4.1.0."
     ]
   },

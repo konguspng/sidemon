@@ -222,6 +222,26 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        // live cap on how far UI Scale can be raised, computed by the sidebar's
+        // auto-fit check; not persisted, since it's derived from current content,
+        // not a stored preference
+        private double _maxUIScale { get; set; } = 3d;
+
+        [JsonIgnore]
+        public double MaxUIScale
+        {
+            get
+            {
+                return _maxUIScale;
+            }
+            set
+            {
+                _maxUIScale = value;
+
+                NotifyPropertyChanged("MaxUIScale");
+            }
+        }
+
         private int _xOffset { get; set; } = 0;
 
         public int XOffset
