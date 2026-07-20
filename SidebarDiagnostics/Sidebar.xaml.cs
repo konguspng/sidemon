@@ -334,7 +334,18 @@ namespace SidebarDiagnostics
                 return;
             }
 
-            double _availableHeight = ActualHeight - WindowControls.ActualHeight - 30d;
+            // ActualHeight can't be trusted here: setting UIScale elsewhere triggers
+            // legacy DPI-scaling code (UpdateScale/HandleDPI) that overwrites the
+            // window's WPF-level Height using a stale/zero baseline captured at
+            // startup, silently corrupting it after the very first auto-shrink. The
+            // monitor's real work area is authoritative and immune to that, since
+            // the window's on-screen height always equals the full work area
+            // regardless of UI Scale (only width scales with it).
+            Windows.Monitor _monitor = Windows.Monitor.GetMonitorFromIndex(Framework.Settings.Instance.ScreenIndex);
+
+            double _screenHeight = (_monitor.WorkArea.Bottom - _monitor.WorkArea.Top) * _monitor.InverseScaleY;
+
+            double _availableHeight = _screenHeight - WindowControls.ActualHeight - 30d;
 
             if (_availableHeight <= 0d)
             {
