@@ -13,6 +13,7 @@ using SidebarDiagnostics.Models;
 using SidebarDiagnostics.Monitoring;
 using SidebarDiagnostics.Windows;
 using SidebarDiagnostics.Style;
+using SidebarDiagnostics.Utilities;
 
 namespace SidebarDiagnostics
 {
@@ -388,6 +389,61 @@ namespace SidebarDiagnostics
             }
 
             Close();
+        }
+
+        private async void InstallPawnIO_Click(object sender, RoutedEventArgs e)
+        {
+            Model.PawnIODriverInstalling = true;
+
+            bool _installed;
+
+            try
+            {
+                _installed = await PawnIO.InstallAsync();
+            }
+            catch (Exception ex)
+            {
+                ErrorLog.Write(ex);
+                _installed = false;
+            }
+            finally
+            {
+                Model.PawnIODriverInstalling = false;
+            }
+
+            Model.PawnIODriverInstalled = _installed;
+
+            if (!_installed)
+            {
+                MessageBoxResult _fallback = MessageBox.Show(
+                    "Automatic installation failed. Open pawnio.eu in your browser to install it manually?",
+                    Framework.Resources.AppName,
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning,
+                    MessageBoxResult.Yes);
+
+                if (_fallback == MessageBoxResult.Yes)
+                {
+                    App.OpenURL("https://pawnio.eu");
+                }
+
+                return;
+            }
+
+            Sidebar _sidebar = App.Current.Sidebar;
+
+            if (_sidebar == null || !_sidebar.Ready)
+            {
+                return;
+            }
+
+            var _prompt = new ReloadPromptDialog("PawnIO installed successfully. Reload SideMon now to start showing CPU and GPU sensor data?");
+            _prompt.ShowDialog();
+
+            if (_prompt.ReloadRequested)
+            {
+                _sidebar.Reload();
+            }
         }
 
         private void ColorBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

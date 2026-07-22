@@ -2,6 +2,7 @@
   {
     "Version": "4.1.2",
     "Changes": [
+      "New: General settings now shows PawnIO driver status, with a manual install button and progress indicator when it's missing.",
       "Fixed: the PawnIO driver install prompt could fail to ever appear on startup, because it waited for a fully-idle dispatcher queue that continuous sensor-polling UI updates could keep busy indefinitely. It's now scheduled with a short fixed delay instead.",
       "Failures in the PawnIO prompt flow are now written to error.log instead of silently disappearing."
     ]

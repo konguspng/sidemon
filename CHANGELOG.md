@@ -4,6 +4,7 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 
 ## 4.1.2 (released)
 
+- New: General settings now shows PawnIO driver status directly, with a manual "Install PawnIO Driver" button and progress indicator when it's missing, so you're not solely dependent on the automatic startup prompt.
 - Fixed: the PawnIO driver install prompt could fail to ever appear on startup. It was scheduled at the lowest dispatcher priority (ApplicationIdle), but continuous sensor-polling UI updates could keep the dispatcher queue from ever going fully idle, starving it out indefinitely. It's now scheduled with a short fixed delay instead, so it reliably runs.
 - Failures in the PawnIO prompt flow are now caught and written to `error.log` instead of silently disappearing.
 

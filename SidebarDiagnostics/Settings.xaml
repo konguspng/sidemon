@@ -24,6 +24,7 @@
     <Window.Resources>
         <conv:IntToStringConverter x:Key="IntConverter" />
         <conv:HotkeyToStringConverter x:Key="HotkeyConverter" />
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
     </Window.Resources>
     <DockPanel LastChildFill="True">
         <StackPanel DockPanel.Dock="Bottom" Style="{StaticResource WindowButtons_SM}">
@@ -76,6 +77,21 @@
 
                     <Label Grid.Column="0" Grid.Row="5" Content="{x:Static frame:Resources.SettingsRunAtStartup}" />
                     <CheckBox Grid.Column="1" Grid.Row="5" IsChecked="{Binding Path=RunAtStartup, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsRunAtStartupTooltip}" />
+
+                    <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="6" Margin="0,16,0,0" Orientation="Vertical"
+                                Visibility="{Binding Path=PawnIODriverInstalled, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+                        <TextBlock TextWrapping="Wrap" Opacity="0.75" FontSize="12" Margin="0,0,0,8"
+                                   Text="CPU and GPU sensor readings (clock, temperature, voltage) need the PawnIO driver, a small signed driver from pawnio.eu. Without it those readings show &quot;No Value&quot;." />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Install PawnIO Driver" HorizontalAlignment="Left" Click="InstallPawnIO_Click"
+                                    IsEnabled="{Binding Path=PawnIODriverInstalling, Converter={StaticResource BoolInverseConverter}}" />
+                            <ProgressBar IsIndeterminate="True" Width="120" Height="6" Margin="10,0,0,0" VerticalAlignment="Center"
+                                         Visibility="{Binding Path=PawnIODriverInstalling, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="6" Margin="0,16,0,0" Opacity="0.75" FontStyle="Italic"
+                               Text="PawnIO driver: installed. CPU/GPU sensors are available."
+                               Visibility="{Binding Path=PawnIODriverInstalled, Converter={StaticResource BoolToVisibility}}" />
                 </Grid>
             </TabItem>
             <TabItem Header="{x:Static frame:Resources.SettingsAdvancedTab}">
