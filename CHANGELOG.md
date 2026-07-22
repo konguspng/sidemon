@@ -6,7 +6,6 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 
 - Fixed: opening Settings could crash if a removable/USB drive was monitored and became briefly unavailable (a stale performance-counter instance is now skipped instead of crashing the reload).
 - Fixed: the guided PawnIO driver install could fail with "the process cannot access the file" on a retry, because it reused the same temp file path as a prior attempt.
-- Crash logs (`error.log`) no longer include the developer's local build folder path; source paths embedded in the build are now normalized.
 
 ## 4.1.0 (released)
 

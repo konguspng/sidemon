@@ -3,8 +3,7 @@
     "Version": "4.1.1",
     "Changes": [
       "Fixed: opening Settings could crash if a removable/USB drive was monitored and became briefly unavailable.",
-      "Fixed: the guided PawnIO driver install could fail with a file-in-use error on a retry.",
-      "Crash logs no longer include the developer's local folder path."
+      "Fixed: the guided PawnIO driver install could fail with a file-in-use error on a retry."
     ]
   },
   {
