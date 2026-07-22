@@ -148,6 +148,22 @@ namespace SidebarDiagnostics
 
         private async System.Threading.Tasks.Task CheckPawnIOAsync()
         {
+            // this runs fire-and-forget from OnStartup ("_ = CheckPawnIOAsync();"), so
+            // an unhandled exception here is never observed by anything: it doesn't
+            // crash the app and it doesn't get logged, it just silently disappears
+            // and the user never sees the install prompt
+            try
+            {
+                await CheckPawnIOCoreAsync().ConfigureAwait(true);
+            }
+            catch (Exception e)
+            {
+                ErrorLog.Write(e);
+            }
+        }
+
+        private async System.Threading.Tasks.Task CheckPawnIOCoreAsync()
+        {
             if (PawnIO.IsInstalled)
             {
                 return;

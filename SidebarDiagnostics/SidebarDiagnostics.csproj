@@ -21,6 +21,12 @@
          folder structure -->
     <Deterministic>true</Deterministic>
     <PathMap>$(MSBuildProjectDirectory)=SidebarDiagnostics</PathMap>
+
+    <!-- the SDK also auto-embeds a source-link block (repo-relative git metadata for
+         IDE debugging) that separately carries the raw local build path; this app
+         ships no source-server support to end users, so turn the query off rather
+         than let that block reintroduce the same leak PathMap just closed -->
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
   </PropertyGroup>
 
   <ItemGroup>

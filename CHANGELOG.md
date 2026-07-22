@@ -2,6 +2,10 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.1.2 (released)
+
+- Fixed: the PawnIO driver install prompt on startup ran with no error handling at all, so if anything went wrong the prompt could silently fail to appear — no crash, no error, nothing in the log. A failure there is now caught and written to `error.log` so it can actually be diagnosed.
+
 ## 4.1.1 (released)
 
 - Fixed: opening Settings could crash if a removable/USB drive was monitored and became briefly unavailable (a stale performance-counter instance is now skipped instead of crashing the reload).

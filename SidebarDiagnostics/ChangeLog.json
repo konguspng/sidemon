@@ -1,5 +1,11 @@
 [
   {
+    "Version": "4.1.2",
+    "Changes": [
+      "Fixed: the PawnIO driver install prompt could silently fail to appear on startup with no error shown and nothing recorded; a failure there is now written to error.log so it can be diagnosed."
+    ]
+  },
+  {
     "Version": "4.1.1",
     "Changes": [
       "Fixed: opening Settings could crash if a removable/USB drive was monitored and became briefly unavailable.",
