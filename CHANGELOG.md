@@ -4,7 +4,8 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 
 ## 4.1.2 (released)
 
-- Fixed: the PawnIO driver install prompt on startup ran with no error handling at all, so if anything went wrong the prompt could silently fail to appear — no crash, no error, nothing in the log. A failure there is now caught and written to `error.log` so it can actually be diagnosed.
+- Fixed: the PawnIO driver install prompt could fail to ever appear on startup. It was scheduled at the lowest dispatcher priority (ApplicationIdle), but continuous sensor-polling UI updates could keep the dispatcher queue from ever going fully idle, starving it out indefinitely. It's now scheduled with a short fixed delay instead, so it reliably runs.
+- Failures in the PawnIO prompt flow are now caught and written to `error.log` instead of silently disappearing.
 
 ## 4.1.1 (released)
 

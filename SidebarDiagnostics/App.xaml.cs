@@ -60,12 +60,20 @@ namespace SidebarDiagnostics
                 StartApp(false);
             }
 
-            // SENSOR DRIVER: checked after the app is visible, so a fresh install
-            // never looks frozen while this runs
-            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, (Action)(() =>
+            // SENSOR DRIVER: checked shortly after the app is visible, so a fresh
+            // install never looks frozen while this runs. This used to be scheduled
+            // at DispatcherPriority.ApplicationIdle, but sensor polling continuously
+            // enqueues UI-bound property-change updates, so the dispatcher queue can
+            // stay non-empty indefinitely and ApplicationIdle work never actually
+            // gets a turn; a short off-thread delay plus a Normal-priority dispatch
+            // is not subject to that starvation.
+            _ = System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(1)).ContinueWith(_ =>
             {
-                _ = CheckPawnIOAsync();
-            }));
+                Dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
+                {
+                    _ = CheckPawnIOAsync();
+                }));
+            });
         }
 
         protected override void OnExit(ExitEventArgs e)
@@ -164,10 +172,14 @@ namespace SidebarDiagnostics
 
         private async System.Threading.Tasks.Task CheckPawnIOCoreAsync()
         {
+            ErrorLog.Write("PawnIO check: starting, IsInstalled=" + PawnIO.IsInstalled);
+
             if (PawnIO.IsInstalled)
             {
                 return;
             }
+
+            ErrorLog.Write("PawnIO check: showing install prompt");
 
             MessageBoxResult _result = MessageBox.Show(
                 "CPU and GPU sensors (clock, temperature, voltage) require the PawnIO driver, which is not installed.\n\n" +
@@ -178,6 +190,8 @@ namespace SidebarDiagnostics
                 MessageBoxImage.Question,
                 MessageBoxResult.Yes,
                 MessageBoxOptions.DefaultDesktopOnly);
+
+            ErrorLog.Write("PawnIO check: prompt answered, result=" + _result);
 
             if (_result != MessageBoxResult.Yes)
             {
