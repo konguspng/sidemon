@@ -1,5 +1,13 @@
 [
   {
+    "Version": "4.1.1",
+    "Changes": [
+      "Fixed: opening Settings could crash if a removable/USB drive was monitored and became briefly unavailable.",
+      "Fixed: the guided PawnIO driver install could fail with a file-in-use error on a retry.",
+      "Crash logs no longer include the developer's local folder path."
+    ]
+  },
+  {
     "Version": "4.1.0",
     "Changes": [
       "New card panel style: each monitor group is shown as a rounded dashboard card, similar to gaming performance overlays. On by default; switch back under Customize.",

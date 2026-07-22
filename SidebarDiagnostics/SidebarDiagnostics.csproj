@@ -14,6 +14,13 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
     <StartupObject>SidebarDiagnostics.App</StartupObject>
     <SatelliteResourceLanguages>en;da;de;fr;ja;nl;zh;it;ru;fi;es;ar;tr</SatelliteResourceLanguages>
+
+    <!-- the compiler embeds source file paths (as seen on the build machine) into the
+         pdb, and that pdb ships to every user in the installer; rewrite the absolute
+         build path to a generic one so crash logs don't leak the developer's local
+         folder structure -->
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=SidebarDiagnostics</PathMap>
   </PropertyGroup>
 
   <ItemGroup>

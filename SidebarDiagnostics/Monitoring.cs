@@ -2072,7 +2072,15 @@ namespace SidebarDiagnostics.Monitoring
 
         public override void Update()
         {
-            Update(_counter.NextValue());
+            try
+            {
+                Update(_counter.NextValue());
+            }
+            catch (InvalidOperationException)
+            {
+                // the counter's instance (e.g. a drive letter) went away since the
+                // counter was created; skip this tick rather than crash the reload
+            }
         }
 
         private PerformanceCounter _counter { get; set; }

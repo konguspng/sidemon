@@ -158,7 +158,10 @@ namespace SidebarDiagnostics.Utilities
 
         public static async System.Threading.Tasks.Task<bool> InstallAsync()
         {
-            string _setup = Path.Combine(Path.GetTempPath(), "PawnIO_setup.exe");
+            // unique name per attempt: a stale/locked leftover from a prior run (still
+            // being scanned by AV, or its installer process still exiting) must not
+            // block a fresh download from writing to the same path
+            string _setup = Path.Combine(Path.GetTempPath(), $"PawnIO_setup_{Guid.NewGuid():N}.exe");
 
             try
             {
