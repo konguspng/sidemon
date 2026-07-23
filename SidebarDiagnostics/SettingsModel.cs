@@ -51,6 +51,7 @@ namespace SidebarDiagnostics.Models
             ClickThrough = Framework.Settings.Instance.ClickThrough;
             ShowTrayIcon = Framework.Settings.Instance.ShowTrayIcon;
             RunAtStartup = Framework.Settings.Instance.RunAtStartup;
+            PawnIODriverInstalled = PawnIO.IsInstalled;
             SidebarWidth = Framework.Settings.Instance.SidebarWidth;
             AutoBGColor = Framework.Settings.Instance.AutoBGColor;
             GlassBackground = Framework.Settings.Instance.GlassBackground;
@@ -617,6 +618,41 @@ namespace SidebarDiagnostics.Models
                 _runAtStartup = value;
 
                 NotifyPropertyChanged("RunAtStartup");
+            }
+        }
+
+        // not a persisted setting: reflects live driver state so the General tab can
+        // offer a manual install trigger when the automatic startup prompt was
+        // missed, declined, or (as happened once) never managed to appear at all
+        private bool _pawnIODriverInstalled { get; set; }
+
+        public bool PawnIODriverInstalled
+        {
+            get
+            {
+                return _pawnIODriverInstalled;
+            }
+            set
+            {
+                _pawnIODriverInstalled = value;
+
+                NotifyPropertyChanged("PawnIODriverInstalled");
+            }
+        }
+
+        private bool _pawnIODriverInstalling { get; set; }
+
+        public bool PawnIODriverInstalling
+        {
+            get
+            {
+                return _pawnIODriverInstalling;
+            }
+            set
+            {
+                _pawnIODriverInstalling = value;
+
+                NotifyPropertyChanged("PawnIODriverInstalling");
             }
         }
 

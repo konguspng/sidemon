@@ -2,7 +2,7 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
-## 4.1.1 (unreleased, in development)
+## 4.1.3 (unreleased, in development)
 
 - New Vertical Align setting (Top/Middle/Bottom, under Customize > Layout & Text) controlling where content sits when it's shorter than the screen.
 - Content that overflows the screen height (many drives, a larger font, a higher UI scale) now shrinks automatically to fit, instead of scrolling or clipping. Scrolling was removed entirely: with Click-Through enabled the sidebar was never actually scrollable in the first place, since click-through makes the whole window mouse-transparent by design. Auto-fit works by measuring the enabled monitors/drives and, if they're taller than the screen, writing the scale needed to fit into the UI Scale setting (Advanced tab) - the same setting you can also set manually. This means UI Scale now reflects the real effective scale at all times, and shrinks the whole sidebar (not just the drive list) when things don't fit; it renders at full size (UI Scale 1.0) whenever everything already fits. The computed value is rounded to 2 decimal places.
@@ -10,6 +10,17 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 - Hard cap: once your enabled monitors need more room than the screen at full size, UI Scale can no longer be raised past the point where it would overflow again. The Advanced tab shows a note explaining the cap and how to lift it (disable some monitors/drives).
 - Fixed: the cap/scale could get stuck too low even after removing enough monitors to fit again. The available-height check was reading the window's own Height property, which gets silently corrupted the first time UI Scale changes (a pre-existing side effect of legacy DPI-scaling code reacting to any UI Scale change, not something introduced by auto-fit). It now reads the monitor's real work area directly, which UI Scale changes can't affect.
 - Toggling "Run at Startup" now shows a confirmation dialog on save: success ("SideMon will now start automatically when you log in") or a warning if the scheduled task couldn't be created/removed, instead of failing silently with no feedback at all. This is exactly the kind of failure that hid the 4.0/4.1.0 startup bug for so long.
+
+## 4.1.2 (released)
+
+- New: General settings now shows PawnIO driver status directly, with a manual "Install PawnIO Driver" button and progress indicator when it's missing, so you're not solely dependent on the automatic startup prompt.
+- Fixed: the PawnIO driver install prompt could fail to ever appear on startup. It was scheduled at the lowest dispatcher priority (ApplicationIdle), but continuous sensor-polling UI updates could keep the dispatcher queue from ever going fully idle, starving it out indefinitely. It's now scheduled with a short fixed delay instead, so it reliably runs.
+- Failures in the PawnIO prompt flow are now caught and written to `error.log` instead of silently disappearing.
+
+## 4.1.1 (released)
+
+- Fixed: opening Settings could crash if a removable/USB drive was monitored and became briefly unavailable (a stale performance-counter instance is now skipped instead of crashing the reload).
+- Fixed: the guided PawnIO driver install could fail with "the process cannot access the file" on a retry, because it reused the same temp file path as a prior attempt.
 
 ## 4.1.0 (released)
 

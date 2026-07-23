@@ -86,6 +86,27 @@ namespace SidebarDiagnostics.Converters
         }
     }
 
+    public class BoolToVisibilityConverter : IValueConverter
+    {
+        // pass ConverterParameter=Invert to collapse on true instead of false
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            bool _value = (bool)value;
+
+            if (string.Equals((string)parameter, "Invert", StringComparison.OrdinalIgnoreCase))
+            {
+                _value = !_value;
+            }
+
+            return _value ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return null;
+        }
+    }
+
     public class MetricLabelConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

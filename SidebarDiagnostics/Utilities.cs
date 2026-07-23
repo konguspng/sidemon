@@ -118,6 +118,13 @@ namespace SidebarDiagnostics.Utilities
     {
         public static void Write(Exception ex)
         {
+            Write(ex.ToString());
+        }
+
+        // plain-text trace line, for pinning down silent/no-op code paths that
+        // aren't exceptions (e.g. a prompt that should have appeared but didn't)
+        public static void Write(string message)
+        {
             try
             {
                 if (!Directory.Exists(Paths.LocalApp))
@@ -125,7 +132,7 @@ namespace SidebarDiagnostics.Utilities
                     Directory.CreateDirectory(Paths.LocalApp);
                 }
 
-                File.AppendAllText(Paths.ErrorLogFile, string.Format("[{0:u}] {1}{2}{2}", DateTime.Now, ex, Environment.NewLine));
+                File.AppendAllText(Paths.ErrorLogFile, string.Format("[{0:u}] {1}{2}{2}", DateTime.Now, message, Environment.NewLine));
             }
             catch
             {
@@ -158,7 +165,10 @@ namespace SidebarDiagnostics.Utilities
 
         public static async System.Threading.Tasks.Task<bool> InstallAsync()
         {
-            string _setup = Path.Combine(Path.GetTempPath(), "PawnIO_setup.exe");
+            // unique name per attempt: a stale/locked leftover from a prior run (still
+            // being scanned by AV, or its installer process still exiting) must not
+            // block a fresh download from writing to the same path
+            string _setup = Path.Combine(Path.GetTempPath(), $"PawnIO_setup_{Guid.NewGuid():N}.exe");
 
             try
             {
