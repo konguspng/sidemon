@@ -556,6 +556,36 @@
                     <TextBox Grid.Column="2" Grid.Row="7" Text="{Binding Path=CloseKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" />
                 </Grid>
             </TabItem>
+            <TabItem Header="{x:Static frame:Resources.SettingsOverlayTab}">
+                <Grid Style="{StaticResource SettingGrid}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                        <ColumnDefinition Width="*"></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="38px"></RowDefinition>
+                        <RowDefinition Height="38px"></RowDefinition>
+                        <RowDefinition Height="38px"></RowDefinition>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Column="0" Grid.Row="0" Content="Show FPS Overlay" />
+                    <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding Path=ShowFpsOverlay, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Shows a small, click-through FPS counter at a screen corner by reading RivaTuner Statistics Server's (RTSS) live frame stats. Requires RTSS to be installed and running - SideMon does not capture frames itself." />
+
+                    <Label Grid.Column="0" Grid.Row="1" Content="Overlay Corner" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}" />
+                    <ComboBox Grid.Column="1" Grid.Row="1" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}" ItemsSource="{Binding Path=OverlayCornerItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=FpsOverlayCorner, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Which screen corner the FPS overlay appears in." />
+
+                    <Label Grid.Column="0" Grid.Row="2" Content="Overlay Opacity" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}" />
+                    <Slider Grid.Column="1" Grid.Row="2" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}" Minimum="0.2" Maximum="1.0" Value="{Binding Path=FpsOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Overlay transparency." />
+
+                    <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3" Margin="0,16,0,0" Opacity="0.75" FontStyle="Italic" TextWrapping="Wrap"
+                               Text="RTSS not detected. Install and run RivaTuner Statistics Server for the overlay to show live FPS; without it, the overlay shows &quot;No RTSS&quot;."
+                               Visibility="{Binding Path=RTSSDetected, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
+                    <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3" Margin="0,16,0,0" Opacity="0.75" FontStyle="Italic"
+                               Text="RTSS detected. The overlay will show live FPS for the app currently in focus."
+                               Visibility="{Binding Path=RTSSDetected, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
+            </TabItem>
         </TabControl>
     </DockPanel>
 </sty:FlatWindow>

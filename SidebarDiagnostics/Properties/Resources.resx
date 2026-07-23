@@ -160,6 +160,14 @@
     <value>RAM</value>
     <comment>RAM monitor title</comment>
   </data>
+  <data name="Motherboard" xml:space="preserve">
+    <value>Motherboard</value>
+    <comment>Motherboard monitor title</comment>
+  </data>
+  <data name="Battery" xml:space="preserve">
+    <value>Battery</value>
+    <comment>Battery monitor title</comment>
+  </data>
   <data name="ButtonReload" xml:space="preserve">
     <value>Reload</value>
     <comment>Text of the reload button</comment>
@@ -351,6 +359,62 @@
   <data name="GPUVRAMLoadLabel" xml:space="preserve">
     <value>VRAM</value>
     <comment>Short label for GPU VRAM load metric</comment>
+  </data>
+  <data name="MotherboardTemp" xml:space="preserve">
+    <value>Temperature</value>
+    <comment>Full name for motherboard temp metric</comment>
+  </data>
+  <data name="MotherboardTempLabel" xml:space="preserve">
+    <value>Temp</value>
+    <comment>Short label for motherboard temp metric</comment>
+  </data>
+  <data name="MotherboardFan" xml:space="preserve">
+    <value>Fan Usage</value>
+    <comment>Full name for motherboard fan metric</comment>
+  </data>
+  <data name="MotherboardFanLabel" xml:space="preserve">
+    <value>Fan</value>
+    <comment>Short label for motherboard fan metric</comment>
+  </data>
+  <data name="MotherboardVoltage" xml:space="preserve">
+    <value>Voltage</value>
+    <comment>Full name for motherboard voltage metric</comment>
+  </data>
+  <data name="MotherboardVoltageLabel" xml:space="preserve">
+    <value>Voltage</value>
+    <comment>Short label for motherboard voltage metric</comment>
+  </data>
+  <data name="BatteryLevel" xml:space="preserve">
+    <value>Charge Level</value>
+    <comment>Full name for battery level metric</comment>
+  </data>
+  <data name="BatteryLevelLabel" xml:space="preserve">
+    <value>Charge</value>
+    <comment>Short label for battery level metric</comment>
+  </data>
+  <data name="BatteryVoltage" xml:space="preserve">
+    <value>Voltage</value>
+    <comment>Full name for battery voltage metric</comment>
+  </data>
+  <data name="BatteryVoltageLabel" xml:space="preserve">
+    <value>Voltage</value>
+    <comment>Short label for battery voltage metric</comment>
+  </data>
+  <data name="BatteryRate" xml:space="preserve">
+    <value>Charge Rate</value>
+    <comment>Full name for battery charge/discharge rate metric</comment>
+  </data>
+  <data name="BatteryRateLabel" xml:space="preserve">
+    <value>Rate</value>
+    <comment>Short label for battery charge/discharge rate metric</comment>
+  </data>
+  <data name="BatteryTimeRemaining" xml:space="preserve">
+    <value>Time Remaining</value>
+    <comment>Full name for battery time remaining metric</comment>
+  </data>
+  <data name="BatteryTimeRemainingLabel" xml:space="preserve">
+    <value>Left</value>
+    <comment>Short label for battery time remaining metric</comment>
   </data>
   <data name="NetworkIn" xml:space="preserve">
     <value>Bandwidth In</value>
@@ -723,6 +787,10 @@
   <data name="SettingsHotkeysTab" xml:space="preserve">
     <value>Hotkeys</value>
     <comment>Title of the settings hotkeys tab</comment>
+  </data>
+  <data name="SettingsOverlayTab" xml:space="preserve">
+    <value>Overlay</value>
+    <comment>Title of the settings FPS overlay tab</comment>
   </data>
   <data name="SettingsHotkeyToggle" xml:space="preserve">
     <value>Toggle</value>

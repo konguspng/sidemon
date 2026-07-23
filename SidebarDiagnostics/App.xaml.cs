@@ -99,11 +99,32 @@ namespace SidebarDiagnostics
             new Sidebar(openSettings, Framework.Settings.Instance.InitiallyHidden).Show();
 
             RefreshIcon();
+            RefreshFpsOverlay();
         }
 
         public static void RefreshIcon()
         {
             TrayIcon.Visibility = Framework.Settings.Instance.ShowTrayIcon ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        // toggled independently of the sidebar - the overlay is its own small
+        // always-on-top window, not part of the docked sidebar panel list
+        public static void RefreshFpsOverlay()
+        {
+            Overlay.FpsOverlay _overlay = Current.Windows.OfType<Overlay.FpsOverlay>().FirstOrDefault();
+
+            if (Framework.Settings.Instance.ShowFpsOverlay)
+            {
+                if (_overlay == null)
+                {
+                    new Overlay.FpsOverlay().Show();
+                }
+            }
+            else if (_overlay != null)
+            {
+                _overlay.StopPolling();
+                _overlay.Close();
+            }
         }
 
         public static void ShowPerformanceCounterError()

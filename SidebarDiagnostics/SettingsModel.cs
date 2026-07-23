@@ -78,6 +78,19 @@ namespace SidebarDiagnostics.Models
 
             ContentVerticalAlign = Framework.Settings.Instance.ContentVerticalAlign;
 
+            OverlayCornerItems = new OverlayCornerItem[4]
+            {
+                new OverlayCornerItem() { Text = "Top Left", Value = OverlayCorner.TopLeft },
+                new OverlayCornerItem() { Text = "Top Right", Value = OverlayCorner.TopRight },
+                new OverlayCornerItem() { Text = "Bottom Left", Value = OverlayCorner.BottomLeft },
+                new OverlayCornerItem() { Text = "Bottom Right", Value = OverlayCorner.BottomRight }
+            };
+
+            ShowFpsOverlay = Framework.Settings.Instance.ShowFpsOverlay;
+            FpsOverlayCorner = Framework.Settings.Instance.FpsOverlayCorner;
+            FpsOverlayOpacity = Framework.Settings.Instance.FpsOverlayOpacity;
+            RTSSDetected = SidebarDiagnostics.Overlay.RTSSReader.IsAvailable;
+
             TextAlign = Framework.Settings.Instance.TextAlign;
 
             FontSettingItems = new FontSetting[5]
@@ -184,6 +197,9 @@ namespace SidebarDiagnostics.Models
             Framework.Settings.Instance.FeatherSize = FeatherSize;
             Framework.Settings.Instance.TextAlign = TextAlign;
             Framework.Settings.Instance.ContentVerticalAlign = ContentVerticalAlign;
+            Framework.Settings.Instance.ShowFpsOverlay = ShowFpsOverlay;
+            Framework.Settings.Instance.FpsOverlayCorner = FpsOverlayCorner;
+            Framework.Settings.Instance.FpsOverlayOpacity = FpsOverlayOpacity;
             Framework.Settings.Instance.FontSetting = FontSetting;
             Framework.Settings.Instance.FontFamilyName = FontOption != null ? FontOption.Name : SidebarFonts.DefaultName;
             Framework.Settings.Instance.UseCardStyle = UseCardStyle;
@@ -962,6 +978,86 @@ namespace SidebarDiagnostics.Models
             }
         }
 
+        private bool _showFpsOverlay { get; set; }
+
+        public bool ShowFpsOverlay
+        {
+            get
+            {
+                return _showFpsOverlay;
+            }
+            set
+            {
+                _showFpsOverlay = value;
+
+                NotifyPropertyChanged("ShowFpsOverlay");
+            }
+        }
+
+        private OverlayCorner _fpsOverlayCorner { get; set; }
+
+        public OverlayCorner FpsOverlayCorner
+        {
+            get
+            {
+                return _fpsOverlayCorner;
+            }
+            set
+            {
+                _fpsOverlayCorner = value;
+
+                NotifyPropertyChanged("FpsOverlayCorner");
+            }
+        }
+
+        private OverlayCornerItem[] _overlayCornerItems { get; set; }
+
+        public OverlayCornerItem[] OverlayCornerItems
+        {
+            get
+            {
+                return _overlayCornerItems;
+            }
+            set
+            {
+                _overlayCornerItems = value;
+
+                NotifyPropertyChanged("OverlayCornerItems");
+            }
+        }
+
+        private double _fpsOverlayOpacity { get; set; }
+
+        public double FpsOverlayOpacity
+        {
+            get
+            {
+                return _fpsOverlayOpacity;
+            }
+            set
+            {
+                _fpsOverlayOpacity = value;
+
+                NotifyPropertyChanged("FpsOverlayOpacity");
+            }
+        }
+
+        private bool _rtssDetected { get; set; }
+
+        public bool RTSSDetected
+        {
+            get
+            {
+                return _rtssDetected;
+            }
+            set
+            {
+                _rtssDetected = value;
+
+                NotifyPropertyChanged("RTSSDetected");
+            }
+        }
+
         private FontSetting _fontSetting { get; set; }
 
         public FontSetting FontSetting
@@ -1411,6 +1507,13 @@ namespace SidebarDiagnostics.Models
     public class VerticalAlignItem
     {
         public System.Windows.VerticalAlignment Value { get; set; }
+
+        public string Text { get; set; }
+    }
+
+    public class OverlayCornerItem
+    {
+        public OverlayCorner Value { get; set; }
 
         public string Text { get; set; }
     }

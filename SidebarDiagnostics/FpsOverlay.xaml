@@ -1,0 +1,26 @@
+<win:DPIAwareWindow x:Class="SidebarDiagnostics.Overlay.FpsOverlay"
+                    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:win="clr-namespace:SidebarDiagnostics.Windows"
+                    xmlns:frame="clr-namespace:SidebarDiagnostics.Framework"
+                    Style="{StaticResource OverlayWindow}">
+    <Border Style="{StaticResource OverlayCard}">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock x:Name="FpsValue"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="{Binding Source={x:Static frame:Settings.Instance}, Path=AccentColor, Mode=OneWay}" />
+            <TextBlock x:Name="StatusText"
+                       FontSize="11"
+                       Foreground="#B3FFFFFF"
+                       VerticalAlignment="Center"
+                       Visibility="Collapsed" />
+            <TextBlock x:Name="FpsLabel"
+                       Text=" FPS"
+                       FontSize="11"
+                       Foreground="#B3FFFFFF"
+                       VerticalAlignment="Bottom"
+                       Margin="2,0,0,2" />
+        </StackPanel>
+    </Border>
+</win:DPIAwareWindow>

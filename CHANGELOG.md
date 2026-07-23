@@ -2,8 +2,13 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
-## 4.1.3 (unreleased, in development)
+## 4.2.0 (unreleased, in development)
 
+- New Motherboard monitor: chipset/VRM temperature, case fan, and voltage sensors, available from the Monitors tab like any other monitor type.
+- New Battery monitor: charge level, time remaining, charge/discharge rate (Watts), and voltage. On a desktop with no battery this monitor simply shows nothing, the same as any other unavailable hardware.
+- New FPS overlay (Settings > Overlay tab): a small, minimalist, click-through counter that can sit in any of the 4 screen corners with adjustable opacity, matching the sidebar's accent color/theme. It reads live frame stats from RivaTuner Statistics Server (RTSS) if installed and running, rather than SideMon hooking into games itself - real per-game FPS capture requires intercepting each graphics API's present call, which is exactly what RTSS already does. Without RTSS running, the overlay shows "No RTSS" instead of a number.
+- Per-core CPU load and per-core CPU clock breakdowns were already available in the CPU monitor's row details (Monitors tab) - per-core load is enabled by default.
+- Disk read/write throughput (Drives monitor) was already available and enabled by default.
 - New Vertical Align setting (Top/Middle/Bottom, under Customize > Layout & Text) controlling where content sits when it's shorter than the screen.
 - Content that overflows the screen height (many drives, a larger font, a higher UI scale) now shrinks automatically to fit, instead of scrolling or clipping. Scrolling was removed entirely: with Click-Through enabled the sidebar was never actually scrollable in the first place, since click-through makes the whole window mouse-transparent by design. Auto-fit works by measuring the enabled monitors/drives and, if they're taller than the screen, writing the scale needed to fit into the UI Scale setting (Advanced tab) - the same setting you can also set manually. This means UI Scale now reflects the real effective scale at all times, and shrinks the whole sidebar (not just the drive list) when things don't fit; it renders at full size (UI Scale 1.0) whenever everything already fits. The computed value is rounded to 2 decimal places.
 - Fixed: the auto-fit check ran before the drive/monitor list had actually finished rendering, so it measured a near-empty layout and never detected real overflow (e.g. enabling more drives in the Monitors tab). It now waits for layout to genuinely go quiet (debounced) before measuring, which is reliable across repeated Monitors tab changes, not just on first launch.

@@ -33,7 +33,8 @@ namespace SidebarDiagnostics.Monitoring
                     IsStorageEnabled = false,
                     IsMotherboardEnabled = true,
                     IsMemoryEnabled = true,
-                    IsNetworkEnabled = false
+                    IsNetworkEnabled = false,
+                    IsBatteryEnabled = true
                 };
                 _computer.Open();
                 _board = GetHardware(HardwareType.Motherboard).FirstOrDefault();
@@ -93,6 +94,8 @@ namespace SidebarDiagnostics.Monitoring
                 case MonitorType.CPU:
                 case MonitorType.RAM:
                 case MonitorType.GPU:
+                case MonitorType.Motherboard:
+                case MonitorType.Battery:
                     return GetHardware(type.GetHardwareTypes()).Select(h => new HardwareConfig() { ID = h.Identifier.ToString(), Name = h.Name, ActualName = h.Name }).ToArray();
 
                 case MonitorType.HD:
@@ -159,6 +162,26 @@ namespace SidebarDiagnostics.Monitoring
                     return OHMPanel(
                         config.Type,
                         "M3 5v15 M3 7h17a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3 M7 17v3 M11 17v3 M17 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+                        config.Hardware,
+                        config.Metrics,
+                        config.Params,
+                        config.Type.GetHardwareTypes()
+                        );
+
+                case MonitorType.Motherboard:
+                    return OHMPanel(
+                        config.Type,
+                        "M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z M8 9h8v6H8Z M2 9h2 M2 13h2 M20 9h2 M20 13h2 M8 3v2 M12 3v2 M16 3v2 M8 19v2 M12 19v2 M16 19v2",
+                        config.Hardware,
+                        config.Metrics,
+                        config.Params,
+                        config.Type.GetHardwareTypes()
+                        );
+
+                case MonitorType.Battery:
+                    return OHMPanel(
+                        config.Type,
+                        "M7 7h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z M20 10v4 M7 10v4",
                         config.Hardware,
                         config.Metrics,
                         config.Params,
@@ -520,6 +543,22 @@ namespace SidebarDiagnostics.Monitoring
                         parameters.Any(p => p.Key == ParamKey.UseWatts) && parameters.GetValue<bool>(ParamKey.UseWatts),
                         parameters.Any(p => p.Key == ParamKey.ShowVRAMGB) && parameters.GetValue<bool>(ParamKey.ShowVRAMGB),
                         parameters.Any(p => p.Key == ParamKey.ShowFanRPM) ? parameters.GetValue<bool>(ParamKey.ShowFanRPM) : false
+                        );
+                    break;
+
+                case MonitorType.Motherboard:
+                    InitMotherboard(
+                        metrics,
+                        parameters.GetValue<bool>(ParamKey.RoundAll),
+                        parameters.GetValue<bool>(ParamKey.UseFahrenheit),
+                        parameters.GetValue<int>(ParamKey.TempAlert)
+                        );
+                    break;
+
+                case MonitorType.Battery:
+                    InitBattery(
+                        metrics,
+                        parameters.GetValue<bool>(ParamKey.RoundAll)
                         );
                     break;
 
@@ -960,6 +999,96 @@ namespace SidebarDiagnostics.Monitoring
                 {
                     DataType fanDataType = _fanSensor.SensorType == SensorType.Control ? DataType.Percent : DataType.RPM;
                     _sensorList.Add(new OHMMetric(_fanSensor, MetricKey.GPUFan, fanDataType));
+                }
+            }
+
+            Metrics = _sensorList.ToArray();
+        }
+
+        public void InitMotherboard(MetricConfig[] metrics, bool roundAll, bool useFahrenheit, double tempAlert)
+        {
+            List<iMetric> _sensorList = new List<iMetric>();
+
+            if (metrics.IsEnabled(MetricKey.MotherboardTemp))
+            {
+                ISensor _tempSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Temperature).OrderBy(s => s.Index).FirstOrDefault();
+
+                if (_tempSensor != null)
+                {
+                    _sensorList.Add(new OHMMetric(_tempSensor, MetricKey.MotherboardTemp, DataType.Celcius, null, roundAll, tempAlert, (useFahrenheit ? CelciusToFahrenheit.Instance : null)));
+                }
+            }
+
+            if (metrics.IsEnabled(MetricKey.MotherboardFan))
+            {
+                ISensor _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Fan).OrderBy(s => s.Index).FirstOrDefault()
+                    ?? _hardware.Sensors.Where(s => s.SensorType == SensorType.Control).OrderBy(s => s.Index).FirstOrDefault();
+
+                if (_fanSensor != null)
+                {
+                    DataType fanDataType = _fanSensor.SensorType == SensorType.Control ? DataType.Percent : DataType.RPM;
+                    _sensorList.Add(new OHMMetric(_fanSensor, MetricKey.MotherboardFan, fanDataType));
+                }
+            }
+
+            if (metrics.IsEnabled(MetricKey.MotherboardVoltage))
+            {
+                ISensor _voltage = _hardware.Sensors.Where(s => s.SensorType == SensorType.Voltage).OrderBy(s => s.Index).FirstOrDefault();
+
+                if (_voltage != null)
+                {
+                    _sensorList.Add(new OHMMetric(_voltage, MetricKey.MotherboardVoltage, DataType.Voltage, null, roundAll));
+                }
+            }
+
+            Metrics = _sensorList.ToArray();
+        }
+
+        public void InitBattery(MetricConfig[] metrics, bool roundAll)
+        {
+            List<iMetric> _sensorList = new List<iMetric>();
+
+            if (metrics.IsEnabled(MetricKey.BatteryLevel))
+            {
+                ISensor _levelSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Level).FirstOrDefault();
+
+                if (_levelSensor != null)
+                {
+                    _sensorList.Add(new OHMMetric(_levelSensor, MetricKey.BatteryLevel, DataType.Percent, null, roundAll));
+                }
+            }
+
+            if (metrics.IsEnabled(MetricKey.BatteryVoltage))
+            {
+                ISensor _voltage = _hardware.Sensors.Where(s => s.SensorType == SensorType.Voltage).FirstOrDefault();
+
+                if (_voltage != null)
+                {
+                    _sensorList.Add(new OHMMetric(_voltage, MetricKey.BatteryVoltage, DataType.Voltage, null, roundAll));
+                }
+            }
+
+            if (metrics.IsEnabled(MetricKey.BatteryRate))
+            {
+                // charge/discharge rate is only meaningful shown in Watts (no Ampere
+                // DataType exists in this app); a Current-only sensor is skipped
+                ISensor _rateSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Power).FirstOrDefault();
+
+                if (_rateSensor != null)
+                {
+                    _sensorList.Add(new OHMMetric(_rateSensor, MetricKey.BatteryRate, DataType.Watt, null, roundAll));
+                }
+            }
+
+            if (metrics.IsEnabled(MetricKey.BatteryTimeRemaining))
+            {
+                ISensor _timeSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.TimeSpan).FirstOrDefault();
+
+                if (_timeSensor != null)
+                {
+                    // LibreHardwareMonitor reports remaining time as a TimeSpan sensor
+                    // in seconds; convert to minutes for a more readable metric.
+                    _sensorList.Add(new OHMMetric(_timeSensor, MetricKey.BatteryTimeRemaining, DataType.Minute, null, roundAll, 0, SecondsToMinutes.Instance));
                 }
             }
 
@@ -2095,7 +2224,9 @@ namespace SidebarDiagnostics.Monitoring
         RAM,
         GPU,
         HD,
-        Network
+        Network,
+        Motherboard,
+        Battery
     }
 
     public class MonitorConfig : INotifyPropertyChanged, ICloneable
@@ -2312,7 +2443,7 @@ namespace SidebarDiagnostics.Monitoring
         {
             get
             {
-                return new MonitorConfig[5]
+                return new MonitorConfig[7]
                 {
                     new MonitorConfig()
                     {
@@ -2430,6 +2561,45 @@ namespace SidebarDiagnostics.Monitoring
                             ConfigParam.Defaults.UseBytes,
                             ConfigParam.Defaults.BandwidthInAlert,
                             ConfigParam.Defaults.BandwidthOutAlert
+                        }
+                    },
+                    new MonitorConfig()
+                    {
+                        Type = MonitorType.Motherboard,
+                        Enabled = true,
+                        Order = 6,
+                        Hardware = new HardwareConfig[0],
+                        Metrics = new MetricConfig[3]
+                        {
+                            new MetricConfig(MetricKey.MotherboardTemp, true),
+                            new MetricConfig(MetricKey.MotherboardFan, true),
+                            new MetricConfig(MetricKey.MotherboardVoltage, false)
+                        },
+                        Params = new ConfigParam[4]
+                        {
+                            ConfigParam.Defaults.HardwareNames,
+                            ConfigParam.Defaults.RoundAll,
+                            ConfigParam.Defaults.UseFahrenheit,
+                            ConfigParam.Defaults.TempAlert
+                        }
+                    },
+                    new MonitorConfig()
+                    {
+                        Type = MonitorType.Battery,
+                        Enabled = true,
+                        Order = 0,
+                        Hardware = new HardwareConfig[0],
+                        Metrics = new MetricConfig[4]
+                        {
+                            new MetricConfig(MetricKey.BatteryLevel, true),
+                            new MetricConfig(MetricKey.BatteryTimeRemaining, true),
+                            new MetricConfig(MetricKey.BatteryRate, false),
+                            new MetricConfig(MetricKey.BatteryVoltage, false)
+                        },
+                        Params = new ConfigParam[2]
+                        {
+                            ConfigParam.Defaults.HardwareNames,
+                            ConfigParam.Defaults.RoundAll
                         }
                     }
                 };
@@ -2651,7 +2821,16 @@ namespace SidebarDiagnostics.Monitoring
         DriveUsed = 22,
         DriveFree = 23,
         DriveRead = 24,
-        DriveWrite = 25
+        DriveWrite = 25,
+
+        MotherboardTemp = 28,
+        MotherboardFan = 29,
+        MotherboardVoltage = 30,
+
+        BatteryLevel = 31,
+        BatteryVoltage = 32,
+        BatteryRate = 33,
+        BatteryTimeRemaining = 34
     }
 
     public class ConfigParam : INotifyPropertyChanged, ICloneable
@@ -3095,7 +3274,8 @@ namespace SidebarDiagnostics.Monitoring
         RPM,
         Celcius,
         Fahrenheit,
-        IP
+        IP,
+        Minute
     }
 
     public interface iConverter
@@ -3198,6 +3378,54 @@ namespace SidebarDiagnostics.Monitoring
                 if (_instance == null)
                 {
                     _instance = new MHzToGHz();
+                }
+
+                return _instance;
+            }
+        }
+    }
+
+    public class SecondsToMinutes : iConverter
+    {
+        private SecondsToMinutes() { }
+
+        public void Convert(ref double value)
+        {
+            value = value / 60d;
+        }
+
+        public void Convert(ref double value, out double normalized, out DataType targetType)
+        {
+            Convert(ref value);
+            normalized = value;
+            targetType = TargetType;
+        }
+
+        public DataType TargetType
+        {
+            get
+            {
+                return DataType.Minute;
+            }
+        }
+
+        public bool IsDynamic
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        private static SecondsToMinutes _instance { get; set; } = null;
+
+        public static SecondsToMinutes Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new SecondsToMinutes();
                 }
 
                 return _instance;
@@ -3359,6 +3587,12 @@ namespace SidebarDiagnostics.Monitoring
                 case MonitorType.GPU:
                     return new HardwareType[3] { HardwareType.GpuNvidia, HardwareType.GpuAmd, HardwareType.GpuIntel };
 
+                case MonitorType.Motherboard:
+                    return new HardwareType[1] { HardwareType.Motherboard };
+
+                case MonitorType.Battery:
+                    return new HardwareType[1] { HardwareType.Battery };
+
                 default:
                     throw new ArgumentException("Invalid MonitorType.");
             }
@@ -3382,6 +3616,12 @@ namespace SidebarDiagnostics.Monitoring
 
                 case MonitorType.Network:
                     return Resources.Network;
+
+                case MonitorType.Motherboard:
+                    return Resources.Motherboard;
+
+                case MonitorType.Battery:
+                    return Resources.Battery;
 
                 default:
                     throw new ArgumentException("Invalid MonitorType.");
@@ -3481,6 +3721,27 @@ namespace SidebarDiagnostics.Monitoring
                 case MetricKey.DriveWrite:
                     return Resources.DriveWrite;
 
+                case MetricKey.MotherboardTemp:
+                    return Resources.MotherboardTemp;
+
+                case MetricKey.MotherboardFan:
+                    return Resources.MotherboardFan;
+
+                case MetricKey.MotherboardVoltage:
+                    return Resources.MotherboardVoltage;
+
+                case MetricKey.BatteryLevel:
+                    return Resources.BatteryLevel;
+
+                case MetricKey.BatteryVoltage:
+                    return Resources.BatteryVoltage;
+
+                case MetricKey.BatteryRate:
+                    return Resources.BatteryRate;
+
+                case MetricKey.BatteryTimeRemaining:
+                    return Resources.BatteryTimeRemaining;
+
                 default:
                     return "Unknown";
             }
@@ -3574,6 +3835,27 @@ namespace SidebarDiagnostics.Monitoring
                 case MetricKey.DriveWrite:
                     return Resources.DriveWriteLabel;
 
+                case MetricKey.MotherboardTemp:
+                    return Resources.MotherboardTempLabel;
+
+                case MetricKey.MotherboardFan:
+                    return Resources.MotherboardFanLabel;
+
+                case MetricKey.MotherboardVoltage:
+                    return Resources.MotherboardVoltageLabel;
+
+                case MetricKey.BatteryLevel:
+                    return Resources.BatteryLevelLabel;
+
+                case MetricKey.BatteryVoltage:
+                    return Resources.BatteryVoltageLabel;
+
+                case MetricKey.BatteryRate:
+                    return Resources.BatteryRateLabel;
+
+                case MetricKey.BatteryTimeRemaining:
+                    return Resources.BatteryTimeRemainingLabel;
+
                 default:
                     return "Unknown";
             }
@@ -3657,6 +3939,9 @@ namespace SidebarDiagnostics.Monitoring
 
                 case DataType.IP:
                     return string.Empty;
+
+                case DataType.Minute:
+                    return " min";
 
                 default:
                     throw new ArgumentException("Invalid DataType.");

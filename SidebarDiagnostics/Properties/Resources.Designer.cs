@@ -574,6 +574,150 @@ namespace SidebarDiagnostics.Framework {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Motherboard.
+        /// </summary>
+        public static string Motherboard {
+            get {
+                return ResourceManager.GetString("Motherboard", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Battery.
+        /// </summary>
+        public static string Battery {
+            get {
+                return ResourceManager.GetString("Battery", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Temperature.
+        /// </summary>
+        public static string MotherboardTemp {
+            get {
+                return ResourceManager.GetString("MotherboardTemp", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Temp.
+        /// </summary>
+        public static string MotherboardTempLabel {
+            get {
+                return ResourceManager.GetString("MotherboardTempLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Fan Usage.
+        /// </summary>
+        public static string MotherboardFan {
+            get {
+                return ResourceManager.GetString("MotherboardFan", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Fan.
+        /// </summary>
+        public static string MotherboardFanLabel {
+            get {
+                return ResourceManager.GetString("MotherboardFanLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Voltage.
+        /// </summary>
+        public static string MotherboardVoltage {
+            get {
+                return ResourceManager.GetString("MotherboardVoltage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Voltage.
+        /// </summary>
+        public static string MotherboardVoltageLabel {
+            get {
+                return ResourceManager.GetString("MotherboardVoltageLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Charge Level.
+        /// </summary>
+        public static string BatteryLevel {
+            get {
+                return ResourceManager.GetString("BatteryLevel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Charge.
+        /// </summary>
+        public static string BatteryLevelLabel {
+            get {
+                return ResourceManager.GetString("BatteryLevelLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Voltage.
+        /// </summary>
+        public static string BatteryVoltage {
+            get {
+                return ResourceManager.GetString("BatteryVoltage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Voltage.
+        /// </summary>
+        public static string BatteryVoltageLabel {
+            get {
+                return ResourceManager.GetString("BatteryVoltageLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Charge Rate.
+        /// </summary>
+        public static string BatteryRate {
+            get {
+                return ResourceManager.GetString("BatteryRate", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Rate.
+        /// </summary>
+        public static string BatteryRateLabel {
+            get {
+                return ResourceManager.GetString("BatteryRateLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Time Remaining.
+        /// </summary>
+        public static string BatteryTimeRemaining {
+            get {
+                return ResourceManager.GetString("BatteryTimeRemaining", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Left.
+        /// </summary>
+        public static string BatteryTimeRemainingLabel {
+            get {
+                return ResourceManager.GetString("BatteryTimeRemainingLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Temperature.
         /// </summary>
         public static string GPUTemp {
@@ -1454,7 +1598,16 @@ namespace SidebarDiagnostics.Framework {
                 return ResourceManager.GetString("SettingsHotkeysTab", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Overlay.
+        /// </summary>
+        public static string SettingsOverlayTab {
+            get {
+                return ResourceManager.GetString("SettingsOverlayTab", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Toggle.
         /// </summary>

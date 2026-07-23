@@ -76,6 +76,36 @@
                 </Style.Triggers>
             </Style>
 
+            <Style x:Key="OverlayWindow" TargetType="{x:Type win:DPIAwareWindow}">
+                <Setter Property="Left" Value="0" />
+                <Setter Property="Top" Value="0" />
+                <Setter Property="Width" Value="70" />
+                <Setter Property="Height" Value="36" />
+                <Setter Property="AutoDPI" Value="False" />
+                <Setter Property="ShowInTaskbar" Value="False" />
+                <Setter Property="ResizeMode" Value="NoResize" />
+                <Setter Property="ShowActivated" Value="False" />
+                <Setter Property="ShowTitleBar" Value="False" />
+                <Setter Property="ShowIcon" Value="False" />
+                <Setter Property="ShowTitle" Value="False" />
+                <Setter Property="ShowMinimize" Value="False" />
+                <Setter Property="ShowMaximize" Value="False" />
+                <Setter Property="ShowClose" Value="False" />
+                <Setter Property="WindowStyle" Value="None" />
+                <Setter Property="Topmost" Value="True" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="AllowsTransparency" Value="True" />
+                <Setter Property="Opacity" Value="{Binding Source={x:Static frame:Settings.Instance}, Path=FpsOverlayOpacity, Mode=OneWay}" />
+            </Style>
+
+            <Style x:Key="OverlayCard" TargetType="{x:Type Border}">
+                <Setter Property="Background" Value="#8C000000" />
+                <Setter Property="BorderBrush" Value="#26FFFFFF" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="Padding" Value="8,4" />
+            </Style>
+
             <Style x:Key="MainPanel" TargetType="{x:Type DockPanel}">
                 <Setter Property="LastChildFill" Value="True" />
                 <Setter Property="Visibility" Value="Collapsed" />

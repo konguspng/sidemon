@@ -1,7 +1,10 @@
 [
   {
-    "Version": "4.1.3",
+    "Version": "4.2.0",
     "Changes": [
+      "New Motherboard monitor: chipset/VRM temperature, case fan, and voltage sensors.",
+      "New Battery monitor: charge level, time remaining, charge/discharge rate, and voltage.",
+      "New FPS overlay (Settings > Overlay tab): a small, minimalist, click-through counter in any screen corner, adjustable opacity, matching the sidebar's theme. Reads live stats from RivaTuner Statistics Server (RTSS) if installed and running; shows \"No RTSS\" otherwise.",
       "New Vertical Align option (Top/Middle/Bottom) for the sidebar's content.",
       "Content that overflows the screen height now shrinks automatically to fit instead of scrolling or clipping, by writing the needed scale into UI Scale (Advanced tab), so everything stays visible no matter how many drives you show or how large your font/UI scale is.",
       "UI Scale is now hard-capped once your monitors need more room than the screen, with a note in Advanced explaining why.",

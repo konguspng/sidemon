@@ -44,6 +44,8 @@ namespace SidebarDiagnostics
 
             Model.Save();
 
+            App.RefreshFpsOverlay();
+
             await App.Current.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, (Action)(async () =>
             {
                 Sidebar _sidebar = App.Current.Sidebar;

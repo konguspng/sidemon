@@ -611,6 +611,54 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        private bool _showFpsOverlay { get; set; } = false;
+
+        public bool ShowFpsOverlay
+        {
+            get
+            {
+                return _showFpsOverlay;
+            }
+            set
+            {
+                _showFpsOverlay = value;
+
+                NotifyPropertyChanged("ShowFpsOverlay");
+            }
+        }
+
+        private OverlayCorner _fpsOverlayCorner { get; set; } = OverlayCorner.BottomRight;
+
+        public OverlayCorner FpsOverlayCorner
+        {
+            get
+            {
+                return _fpsOverlayCorner;
+            }
+            set
+            {
+                _fpsOverlayCorner = value;
+
+                NotifyPropertyChanged("FpsOverlayCorner");
+            }
+        }
+
+        private double _fpsOverlayOpacity { get; set; } = 1d;
+
+        public double FpsOverlayOpacity
+        {
+            get
+            {
+                return _fpsOverlayOpacity;
+            }
+            set
+            {
+                _fpsOverlayOpacity = value;
+
+                NotifyPropertyChanged("FpsOverlayOpacity");
+            }
+        }
+
         private bool _checkForUpdates { get; set; } = true;
 
         public bool CheckForUpdates
@@ -1050,5 +1098,14 @@ namespace SidebarDiagnostics.Framework
         public static readonly DateSetting Short = new DateSetting("M");
         public static readonly DateSetting Normal = new DateSetting("d");
         public static readonly DateSetting Long = new DateSetting("D");
+    }
+
+    [Serializable]
+    public enum OverlayCorner : byte
+    {
+        TopLeft,
+        TopRight,
+        BottomLeft,
+        BottomRight
     }
 }
