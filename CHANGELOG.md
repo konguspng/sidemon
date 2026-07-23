@@ -10,6 +10,7 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 - Hard cap: once your enabled monitors need more room than the screen at full size, UI Scale can no longer be raised past the point where it would overflow again. The Advanced tab shows a note explaining the cap and how to lift it (disable some monitors/drives).
 - Fixed: the cap/scale could get stuck too low even after removing enough monitors to fit again. The available-height check was reading the window's own Height property, which gets silently corrupted the first time UI Scale changes (a pre-existing side effect of legacy DPI-scaling code reacting to any UI Scale change, not something introduced by auto-fit). It now reads the monitor's real work area directly, which UI Scale changes can't affect.
 - Toggling "Run at Startup" now shows a confirmation dialog on save: success ("SideMon will now start automatically when you log in") or a warning if the scheduled task couldn't be created/removed, instead of failing silently with no feedback at all. This is exactly the kind of failure that hid the 4.0/4.1.0 startup bug for so long.
+- Fixed: in Desktop Blur mode, using tray menu Show after Hide brought the sidebar to the front of other windows instead of staying behind them. `Show()` re-activates and raises a window to the top of its z-band regardless of prior state; the bottom-of-stack/non-topmost policy is now reapplied every time the sidebar is shown, not just once at launch.
 
 ## 4.1.2 (released)
 

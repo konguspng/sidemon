@@ -7,7 +7,8 @@
       "UI Scale is now hard-capped once your monitors need more room than the screen, with a note in Advanced explaining why.",
       "Fixed: auto-fit only worked reliably on first launch; toggling monitors afterward could leave items overflowing uncorrected. Fixed: the shown UI Scale value could have too many decimal places.",
       "Fixed: UI Scale could get stuck too small even after removing enough monitors to fit again, because of a pre-existing bug where changing UI Scale corrupts the window's tracked height. Auto-fit now measures against the real screen instead.",
-      "Run at Startup now confirms whether it actually succeeded, instead of failing silently like it did (undetected) for a long time before 4.1.0."
+      "Run at Startup now confirms whether it actually succeeded, instead of failing silently like it did (undetected) for a long time before 4.1.0.",
+      "Fixed: in Desktop Blur mode, Show after Hide brought the sidebar in front of other windows instead of staying behind them; the bottom-of-stack policy is now reapplied every time the sidebar is shown."
     ]
   },
   {

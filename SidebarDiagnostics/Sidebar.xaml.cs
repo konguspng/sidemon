@@ -124,7 +124,31 @@ namespace SidebarDiagnostics
         {
             await base.AppBarShow();
 
+            // Window.Show() re-activates and raises the window to the top of its
+            // z-band regardless of prior state, silently undoing the bottom/non-topmost
+            // policy set at bind time; reassert it every time we come back from Hide()
+            ApplyZOrderPolicy();
+
             Model.Resume();
+        }
+
+        private void ApplyZOrderPolicy()
+        {
+            if (Framework.Settings.Instance.GlassBackground)
+            {
+                // glass imitates the wallpaper, so the sidebar must sit at the bottom
+                // of the window stack: other windows always cover it, never the reverse
+                ClearTopMost(false);
+                SetBottom(false);
+            }
+            else if (Framework.Settings.Instance.AlwaysTop)
+            {
+                SetTopMost(false);
+            }
+            else
+            {
+                ClearTopMost(false);
+            }
         }
 
         public override void AppBarHide()
@@ -151,26 +175,15 @@ namespace SidebarDiagnostics
         {
             await BindPosition();
 
-            if (Framework.Settings.Instance.GlassBackground)
-            {
-                // glass imitates the wallpaper, so the sidebar must sit at the bottom
-                // of the window stack: other windows always cover it, never the reverse
-                ClearTopMost(false);
-                SetBottom(false);
+            ApplyZOrderPolicy();
 
+            if (Framework.Settings.Instance.GlassBackground || !Framework.Settings.Instance.AlwaysTop)
+            {
                 ShowDesktop.AddHook(this);
-            }
-            else if (Framework.Settings.Instance.AlwaysTop)
-            {
-                SetTopMost(false);
-
-                ShowDesktop.RemoveHook();
             }
             else
             {
-                ClearTopMost(false);
-
-                ShowDesktop.AddHook(this);
+                ShowDesktop.RemoveHook();
             }
 
             if (Framework.Settings.Instance.ClickThrough)
