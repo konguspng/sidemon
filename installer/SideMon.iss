@@ -20,7 +20,13 @@ ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
 SetupIconFile=..\SidebarDiagnostics\Sidebar.ico
 DisableProgramGroupPage=yes
-CloseApplications=yes
+; Restart Manager's own app-detection (triggered by CloseApplications=yes) can
+; stall the "Preparing to Install" page if the running app's window doesn't
+; respond to RM's query promptly, even when the app itself isn't hung. The
+; taskkill calls in CurStepChanged(ssInstall) below already force-close the
+; app without needing its cooperation, so the built-in feature is redundant
+; and disabled here to avoid that freeze.
+CloseApplications=no
 RestartApplications=no
 
 [Tasks]
