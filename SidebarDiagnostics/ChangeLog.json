@@ -1,5 +1,11 @@
 [
   {
+    "Version": "4.2.1",
+    "Changes": [
+      "Fixed: the sidebar could still be Alt+Tab'd to. In 4.2.0 that fix was tied to the \"Desktop Widget Mode\" checkbox, which was off in some existing settings. The sidebar is now always kept out of Alt+Tab / the task switcher and shown on every virtual desktop, and the redundant checkbox has been removed from Settings > Advanced."
+    ]
+  },
+  {
     "Version": "4.2.0",
     "Changes": [
       "Fixed: SideMon still appeared in Alt+Tab / the task switcher despite \"Toolbar Mode\" being on by default. The hide-from-switcher style was applied too late (after the window was first shown), so Windows ignored it. It's now set before the first show, and toggling the setting takes effect immediately. The setting is renamed \"Desktop Widget Mode\": SideMon behaves like a desktop gadget, off the taskbar and out of Alt+Tab, unless you turn it off.",

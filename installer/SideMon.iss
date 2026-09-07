@@ -1,5 +1,5 @@
 #define MyAppName "SideMon"
-#define MyAppVersion "4.2.0"
+#define MyAppVersion "4.2.1"
 #define MyAppExeName "SideMon.exe"
 
 [Setup]
@@ -12,7 +12,7 @@ DefaultGroupName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 PrivilegesRequired=admin
 OutputDir=.
-OutputBaseFilename=SideMon-4.2.0-Setup
+OutputBaseFilename=SideMon-4.2.1-Setup
 Compression=lzma2/max
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible

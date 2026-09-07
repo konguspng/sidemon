@@ -290,22 +290,6 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
-        private bool _toolbarMode { get; set; } = true;
-
-        public bool ToolbarMode
-        {
-            get
-            {
-                return _toolbarMode;
-            }
-            set
-            {
-                _toolbarMode = value;
-
-                NotifyPropertyChanged("ToolbarMode");
-            }
-        }
-
         private bool _clickThrough { get; set; } = false;
 
         public bool ClickThrough

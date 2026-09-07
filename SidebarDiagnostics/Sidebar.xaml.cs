@@ -178,17 +178,10 @@ namespace SidebarDiagnostics
         {
             await BindPosition();
 
-            // Keep this ahead of ApplyZOrderPolicy: when Toolbar Mode is toggled at
-            // runtime this bounces the window's visibility to refresh the Alt+Tab
-            // list, and ApplyZOrderPolicy right after puts the z-order band back.
-            if (Framework.Settings.Instance.ToolbarMode)
-            {
-                HideInAltTab();
-            }
-            else
-            {
-                ShowInAltTab();
-            }
+            // The tool-window style (out of Alt+Tab, all virtual desktops) is set
+            // once in AppBarWindow.OnSourceInitialized before the window is first
+            // shown; this is a cheap no-op re-assert on later reloads.
+            HideInAltTab();
 
             ApplyZOrderPolicy();
 

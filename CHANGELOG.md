@@ -2,6 +2,10 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.2.1 (released 2026-09-08)
+
+- Fixed: the sidebar could still be Alt+Tab'd to. In 4.2.0 the "hide from the task switcher" behavior was tied to the "Desktop Widget Mode" checkbox, which was off in some existing configs, so the tool-window style was never applied. The sidebar is now always a tool window - out of Alt+Tab / the task switcher, off the taskbar, and shown on every virtual desktop - and the now-redundant "Desktop Widget Mode" checkbox has been removed from Settings > Advanced. The FPS overlay was already unconditional as of 4.2.0.
+
 ## 4.2.0 (released 2026-09-08)
 
 - Fixed: SideMon still showed up in Alt+Tab / the task switcher even though "Toolbar Mode" was on by default. The tool-window style that hides it was being applied only after the window had already been shown once, and Windows only re-checks Alt+Tab eligibility when a window goes from hidden to shown, so the change never took effect on a normal launch. It's now applied before the window is first shown, so SideMon stays out of the switcher, and toggling the setting at runtime now bounces the window's visibility so the change takes effect immediately without a restart.

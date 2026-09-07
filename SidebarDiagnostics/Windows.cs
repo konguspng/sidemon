@@ -109,8 +109,6 @@ namespace SidebarDiagnostics.Windows
         [DllImport("user32.dll")]
         internal static extern bool SetWindowPos(IntPtr hwnd, IntPtr hwnd_after, int x, int y, int cx, int cy, uint uflags);
 
-        [DllImport("user32.dll")]
-        internal static extern bool ShowWindow(IntPtr hwnd, int nCmdShow);
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         internal static extern int RegisterWindowMessage(string msg);
@@ -1290,12 +1288,6 @@ namespace SidebarDiagnostics.Windows
             public const long WS_EX_APPWINDOW = 0x00040000;
         }
 
-        private static class SHOW_WINDOW
-        {
-            public const int SW_HIDE = 0;
-            public const int SW_SHOWNOACTIVATE = 4;
-        }
-
         private static class WM_WINDOWPOSCHANGING
         {
             public const int MSG = 0x0046;
@@ -1325,22 +1317,16 @@ namespace SidebarDiagnostics.Windows
         {
             base.OnSourceInitialized(e);
 
-            // Decide the task-switcher policy here, while the HWND exists but the
-            // window has not been shown yet. Windows only reads a window's Alt+Tab
-            // eligibility on the hidden -> shown transition, so flipping
-            // WS_EX_TOOLWINDOW after the first Show() (as the old BindSettings path
-            // did) left the sidebar sitting in Alt+Tab for the whole session.
-            // Doing it before that first Show is what actually keeps it out.
-            if (Framework.Settings.Instance.ToolbarMode)
-            {
-                IsInAltTab = false;
-                SetWindowLong(WND_STYLE.WS_EX_TOOLWINDOW, WND_STYLE.WS_EX_APPWINDOW);
-            }
-            else
-            {
-                IsInAltTab = true;
-                SetWindowLong(null, WND_STYLE.WS_EX_TOOLWINDOW);
-            }
+            // The sidebar is a desktop widget, never a task the user switches to, so
+            // it is always a tool window: out of Alt+Tab / the task switcher, off the
+            // taskbar, and shown on every virtual desktop. This must happen here,
+            // while the HWND exists but the window has not been shown yet - Windows
+            // only reads a window's Alt+Tab eligibility on the hidden -> shown
+            // transition, so setting WS_EX_TOOLWINDOW after the first Show() (as the
+            // old BindSettings path did) left the sidebar in the switcher for the
+            // whole session.
+            IsInAltTab = false;
+            SetWindowLong(WND_STYLE.WS_EX_TOOLWINDOW, WND_STYLE.WS_EX_APPWINDOW);
         }
 
         private void AppBarWindow_Loaded(object sender, RoutedEventArgs e)
@@ -1484,20 +1470,6 @@ namespace SidebarDiagnostics.Windows
             SetWindowLong(null, WND_STYLE.WS_EX_TRANSPARENT);
         }
 
-        public void ShowInAltTab()
-        {
-            if (IsInAltTab)
-            {
-                return;
-            }
-
-            IsInAltTab = true;
-
-            SetWindowLong(null, WND_STYLE.WS_EX_TOOLWINDOW);
-
-            RefreshAltTabMembership();
-        }
-
         public void HideInAltTab()
         {
             if (!IsInAltTab)
@@ -1508,27 +1480,6 @@ namespace SidebarDiagnostics.Windows
             IsInAltTab = false;
 
             SetWindowLong(WND_STYLE.WS_EX_TOOLWINDOW, WND_STYLE.WS_EX_APPWINDOW);
-
-            RefreshAltTabMembership();
-        }
-
-        // A live WS_EX_TOOLWINDOW change is ignored by the task switcher until the
-        // window next goes from hidden to shown. When Toolbar Mode is toggled at
-        // runtime (Settings > General) the window is already visible, so bounce its
-        // visibility once, without activating, to force the switcher list to update.
-        // No-op before the first show (OnSourceInitialized already set the style) so
-        // a normal launch never flickers. Callers re-assert z-order right after.
-        private void RefreshAltTabMembership()
-        {
-            IntPtr _hwnd = new WindowInteropHelper(this).Handle;
-
-            if (_hwnd == IntPtr.Zero || !IsVisible)
-            {
-                return;
-            }
-
-            NativeMethods.ShowWindow(_hwnd, SHOW_WINDOW.SW_HIDE);
-            NativeMethods.ShowWindow(_hwnd, SHOW_WINDOW.SW_SHOWNOACTIVATE);
         }
 
         private static class DWMSBT

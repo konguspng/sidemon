@@ -47,7 +47,6 @@ namespace SidebarDiagnostics.Models
             PollingInterval = Framework.Settings.Instance.PollingInterval;
             UseAppBar = Framework.Settings.Instance.UseAppBar;
             AlwaysTop = Framework.Settings.Instance.AlwaysTop;
-            ToolbarMode = Framework.Settings.Instance.ToolbarMode;
             ClickThrough = Framework.Settings.Instance.ClickThrough;
             ShowTrayIcon = Framework.Settings.Instance.ShowTrayIcon;
             RunAtStartup = Framework.Settings.Instance.RunAtStartup;
@@ -181,7 +180,6 @@ namespace SidebarDiagnostics.Models
             Framework.Settings.Instance.PollingInterval = PollingInterval;
             Framework.Settings.Instance.UseAppBar = UseAppBar;
             Framework.Settings.Instance.AlwaysTop = AlwaysTop;
-            Framework.Settings.Instance.ToolbarMode = ToolbarMode;
             Framework.Settings.Instance.ClickThrough = ClickThrough;
             Framework.Settings.Instance.ShowTrayIcon = ShowTrayIcon;
             Framework.Settings.Instance.RunAtStartup = RunAtStartup;
@@ -570,22 +568,6 @@ namespace SidebarDiagnostics.Models
                 _alwaysTop = value;
 
                 NotifyPropertyChanged("AlwaysTop");
-            }
-        }
-
-        private bool _toolbarMode { get; set; }
-        
-        public bool ToolbarMode
-        {
-            get
-            {
-                return _toolbarMode;
-            }
-            set
-            {
-                _toolbarMode = value;
-
-                NotifyPropertyChanged("ToolbarMode");
             }
         }
 
