@@ -2,6 +2,10 @@
   {
     "Version": "4.2.0",
     "Changes": [
+      "Fixed: SideMon still appeared in Alt+Tab / the task switcher despite \"Toolbar Mode\" being on by default. The hide-from-switcher style was applied too late (after the window was first shown), so Windows ignored it. It's now set before the first show, and toggling the setting takes effect immediately. The setting is renamed \"Desktop Widget Mode\": SideMon behaves like a desktop gadget, off the taskbar and out of Alt+Tab, unless you turn it off.",
+      "Turning off \"Always On Top\" now makes the sidebar a true desktop-level widget, pinned behind ordinary windows and lifted into view only while the desktop is shown (Win+D). Default (Always On Top) is unchanged.",
+      "Fixed: the FPS overlay could be Alt+Tab'd to; it's now a tool window like the sidebar.",
+      "Fixed: enabling/disabling individual metrics in the Monitors tab applied immediately and couldn't be undone with Cancel; the dialog now edits a private copy, so only Save/Apply commits metric changes.",
       "New Motherboard monitor: chipset/VRM temperature, case fan, and voltage sensors.",
       "New Battery monitor: charge level, time remaining, charge/discharge rate, and voltage.",
       "New FPS overlay (Settings > Overlay tab): a small, minimalist, click-through counter in any screen corner, adjustable opacity, matching the sidebar's theme. Reads live stats from RivaTuner Statistics Server (RTSS) if installed and running; shows \"No RTSS\" otherwise.",

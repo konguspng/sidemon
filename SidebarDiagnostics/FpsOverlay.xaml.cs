@@ -11,6 +11,7 @@ namespace SidebarDiagnostics.Overlay
     {
         private const int GWL_EXSTYLE = -20;
         private const long WS_EX_TRANSPARENT = 32;
+        private const long WS_EX_TOOLWINDOW = 128;
 
         private DispatcherTimer _pollTimer;
 
@@ -21,9 +22,24 @@ namespace SidebarDiagnostics.Overlay
             Loaded += FpsOverlay_Loaded;
         }
 
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            // Set both ex-styles before the window is first shown: WS_EX_TRANSPARENT
+            // for click-through, WS_EX_TOOLWINDOW so the overlay never shows up in
+            // Alt+Tab / the task switcher. Applying WS_EX_TOOLWINDOW after the first
+            // Show() (the old Loaded path) is ignored by Windows until the window is
+            // hidden and shown again, which the overlay never does.
+            IntPtr _hwnd = new WindowInteropHelper(this).Handle;
+
+            long _style = NativeMethods.GetWindowLongPtr(_hwnd, GWL_EXSTYLE);
+
+            NativeMethods.SetWindowLongPtr(_hwnd, GWL_EXSTYLE, _style | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW);
+        }
+
         private void FpsOverlay_Loaded(object sender, RoutedEventArgs e)
         {
-            SetClickThrough();
             Reposition();
 
             Framework.Settings.Instance.PropertyChanged += Settings_PropertyChanged;
@@ -99,15 +115,6 @@ namespace SidebarDiagnostics.Overlay
                 StatusText.Visibility = Visibility.Visible;
                 StatusText.Text = RTSSReader.IsAvailable ? "--" : "No RTSS";
             }
-        }
-
-        private void SetClickThrough()
-        {
-            IntPtr _hwnd = new WindowInteropHelper(this).Handle;
-
-            long _style = NativeMethods.GetWindowLongPtr(_hwnd, GWL_EXSTYLE);
-
-            NativeMethods.SetWindowLongPtr(_hwnd, GWL_EXSTYLE, _style | WS_EX_TRANSPARENT);
         }
 
         public void StopPolling()

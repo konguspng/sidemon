@@ -134,20 +134,23 @@ namespace SidebarDiagnostics
 
         private void ApplyZOrderPolicy()
         {
-            if (Framework.Settings.Instance.GlassBackground)
-            {
-                // glass imitates the wallpaper, so the sidebar must sit at the bottom
-                // of the window stack: other windows always cover it, never the reverse
-                ClearTopMost(false);
-                SetBottom(false);
-            }
-            else if (Framework.Settings.Instance.AlwaysTop)
+            if (Framework.Settings.Instance.AlwaysTop && !Framework.Settings.Instance.GlassBackground)
             {
                 SetTopMost(false);
             }
             else
             {
+                // Desktop-widget z-order: pin the sidebar to the bottom of the window
+                // stack so real windows always cover it, never the reverse. The
+                // ShowDesktop hook (registered whenever we're in this branch) lifts it
+                // back to the top of the normal band while the desktop itself is in
+                // front (Win+D / "Show desktop"), then drops it again when an app
+                // window returns. Glass mode always lands here because it imitates the
+                // wallpaper; with glass off it's the "Always On Top" = off path, which
+                // is what makes SideMon actually behave like a desktop gadget instead
+                // of a normal window floating loose in the middle of the z-order.
                 ClearTopMost(false);
+                SetBottom(false);
             }
         }
 
@@ -174,6 +177,18 @@ namespace SidebarDiagnostics
         private async Task BindSettings(bool enableHotkeys)
         {
             await BindPosition();
+
+            // Keep this ahead of ApplyZOrderPolicy: when Toolbar Mode is toggled at
+            // runtime this bounces the window's visibility to refresh the Alt+Tab
+            // list, and ApplyZOrderPolicy right after puts the z-order band back.
+            if (Framework.Settings.Instance.ToolbarMode)
+            {
+                HideInAltTab();
+            }
+            else
+            {
+                ShowInAltTab();
+            }
 
             ApplyZOrderPolicy();
 
@@ -214,15 +229,6 @@ namespace SidebarDiagnostics
             await CaptureScreenBehind();
             ApplyGlassStyling();
             this.Opacity = 1.0;
-
-            if (Framework.Settings.Instance.ToolbarMode)
-            {
-                HideInAltTab();
-            }
-            else
-            {
-                ShowInAltTab();
-            }
 
             if (WindowControls.Visibility != Visibility.Visible)
             {

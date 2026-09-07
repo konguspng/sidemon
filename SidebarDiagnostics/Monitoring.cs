@@ -2247,6 +2247,16 @@ namespace SidebarDiagnostics.Monitoring
             _clone.Hardware = _clone.Hardware.Select(h => h.Clone()).ToArray();
             _clone.Params = _clone.Params.Select(p => p.Clone()).ToArray();
 
+            // Metrics must be deep-copied too: without this the Settings dialog's
+            // working copy shares the same MetricConfig objects as the live settings,
+            // so ticking a metric checkbox mutates Settings.Instance immediately and
+            // Cancel can't undo it (and any later Settings.Save, e.g. from auto-fit,
+            // silently persists the abandoned change).
+            if (_clone.Metrics != null)
+            {
+                _clone.Metrics = _clone.Metrics.Select(m => m.Clone()).ToArray();
+            }
+
             if (_clone.HardwareOC != null)
             {
                 _clone.HardwareOC = new ObservableCollection<HardwareConfig>(_clone.HardwareOC.Select(h => h.Clone()));
@@ -2730,9 +2740,9 @@ namespace SidebarDiagnostics.Monitoring
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public ConfigParam Clone()
+        public MetricConfig Clone()
         {
-            return (ConfigParam)MemberwiseClone();
+            return (MetricConfig)MemberwiseClone();
         }
 
         object ICloneable.Clone()
