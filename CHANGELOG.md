@@ -2,6 +2,13 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.2.2 (released 2026-10-01)
+
+- Fixed: pressing "Show Desktop" (`Win+D`) or "Minimize All" (`Win+M`) caused SideMon to minimize and disappear as if it were a normal application window. The Windows Shell minimizes windows during Win+D by dispatching `WM_WINDOWPOSCHANGING` with `SWP_HIDEWINDOW` (`0x0080`) and attempting to move windows to off-screen coordinates (`-32000, -32000`). SideMon now intercepts these messages in its window procedure hook, stripping `SWP_HIDEWINDOW` and blocking off-screen coordinates so it stays permanently pinned on screen like a true desktop widget.
+- Fixed: shell `WM_SYSCOMMAND` `SC_MINIMIZE` and external `WM_SHOWWINDOW` hide requests are now blocked while the sidebar is open, preventing external minimize signals from affecting the window while keeping intentional tray-menu Show/Hide functioning properly.
+- Fixed: in Desktop Widget mode (`Always On Top = false`), pressing Win+D could leave SideMon hidden beneath the Windows desktop layers (`WorkerW` / `Progman`). The desktop event hook now detects when the desktop is foreground, accurately filters out 0x0 and off-screen dummy windows that previously broke desktop detection, and immediately lifts SideMon above the wallpaper layer. When you refocus an ordinary application window, SideMon drops back beneath active windows as expected.
+- Fixed: the `ShowDesktop` hook was previously bypassed if "Always On Top" was enabled without Glass background; it is now active unconditionally so Z-order is consistently maintained.
+
 ## 4.2.1 (released 2026-09-08)
 
 - Fixed: the sidebar could still be Alt+Tab'd to. In 4.2.0 the "hide from the task switcher" behavior was tied to the "Desktop Widget Mode" checkbox, which was off in some existing configs, so the tool-window style was never applied. The sidebar is now always a tool window - out of Alt+Tab / the task switcher, off the taskbar, and shown on every virtual desktop - and the now-redundant "Desktop Widget Mode" checkbox has been removed from Settings > Advanced. The FPS overlay was already unconditional as of 4.2.0.

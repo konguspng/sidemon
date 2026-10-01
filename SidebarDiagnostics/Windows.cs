@@ -109,6 +109,9 @@ namespace SidebarDiagnostics.Windows
         [DllImport("user32.dll")]
         internal static extern bool SetWindowPos(IntPtr hwnd, IntPtr hwnd_after, int x, int y, int cx, int cy, uint uflags);
 
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         internal static extern int RegisterWindowMessage(string msg);
@@ -227,6 +230,11 @@ namespace SidebarDiagnostics.Windows
         {
             if (eventType == EVENT_SYSTEM_FOREGROUND)
             {
+                if (_sidebar == null)
+                {
+                    return;
+                }
+
                 string _class = GetWindowClass(hwnd);
 
                 // shell surfaces (desktop, taskbar, tray flyouts) in the foreground can
@@ -234,10 +242,16 @@ namespace SidebarDiagnostics.Windows
                 // reacting blindly. Only a real app window forces us back down.
                 if (IsShellClass(_class))
                 {
-                    _ = LiftIfDesktopShown();
+                    bool _isDesktop = string.Equals(_class, WORKERW, StringComparison.Ordinal) || string.Equals(_class, PROGMAN, StringComparison.Ordinal);
+                    _ = LiftIfDesktopShown(_isDesktop);
                 }
-                else if (_sidebar.IsTopMost)
+                else if (Framework.Settings.Instance.AlwaysTop && !Framework.Settings.Instance.GlassBackground)
                 {
+                    _sidebar.SetTopMost(false);
+                }
+                else
+                {
+                    _sidebar.ClearTopMost(false);
                     _sidebar.SetBottom(false);
                 }
             }
@@ -256,28 +270,40 @@ namespace SidebarDiagnostics.Windows
             return false;
         }
 
-        private static async System.Threading.Tasks.Task LiftIfDesktopShown()
+        private static async System.Threading.Tasks.Task LiftIfDesktopShown(bool isDesktop)
         {
             // evaluate immediately to avoid a visible flicker, then once more after
             // the minimize-all animation has settled window states
-            EvaluateDesktop();
+            EvaluateDesktop(isDesktop);
 
             await System.Threading.Tasks.Task.Delay(250);
 
             if (IsHooked)
             {
-                EvaluateDesktop();
+                EvaluateDesktop(isDesktop);
             }
         }
 
-        private static void EvaluateDesktop()
+        private static void EvaluateDesktop(bool isDesktop)
         {
-            if (!AnyNormalWindowVisible())
+            if (_sidebar == null)
             {
-                _sidebar.SetTop(false);
+                return;
             }
-            else if (_sidebar.IsTopMost)
+
+            if (Framework.Settings.Instance.AlwaysTop && !Framework.Settings.Instance.GlassBackground)
             {
+                _sidebar.SetTopMost(false);
+                return;
+            }
+
+            if (isDesktop || !AnyNormalWindowVisible())
+            {
+                _sidebar.SetTopMost(false);
+            }
+            else
+            {
+                _sidebar.ClearTopMost(false);
                 _sidebar.SetBottom(false);
             }
         }
@@ -324,6 +350,26 @@ namespace SidebarDiagnostics.Windows
                 if (_cloaked != 0)
                 {
                     return true;
+                }
+
+                // check rect to ignore 0x0 or off-screen / minimized windows
+                RECT _rect;
+                if (NativeMethods.GetWindowRect(hwnd, out _rect))
+                {
+                    if (_rect.Right <= _rect.Left || _rect.Bottom <= _rect.Top)
+                    {
+                        return true;
+                    }
+
+                    if (_rect.Right - _rect.Left <= 10 || _rect.Bottom - _rect.Top <= 10)
+                    {
+                        return true;
+                    }
+
+                    if (_rect.Left <= -30000 || _rect.Top <= -30000)
+                    {
+                        return true;
+                    }
                 }
 
                 _found = true;
@@ -1288,10 +1334,21 @@ namespace SidebarDiagnostics.Windows
             public const long WS_EX_APPWINDOW = 0x00040000;
         }
 
+        private static class WM_MESSAGES
+        {
+            public const int WM_SHOWWINDOW = 0x0018;
+            public const int WM_WINDOWPOSCHANGING = 0x0046;
+            public const int WM_SYSCOMMAND = 0x0112;
+            public const int SC_MINIMIZE = 0xF020;
+        }
+
         private static class WM_WINDOWPOSCHANGING
         {
             public const int MSG = 0x0046;
-            public const int SWP_NOMOVE = 0x0002;
+            public const uint SWP_NOSIZE = 0x0001;
+            public const uint SWP_NOMOVE = 0x0002;
+            public const uint SWP_SHOWWINDOW = 0x0040;
+            public const uint SWP_HIDEWINDOW = 0x0080;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -1336,38 +1393,35 @@ namespace SidebarDiagnostics.Windows
 
         public void Move(WorkArea workArea)
         {
-            AllowMove();
+            _canMove = true;
 
-            Left = workArea.Left;
-            Top = workArea.Top;
-            Width = workArea.Width;
-            Height = workArea.Height;
-
-            PreventMove();
+            try
+            {
+                Left = workArea.Left;
+                Top = workArea.Top;
+                Width = workArea.Width;
+                Height = workArea.Height;
+            }
+            finally
+            {
+                _canMove = false;
+            }
         }
 
         private void PreventMove()
         {
-            if (!_canMove)
-            {
-                return;
-            }
-
             _canMove = false;
 
-            HwndSource.AddHook(MoveHook);
+            if (!_hookRegistered)
+            {
+                _hookRegistered = true;
+                HwndSource.AddHook(MoveHook);
+            }
         }
 
         private void AllowMove()
         {
-            if (_canMove)
-            {
-                return;
-            }
-
             _canMove = true;
-
-            HwndSource.RemoveHook(MoveHook);
         }
 
         private IntPtr MoveHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -1376,11 +1430,42 @@ namespace SidebarDiagnostics.Windows
             {
                 WINDOWPOS _pos = (WINDOWPOS)Marshal.PtrToStructure(lParam, typeof(WINDOWPOS));
 
-                _pos.flags |= WM_WINDOWPOSCHANGING.SWP_NOMOVE;
+                if (!_canMove)
+                {
+                    _pos.flags |= WM_WINDOWPOSCHANGING.SWP_NOMOVE;
+                }
+
+                if (!_isHiding)
+                {
+                    // Never allow the shell or other apps to hide or minimize the sidebar (e.g. on Win+D)
+                    _pos.flags &= ~WM_WINDOWPOSCHANGING.SWP_HIDEWINDOW;
+
+                    // If moved off-screen (e.g. -32000, -32000 on Win+D minimize), keep position and size
+                    if (_pos.x <= -30000 || _pos.y <= -30000)
+                    {
+                        _pos.flags |= WM_WINDOWPOSCHANGING.SWP_NOMOVE | WM_WINDOWPOSCHANGING.SWP_NOSIZE;
+                    }
+                }
 
                 Marshal.StructureToPtr(_pos, lParam, true);
 
                 handled = true;
+            }
+            else if (msg == WM_MESSAGES.WM_SYSCOMMAND)
+            {
+                if ((wParam.ToInt32() & 0xFFF0) == WM_MESSAGES.SC_MINIMIZE)
+                {
+                    handled = true;
+                    return IntPtr.Zero;
+                }
+            }
+            else if (msg == WM_MESSAGES.WM_SHOWWINDOW)
+            {
+                if (wParam == IntPtr.Zero && !_isHiding)
+                {
+                    handled = true;
+                    return IntPtr.Zero;
+                }
             }
 
             return IntPtr.Zero;
@@ -1388,11 +1473,6 @@ namespace SidebarDiagnostics.Windows
 
         public void SetTopMost(bool activate)
         {
-            if (IsTopMost)
-            {
-                return;
-            }
-
             IsTopMost = true;
 
             SetPos(HWND_FLAG.HWND_TOPMOST, activate);
@@ -1400,11 +1480,6 @@ namespace SidebarDiagnostics.Windows
 
         public void ClearTopMost(bool activate)
         {
-            if (!IsTopMost)
-            {
-                return;
-            }
-
             IsTopMost = false;
 
             SetPos(HWND_FLAG.HWND_NOTOPMOST, activate);
@@ -1414,6 +1489,7 @@ namespace SidebarDiagnostics.Windows
         {
             IsTopMost = false;
 
+            SetPos(HWND_FLAG.HWND_NOTOPMOST, activate);
             SetPos(HWND_FLAG.HWND_BOTTOM, activate);
         }
 
@@ -1689,6 +1765,8 @@ namespace SidebarDiagnostics.Windows
 
         public virtual async Task AppBarShow()
         {
+            _isHiding = false;
+
             if (Framework.Settings.Instance.UseAppBar)
             {
                 await SetAppBar();
@@ -1699,11 +1777,20 @@ namespace SidebarDiagnostics.Windows
 
         public virtual void AppBarHide()
         {
-            Hide();
+            _isHiding = true;
 
-            if (IsAppBar)
+            try
             {
-                ClearAppBar();
+                Hide();
+
+                if (IsAppBar)
+                {
+                    ClearAppBar();
+                }
+            }
+            finally
+            {
+                _isHiding = false;
             }
         }
 
@@ -1770,7 +1857,11 @@ namespace SidebarDiagnostics.Windows
 
         public double AppBarWidth { get; private set; } = 0;
 
-        private bool _canMove { get; set; } = true;
+        protected bool _isHiding { get; set; } = false;
+
+        private bool _canMove { get; set; } = false;
+
+        private bool _hookRegistered { get; set; } = false;
 
         private bool _wasTopMost { get; set; } = false;
 

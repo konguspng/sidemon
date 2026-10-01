@@ -185,14 +185,7 @@ namespace SidebarDiagnostics
 
             ApplyZOrderPolicy();
 
-            if (Framework.Settings.Instance.GlassBackground || !Framework.Settings.Instance.AlwaysTop)
-            {
-                ShowDesktop.AddHook(this);
-            }
-            else
-            {
-                ShowDesktop.RemoveHook();
-            }
+            ShowDesktop.AddHook(this);
 
             if (Framework.Settings.Instance.ClickThrough)
             {
@@ -435,11 +428,14 @@ namespace SidebarDiagnostics
             if (WindowState != WindowState.Normal)
             {
                 WindowState = WindowState.Normal;
+                ApplyZOrderPolicy();
             }
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
+            _isHiding = true;
+
             Ready = false;
 
             DataContext = null;
