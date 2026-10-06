@@ -12,6 +12,7 @@ namespace SidebarDiagnostics.Overlay
         private const int GWL_EXSTYLE = -20;
         private const long WS_EX_TRANSPARENT = 32;
         private const long WS_EX_TOOLWINDOW = 128;
+        private const long WS_EX_NOACTIVATE = 0x08000000;
 
         private DispatcherTimer _pollTimer;
 
@@ -35,7 +36,7 @@ namespace SidebarDiagnostics.Overlay
 
             long _style = NativeMethods.GetWindowLongPtr(_hwnd, GWL_EXSTYLE);
 
-            NativeMethods.SetWindowLongPtr(_hwnd, GWL_EXSTYLE, _style | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW);
+            NativeMethods.SetWindowLongPtr(_hwnd, GWL_EXSTYLE, _style | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE);
         }
 
         private void FpsOverlay_Loaded(object sender, RoutedEventArgs e)

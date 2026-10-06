@@ -18,13 +18,24 @@ namespace SidebarDiagnostics
     /// </summary>
     public partial class App : Application
     {
+        private System.Threading.Mutex _instanceMutex;
+
         protected override void OnStartup(StartupEventArgs e)
         {
+            _instanceMutex = new System.Threading.Mutex(true, "Local\\SideMon_InstanceGuard", out bool createdNew);
+            if (!createdNew)
+            {
+                Shutdown();
+                return;
+            }
+
             base.OnStartup(e);
 
             // ERROR HANDLING
             #if !DEBUG
             AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(AppDomain_Error);
+            DispatcherUnhandledException += (s, ev) => { AppDomain_Error(s, new UnhandledExceptionEventArgs(ev.Exception, true)); ev.Handled = true; };
+            System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (s, ev) => { AppDomain_Error(s, new UnhandledExceptionEventArgs(ev.Exception, true)); ev.SetObserved(); };
             #endif
 
             // LANGUAGE
@@ -302,6 +313,25 @@ namespace SidebarDiagnostics
             }
 
             _sidebar.Reload();
+        }
+
+        private void ResetPosition_Click(object sender, RoutedEventArgs e)
+        {
+            Sidebar _sidebar = Sidebar;
+            if (_sidebar != null)
+            {
+                _ = _sidebar.Reposition();
+            }
+        }
+
+        private void AlwaysTop_Click(object sender, RoutedEventArgs e)
+        {
+            Framework.Settings.Instance.Save();
+            Sidebar _sidebar = Sidebar;
+            if (_sidebar != null)
+            {
+                _sidebar.ApplyZOrderPolicy();
+            }
         }
 
         private void Graph_Click(object sender, EventArgs e)

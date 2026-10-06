@@ -2,6 +2,14 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.3.0 (released 2026-10-07)
+
+- **Z-Order & Focus Fixes**: Added `WS_EX_NOACTIVATE` and intercepted `WM_MOUSEACTIVATE` to prevent the widget from stealing focus. Added centralized Z-order policy that respects Win+D behavior without covering ordinary application windows.
+- **Display & Sleep Auto-Recovery**: Sidebar now correctly repositions and restores Z-order after waking from sleep, display changes, or Explorer crashes.
+- **Stability & Crash Prevention**: Added global exception handling (`DispatcherUnhandledException`, `TaskScheduler.UnobservedTaskException`), single-instance mutex, and capped `ErrorLog` file size at 1MB. Settings are now saved atomically with a `.tmp` swap, and a corrupt settings file is now preserved as `.bak` and replaced with defaults instead of crashing.
+- **Thread Safety**: Fixed cross-thread property updates that could cause WPF binding exceptions by dispatching `NotifyPropertyChanged` back to the UI thread.
+- **UI Tweaks**: Added "Always On Top" toggle and "Reset Position" shortcuts directly to the tray menu.
+
 ## 4.2.2 (released 2026-10-01)
 
 - Fixed: pressing "Show Desktop" (`Win+D`) or "Minimize All" (`Win+M`) caused SideMon to minimize and disappear as if it were a normal application window. The Windows Shell minimizes windows during Win+D by dispatching `WM_WINDOWPOSCHANGING` with `SWP_HIDEWINDOW` (`0x0080`) and attempting to move windows to off-screen coordinates (`-32000, -32000`). SideMon now intercepts these messages in its window procedure hook, stripping `SWP_HIDEWINDOW` and blocking off-screen coordinates so it stays permanently pinned on screen like a true desktop widget.

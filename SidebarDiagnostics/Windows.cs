@@ -235,25 +235,8 @@ namespace SidebarDiagnostics.Windows
                     return;
                 }
 
-                string _class = GetWindowClass(hwnd);
-
-                // shell surfaces (desktop, taskbar, tray flyouts) in the foreground can
-                // mean show-desktop or just a shell popup; re-evaluate instead of
-                // reacting blindly. Only a real app window forces us back down.
-                if (IsShellClass(_class))
-                {
-                    bool _isDesktop = string.Equals(_class, WORKERW, StringComparison.Ordinal) || string.Equals(_class, PROGMAN, StringComparison.Ordinal);
-                    _ = LiftIfDesktopShown(_isDesktop);
-                }
-                else if (Framework.Settings.Instance.AlwaysTop && !Framework.Settings.Instance.GlassBackground)
-                {
-                    _sidebar.SetTopMost(false);
-                }
-                else
-                {
-                    _sidebar.ClearTopMost(false);
-                    _sidebar.SetBottom(false);
-                }
+                // Re-evaluate z-order based on what's visible
+                _ = LiftIfDesktopShown(false);
             }
         }
 
@@ -291,26 +274,12 @@ namespace SidebarDiagnostics.Windows
                 return;
             }
 
-            if (Framework.Settings.Instance.AlwaysTop && !Framework.Settings.Instance.GlassBackground)
-            {
-                _sidebar.SetTopMost(false);
-                return;
-            }
-
-            if (isDesktop || !AnyNormalWindowVisible())
-            {
-                _sidebar.SetTopMost(false);
-            }
-            else
-            {
-                _sidebar.ClearTopMost(false);
-                _sidebar.SetBottom(false);
-            }
+            _sidebar.ApplyZOrderPolicy();
         }
 
         private static readonly string[] SHELLCLASSES = { WORKERW, PROGMAN, TRAYWND, "Shell_SecondaryTrayWnd", "Windows.UI.Core.CoreWindow", "XamlExplorerHostIslandWindow", "TopLevelWindowForOverflowXamlIsland", "NotifyIconOverflowWindow" };
 
-        private static bool AnyNormalWindowVisible()
+        public static bool AnyNormalWindowVisible()
         {
             bool _found = false;
 
@@ -1332,14 +1301,20 @@ namespace SidebarDiagnostics.Windows
             public const long WS_EX_TRANSPARENT = 32;
             public const long WS_EX_TOOLWINDOW = 128;
             public const long WS_EX_APPWINDOW = 0x00040000;
+            public const long WS_EX_NOACTIVATE = 0x08000000;
         }
 
         private static class WM_MESSAGES
         {
+            public const int WM_ACTIVATE = 0x0006;
             public const int WM_SHOWWINDOW = 0x0018;
+            public const int WM_SETTINGCHANGE = 0x001A;
+            public const int WM_MOUSEACTIVATE = 0x0021;
             public const int WM_WINDOWPOSCHANGING = 0x0046;
+            public const int WM_DISPLAYCHANGE = 0x007E;
             public const int WM_SYSCOMMAND = 0x0112;
             public const int SC_MINIMIZE = 0xF020;
+            public const int MA_NOACTIVATE = 3;
         }
 
         private static class WM_WINDOWPOSCHANGING
@@ -1383,7 +1358,7 @@ namespace SidebarDiagnostics.Windows
             // old BindSettings path did) left the sidebar in the switcher for the
             // whole session.
             IsInAltTab = false;
-            SetWindowLong(WND_STYLE.WS_EX_TOOLWINDOW, WND_STYLE.WS_EX_APPWINDOW);
+            SetWindowLong(WND_STYLE.WS_EX_TOOLWINDOW | WND_STYLE.WS_EX_NOACTIVATE, WND_STYLE.WS_EX_APPWINDOW);
         }
 
         private void AppBarWindow_Loaded(object sender, RoutedEventArgs e)
@@ -1467,9 +1442,32 @@ namespace SidebarDiagnostics.Windows
                     return IntPtr.Zero;
                 }
             }
+            else if (msg == WM_MESSAGES.WM_MOUSEACTIVATE)
+            {
+                handled = true;
+                return new IntPtr(WM_MESSAGES.MA_NOACTIVATE);
+            }
+            else if (msg == WM_MESSAGES.WM_ACTIVATE)
+            {
+                handled = true;
+                return IntPtr.Zero;
+            }
+            else if (msg == WM_MESSAGES.WM_DISPLAYCHANGE || msg == WM_MESSAGES.WM_SETTINGCHANGE || msg == _taskbarCreatedMsg || (msg == 0x021B && wParam.ToInt32() == 0x0012))
+            {
+                if (this is Sidebar sidebar)
+                {
+                    sidebar.ApplyZOrderPolicy();
+                    if (msg == WM_MESSAGES.WM_DISPLAYCHANGE || msg == WM_MESSAGES.WM_SETTINGCHANGE)
+                    {
+                        _ = sidebar.Reposition();
+                    }
+                }
+            }
 
             return IntPtr.Zero;
         }
+
+        private static int _taskbarCreatedMsg = NativeMethods.RegisterWindowMessage("TaskbarCreated");
 
         public void SetTopMost(bool activate)
         {
@@ -1504,12 +1502,7 @@ namespace SidebarDiagnostics.Windows
 
         private void SetPos(IntPtr hwnd_after, bool activate)
         {
-            uint _uflags = HWND_FLAG.SWP_NOMOVE | HWND_FLAG.SWP_NOSIZE;
-
-            if (!activate)
-            {
-                _uflags |= HWND_FLAG.SWP_NOACTIVATE;
-            }
+            uint _uflags = HWND_FLAG.SWP_NOMOVE | HWND_FLAG.SWP_NOSIZE | HWND_FLAG.SWP_NOACTIVATE;
 
             NativeMethods.SetWindowPos(
                 new WindowInteropHelper(this).Handle,
@@ -1555,7 +1548,7 @@ namespace SidebarDiagnostics.Windows
 
             IsInAltTab = false;
 
-            SetWindowLong(WND_STYLE.WS_EX_TOOLWINDOW, WND_STYLE.WS_EX_APPWINDOW);
+            SetWindowLong(WND_STYLE.WS_EX_TOOLWINDOW | WND_STYLE.WS_EX_NOACTIVATE, WND_STYLE.WS_EX_APPWINDOW);
         }
 
         private static class DWMSBT

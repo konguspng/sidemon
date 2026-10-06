@@ -26,7 +26,9 @@ namespace SidebarDiagnostics.Framework
                 Directory.CreateDirectory(Paths.LocalApp);
             }
 
-            File.WriteAllText(Paths.SettingsFile, JsonSerializer.Serialize(this, JsonOptions));
+            string tempFile = Paths.SettingsFile + ".tmp";
+            File.WriteAllText(tempFile, JsonSerializer.Serialize(this, JsonOptions));
+            File.Move(tempFile, Paths.SettingsFile, true);
         }
 
         public void Reload()
@@ -47,6 +49,11 @@ namespace SidebarDiagnostics.Framework
             catch (Exception e)
             {
                 ErrorLog.Write(e);
+                try
+                {
+                    File.Move(Paths.SettingsFile, Paths.SettingsFile + ".bak", true);
+                }
+                catch { }
             }
 
             return new Settings();

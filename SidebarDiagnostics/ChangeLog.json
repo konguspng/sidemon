@@ -1,5 +1,16 @@
 [
   {
+    "Version": "4.3.0",
+    "Changes": [
+      "Fixed Z-order bugs (NEVER overlay other apps unless 'Always On Top' is checked; stay visible on desktop; do not steal focus).",
+      "Added global exception handling and crash logging.",
+      "Added single-instance guard.",
+      "Added atomic settings save/load.",
+      "Added 'Always On Top' toggle and 'Reset Position' to tray menu.",
+      "Fixed cross-thread exceptions in WPF bindings."
+    ]
+  },
+  {
     "Version": "4.2.2",
     "Changes": [
       "Fixed: pressing Show Desktop (Win+D) or Minimize All (Win+M) caused SideMon to minimize and disappear like an ordinary application window. The sidebar now intercepts shell hide and minimize signals (WM_WINDOWPOSCHANGING SWP_HIDEWINDOW, off-screen repositioning, SC_MINIMIZE), keeping it pinned in place as a desktop widget.",

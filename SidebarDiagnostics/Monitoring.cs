@@ -123,7 +123,14 @@ namespace SidebarDiagnostics.Monitoring
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                {
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => PropertyChanged(this, new PropertyChangedEventArgs(propertyName))));
+                }
+                else
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                }
             }
         }
 
@@ -308,7 +315,14 @@ namespace SidebarDiagnostics.Monitoring
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                {
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => PropertyChanged(this, new PropertyChangedEventArgs(propertyName))));
+                }
+                else
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                }
             }
         }
 
@@ -428,7 +442,14 @@ namespace SidebarDiagnostics.Monitoring
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                {
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => PropertyChanged(this, new PropertyChangedEventArgs(propertyName))));
+                }
+                else
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                }
             }
         }
 
@@ -1691,7 +1712,14 @@ namespace SidebarDiagnostics.Monitoring
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                {
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => PropertyChanged(this, new PropertyChangedEventArgs(propertyName))));
+                }
+                else
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                }
             }
         }
 
@@ -2235,7 +2263,14 @@ namespace SidebarDiagnostics.Monitoring
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                {
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => PropertyChanged(this, new PropertyChangedEventArgs(propertyName))));
+                }
+                else
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                }
             }
         }
 
@@ -2623,7 +2658,14 @@ namespace SidebarDiagnostics.Monitoring
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                {
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => PropertyChanged(this, new PropertyChangedEventArgs(propertyName))));
+                }
+                else
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                }
             }
         }
 
@@ -2734,7 +2776,14 @@ namespace SidebarDiagnostics.Monitoring
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                {
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => PropertyChanged(this, new PropertyChangedEventArgs(propertyName))));
+                }
+                else
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                }
             }
         }
 
@@ -2849,7 +2898,14 @@ namespace SidebarDiagnostics.Monitoring
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                {
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => PropertyChanged(this, new PropertyChangedEventArgs(propertyName))));
+                }
+                else
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                }
             }
         }
 

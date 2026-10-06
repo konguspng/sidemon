@@ -21,8 +21,10 @@
                     <ContextMenu>
                         <MenuItem Header="{x:Static frame:Resources.ButtonSettings}" Click="Settings_Click" />
                         <MenuItem Header="{x:Static frame:Resources.ButtonReload}" Click="Reload_Click" />
+                        <MenuItem Header="Reset Position" Click="ResetPosition_Click" />
                         <MenuItem Header="{x:Static frame:Resources.ButtonGraph}" Click="Graph_Click" />
                         <Separator />
+                        <MenuItem Header="Always On Top" IsCheckable="True" IsChecked="{Binding Source={x:Static frame:Settings.Instance}, Path=AlwaysTop, Mode=TwoWay}" Click="AlwaysTop_Click" />
                         <MenuItem Header="{x:Static frame:Resources.ButtonVisibility}" SubmenuOpened="Visibility_SubmenuOpened">
                             <MenuItem Header="{x:Static frame:Resources.ButtonShow}" Click="Show_Click" />
                             <MenuItem Header="{x:Static frame:Resources.ButtonHide}" Click="Hide_Click" />

@@ -132,7 +132,7 @@ namespace SidebarDiagnostics
             Model.Resume();
         }
 
-        private void ApplyZOrderPolicy()
+        public void ApplyZOrderPolicy()
         {
             if (Framework.Settings.Instance.AlwaysTop && !Framework.Settings.Instance.GlassBackground)
             {
@@ -140,17 +140,18 @@ namespace SidebarDiagnostics
             }
             else
             {
-                // Desktop-widget z-order: pin the sidebar to the bottom of the window
-                // stack so real windows always cover it, never the reverse. The
-                // ShowDesktop hook (registered whenever we're in this branch) lifts it
-                // back to the top of the normal band while the desktop itself is in
-                // front (Win+D / "Show desktop"), then drops it again when an app
-                // window returns. Glass mode always lands here because it imitates the
-                // wallpaper; with glass off it's the "Always On Top" = off path, which
-                // is what makes SideMon actually behave like a desktop gadget instead
-                // of a normal window floating loose in the middle of the z-order.
-                ClearTopMost(false);
-                SetBottom(false);
+                // If there are no normal windows visible (e.g. Win+D was pressed),
+                // we must bring the sidebar to the top so it's not hidden behind the desktop.
+                // Otherwise, pin it to the bottom of the window stack.
+                if (!ShowDesktop.AnyNormalWindowVisible())
+                {
+                    SetTopMost(false);
+                }
+                else
+                {
+                    ClearTopMost(false);
+                    SetBottom(false);
+                }
             }
         }
 

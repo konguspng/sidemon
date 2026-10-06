@@ -132,7 +132,18 @@ namespace SidebarDiagnostics.Utilities
                     Directory.CreateDirectory(Paths.LocalApp);
                 }
 
-                File.AppendAllText(Paths.ErrorLogFile, string.Format("[{0:u}] {1}{2}{2}", DateTime.Now, message, Environment.NewLine));
+                string file = Paths.ErrorLogFile;
+                if (File.Exists(file))
+                {
+                    var fileInfo = new FileInfo(file);
+                    if (fileInfo.Length > 1024 * 1024) // 1MB
+                    {
+                        var content = File.ReadAllText(file);
+                        File.WriteAllText(file, content.Substring(content.Length / 2));
+                    }
+                }
+
+                File.AppendAllText(file, string.Format("[{0:u}] {1}{2}{2}", DateTime.Now, message, Environment.NewLine));
             }
             catch
             {
