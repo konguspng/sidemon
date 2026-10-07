@@ -137,7 +137,7 @@ namespace SidebarDiagnostics.Models
                     _record.HardwareOC = new ObservableCollection<HardwareConfig>(
                         from hw in sidebar.Model.MonitorManager.GetHardware(_record.Type)
                         join config in _record.Hardware on hw.ID equals config.ID into merged
-                        from newhw in merged.DefaultIfEmpty(hw).Select(newhw => { newhw.ActualName = hw.ActualName; if (string.IsNullOrEmpty(newhw.Name)) { newhw.Name = hw.ActualName; } return newhw; })
+                        from newhw in merged.DefaultIfEmpty(hw).Select(newhw => { newhw.ActualName = hw.ActualName; newhw.Status = hw.Status; if (_record.Type == MonitorType.AIUsage) { UsageRegistry.SetCustomPath(newhw.ID, newhw.CustomPath); newhw.Status = UsageRegistry.GetStatusText(newhw.ID); } if (string.IsNullOrEmpty(newhw.Name)) { newhw.Name = hw.ActualName; } return newhw; })
                         orderby newhw.Order descending, newhw.Name ascending
                         select newhw
                         );
@@ -330,6 +330,13 @@ namespace SidebarDiagnostics.Models
 
         private void Child_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            // the live provider only learns the new path on Save (the sidebar is rebuilt
+            // then); until then say so instead of showing a stale detection result
+            if (sender is HardwareConfig _hw && string.Equals(e.PropertyName, "CustomPath", StringComparison.Ordinal))
+            {
+                _hw.Status = Resources.UsageAppliesAfterSave;
+            }
+
             IsChanged = true;
         }
 

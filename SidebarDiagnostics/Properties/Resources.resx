@@ -1136,4 +1136,134 @@
     <value>Shows the name of the computer.</value>
     <comment>Settings show machine name tooltip</comment>
   </data>
+  <data name="AIUsage" xml:space="preserve">
+    <value>AI CLI Usage</value>
+    <comment>AI CLI usage monitor title</comment>
+  </data>
+  <data name="UsageFiveHour" xml:space="preserve">
+    <value>5-hour limit</value>
+    <comment>Full name for the 5-hour usage metric</comment>
+  </data>
+  <data name="UsageFiveHourLabel" xml:space="preserve">
+    <value>5-hour</value>
+    <comment>Short label for the 5-hour usage metric</comment>
+  </data>
+  <data name="UsageWeekly" xml:space="preserve">
+    <value>Weekly limit</value>
+    <comment>Full name for the weekly usage metric</comment>
+  </data>
+  <data name="UsageWeeklyLabel" xml:space="preserve">
+    <value>Weekly</value>
+    <comment>Short label for the weekly usage metric</comment>
+  </data>
+  <data name="UsageMonthly" xml:space="preserve">
+    <value>Monthly limit</value>
+    <comment>Full name for the monthly usage metric</comment>
+  </data>
+  <data name="UsageMonthlyLabel" xml:space="preserve">
+    <value>Monthly</value>
+    <comment>Short label for the monthly usage metric</comment>
+  </data>
+  <data name="UsageStatusLabel" xml:space="preserve">
+    <value>Status</value>
+    <comment>Label of the usage status placeholder row</comment>
+  </data>
+  <data name="UsageSlotPremium" xml:space="preserve">
+    <value>Premium</value>
+    <comment>Copilot premium requests quota</comment>
+  </data>
+  <data name="UsageSlotChat" xml:space="preserve">
+    <value>Chat</value>
+    <comment>Copilot chat quota</comment>
+  </data>
+  <data name="UsageSlotCompletions" xml:space="preserve">
+    <value>Completions</value>
+    <comment>Copilot completions quota</comment>
+  </data>
+  <data name="UsageResetsIn" xml:space="preserve">
+    <value>resets in {0}</value>
+    <comment>Usage reset countdown; {0} is a duration such as 2h 5m</comment>
+  </data>
+  <data name="UsageStale" xml:space="preserve">
+    <value>stale</value>
+    <comment>Marker shown when the last refresh failed and the value is the last good one</comment>
+  </data>
+  <data name="UsageLoading" xml:space="preserve">
+    <value>Loading...</value>
+    <comment>Usage row text before the first result</comment>
+  </data>
+  <data name="UsageNA" xml:space="preserve">
+    <value>N/A</value>
+    <comment>Usage row text when nothing is available</comment>
+  </data>
+  <data name="UsageDetected" xml:space="preserve">
+    <value>Detected</value>
+    <comment>AI CLI provider detected on this machine</comment>
+  </data>
+  <data name="UsageNotInstalled" xml:space="preserve">
+    <value>Not installed</value>
+    <comment>AI CLI provider not installed</comment>
+  </data>
+  <data name="UsageNotLoggedIn" xml:space="preserve">
+    <value>Not logged in</value>
+    <comment>AI CLI provider installed but not signed in</comment>
+  </data>
+  <data name="UsageDetectedNoApi" xml:space="preserve">
+    <value>Detected, no usage API</value>
+    <comment>AI CLI provider detected but it has no read-only usage source</comment>
+  </data>
+  <data name="UsageAuthExpired" xml:space="preserve">
+    <value>Token expired - use the CLI once to refresh</value>
+    <comment>Stored login was rejected; the app never refreshes tokens itself</comment>
+  </data>
+  <data name="UsageRateLimited" xml:space="preserve">
+    <value>Rate limited, retrying later</value>
+    <comment>Usage endpoint answered HTTP 429</comment>
+  </data>
+  <data name="UsageError" xml:space="preserve">
+    <value>Unavailable</value>
+    <comment>Usage could not be read</comment>
+  </data>
+  <data name="SettingsUsageAlert" xml:space="preserve">
+    <value>Usage Alert (%)</value>
+    <comment>Settings usage alert parameter name</comment>
+  </data>
+  <data name="SettingsUsageAlertTooltip" xml:space="preserve">
+    <value>Highlights a limit in the alert color once its used percentage reaches this value. 0 disables the alert.</value>
+    <comment>Settings usage alert parameter tooltip</comment>
+  </data>
+  <data name="SettingsUsageNote" xml:space="preserve">
+    <value>Every provider is OFF by default. Only enabled providers are polled (read-only, at most every 5 minutes); credentials are never modified, logged or shown.</value>
+    <comment>Settings AI CLI usage explanation</comment>
+  </data>
+  <data name="SettingsUsageProviderColumn" xml:space="preserve">
+    <value>Provider</value>
+    <comment>Settings AI CLI usage provider column header</comment>
+  </data>
+  <data name="SettingsUsageStatusColumn" xml:space="preserve">
+    <value>Status</value>
+    <comment>Settings AI CLI usage detection status column header</comment>
+  </data>
+  <data name="SettingsUsageEnabledTooltip" xml:space="preserve">
+    <value>Poll this provider and show its usage in the sidebar.</value>
+    <comment>Settings AI CLI usage provider toggle tooltip</comment>
+  </data>
+  <data name="UsageNoPlan" xml:space="preserve">
+    <value>No Copilot plan</value>
+  </data>
+  <data name="UsageGroupGemini" xml:space="preserve">
+    <value>Gemini</value>
+  </data>
+  <data name="UsageGroupClaudeGpt" xml:space="preserve">
+    <value>Claude/GPT</value>
+  </data>
+  <data name="SettingsUsageCustomPathColumn" xml:space="preserve">
+    <value>Custom path (optional)</value>
+  </data>
+  <data name="SettingsUsageCustomPathTooltip" xml:space="preserve">
+    <value>Only needed for unusual setups: a file or folder holding this tool's login file (or the agy executable). Leave empty to use the default locations.</value>
+  </data>
+  <data name="UsageAppliesAfterSave" xml:space="preserve">
+    <value>Applies after Save</value>
+  </data>
 </root>

@@ -7,7 +7,9 @@
       "Added single-instance guard.",
       "Added atomic settings save/load.",
       "Added 'Always On Top' toggle and 'Reset Position' to tray menu.",
-      "Fixed cross-thread exceptions in WPF bindings."
+      "Fixed cross-thread exceptions in WPF bindings.",
+      "New: AI CLI Usage monitor (Settings > Monitors) for Claude Code, agy (Gemini and Claude/GPT groups), OpenAI Codex, GitHub Copilot and Gemini CLI detection. All providers off by default; read-only, polled at most every 5 minutes.",
+      "AI usage: Claude config folder (CLAUDE_CONFIG_DIR), automatic recovery after the CLI refreshes its token, Copilot plan detection and an optional custom path per provider."
     ]
   },
   {

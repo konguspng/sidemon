@@ -388,7 +388,74 @@
                             <DataTemplate>
                                 <Border Style="{StaticResource MonitorDetailsBorder}">
                                     <StackPanel Style="{StaticResource VerticalPanel}">
-                                        <ListView ItemsSource="{Binding Path=HardwareOC, Mode=OneWay}" ItemContainerStyle="{StaticResource MonitorHardwareItem}" Style="{StaticResource HardwareGrid}">
+                                        <StackPanel>
+                                            <StackPanel.Style>
+                                                <Style TargetType="{x:Type StackPanel}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Path=Type}" Value="{x:Static monitor:MonitorType.AIUsage}">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock Text="{x:Static frame:Resources.SettingsUsageNote}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                            <ListView ItemsSource="{Binding Path=HardwareOC, Mode=OneWay}" ItemContainerStyle="{StaticResource MonitorHardwareItem}" Style="{StaticResource HardwareGrid}">
+                                                <ListView.View>
+                                                    <GridView AllowsColumnReorder="False">
+                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsHardwareColumn1}" HeaderContainerStyle="{StaticResource MonitorHardwareHeaderCenter}">
+                                                            <GridViewColumn.CellTemplate>
+                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
+                                                                    <CheckBox IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsUsageEnabledTooltip}" Style="{StaticResource MonitorHardwareCheckbox}" />
+                                                                </DataTemplate>
+                                                            </GridViewColumn.CellTemplate>
+                                                        </GridViewColumn>
+                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageProviderColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="190">
+                                                            <GridViewColumn.CellTemplate>
+                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
+                                                                    <TextBox Text="{Binding Path=Name, Mode=TwoWay}" Style="{StaticResource MonitorHardwareText}" ToolTip="{x:Static frame:Resources.SettingsHardwareNameTooltip}" />
+                                                                </DataTemplate>
+                                                            </GridViewColumn.CellTemplate>
+                                                        </GridViewColumn>
+                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageCustomPathColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="190">
+                                                            <GridViewColumn.CellTemplate>
+                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
+                                                                    <TextBox Text="{Binding Path=CustomPath, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Style="{StaticResource MonitorHardwareText}" ToolTip="{x:Static frame:Resources.SettingsUsageCustomPathTooltip}" />
+                                                                </DataTemplate>
+                                                            </GridViewColumn.CellTemplate>
+                                                        </GridViewColumn>
+                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageStatusColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="170">
+                                                            <GridViewColumn.CellTemplate>
+                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
+                                                                    <TextBlock Text="{Binding Path=Status, Mode=OneWay}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                                                                </DataTemplate>
+                                                            </GridViewColumn.CellTemplate>
+                                                        </GridViewColumn>
+                                                        <GridViewColumn>
+                                                            <GridViewColumn.CellTemplate>
+                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <Button Content="&#x25B2;" Width="22" Margin="0,0,2,0" Click="HardwareUp_Click" />
+                                                                        <Button Content="&#x25BC;" Width="22" Click="HardwareDown_Click" />
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </GridViewColumn.CellTemplate>
+                                                        </GridViewColumn>
+                                                    </GridView>
+                                                </ListView.View>
+                                            </ListView>
+                                        </StackPanel>
+
+                                        <ListView ItemsSource="{Binding Path=HardwareOC, Mode=OneWay}" ItemContainerStyle="{StaticResource MonitorHardwareItem}">
+                                            <ListView.Style>
+                                                <Style TargetType="{x:Type ListView}" BasedOn="{StaticResource HardwareGrid}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Path=Type}" Value="{x:Static monitor:MonitorType.AIUsage}">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ListView.Style>
                                             <ListView.View>
                                                 <GridView AllowsColumnReorder="False">
                                                     <GridViewColumn Header="{x:Static frame:Resources.SettingsHardwareColumn1}" HeaderContainerStyle="{StaticResource MonitorHardwareHeaderCenter}">

@@ -9,6 +9,11 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 - **Stability & Crash Prevention**: Added global exception handling (`DispatcherUnhandledException`, `TaskScheduler.UnobservedTaskException`), single-instance mutex, and capped `ErrorLog` file size at 1MB. Settings are now saved atomically with a `.tmp` swap, and a corrupt settings file is now preserved as `.bak` and replaced with defaults instead of crashing.
 - **Thread Safety**: Fixed cross-thread property updates that could cause WPF binding exceptions by dispatching `NotifyPropertyChanged` back to the UI thread.
 - **UI Tweaks**: Added "Always On Top" toggle and "Reset Position" shortcuts directly to the tray menu.
+- **New: AI CLI Usage monitor** (Settings > Monitors). Shows 5-hour / weekly / monthly quota use, with a bar and a reset countdown, in the same row style as every other monitor. Providers: Claude Code, agy (Antigravity: both the Gemini and the Claude/GPT quota groups), OpenAI Codex CLI, GitHub Copilot, and detection for Gemini CLI. Every provider is OFF by default, only ticked providers are ever polled (read-only, at most every 5 minutes, off the UI thread), the last good value is kept and marked stale on failures, and HTTP 429 / Retry-After is honoured. Credentials are only read: SideMon never refreshes, writes, logs or shows a token.
+- Claude Code: reads `CLAUDE_CONFIG_DIR` as well as `%USERPROFILE%\.claude`; when the short-lived access token has expired (only the Claude CLI renews it) SideMon skips the request and re-checks every 30 seconds, so the row recovers as soon as the CLI has refreshed it.
+- GitHub Copilot: signed-in-but-no-plan accounts show "No Copilot plan" instead of an error; `gh auth token` is only run by the background poll, never while the Settings window opens.
+- Each provider has an optional "Custom path" in Settings for unusual installs (a credentials file/folder, or the agy executable).
+- Fixed (found in review): the agy helper process is always reaped, old usage rows are released on the UI thread after WPF has unbound them, the custom path and status columns update change tracking (Apply/Cancel), numeric Copilot reset dates are parsed, and a server Retry-After longer than an hour is respected.
 
 ## 4.2.2 (released 2026-10-01)
 

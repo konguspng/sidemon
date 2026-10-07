@@ -41,7 +41,7 @@ namespace SidebarDiagnostics.Monitoring
 
                 UpdateBoard();
 
-                MonitorPanels = config.Where(c => c.Enabled).OrderByDescending(c => c.Order).Select(c => NewPanel(c)).ToArray();
+                MonitorPanels = config.Where(c => c.Enabled).OrderByDescending(c => c.Order).Select(c => NewPanel(c)).Where(p => p != null).ToArray();
             }
             catch (Exception e)
             {
@@ -103,6 +103,9 @@ namespace SidebarDiagnostics.Monitoring
 
                 case MonitorType.Network:
                     return NetworkMonitor.GetHardware().ToArray();
+
+                case MonitorType.AIUsage:
+                    return UsageRegistry.GetHardware();
 
                 default:
                     throw new ArgumentException("Invalid MonitorType.");
@@ -211,6 +214,14 @@ namespace SidebarDiagnostics.Monitoring
                         config.Params
                         );
 
+                case MonitorType.AIUsage:
+                    return UsagePanel(
+                        config.Type,
+                        config.Hardware,
+                        config.Metrics,
+                        config.Params
+                        );
+
                 default:
                     throw new ArgumentException("Invalid MonitorType.");
             }
@@ -240,6 +251,23 @@ namespace SidebarDiagnostics.Monitoring
                 type.GetDescription(),
                 "M9 2h6v6H9Z M3 16h6v6H3Z M15 16h6v6h-6Z M6 16v-3h12v3 M12 8v5",
                 NetworkMonitor.GetInstances(hardwareConfig, metrics, parameters)
+                );
+        }
+
+        // null when no provider is switched on, so an empty card never shows in the sidebar
+        private MonitorPanel UsagePanel(MonitorType type, HardwareConfig[] hardwareConfig, MetricConfig[] metrics, ConfigParam[] parameters)
+        {
+            iMonitor[] _monitors = UsageMonitor.GetInstances(hardwareConfig, metrics, parameters);
+
+            if (_monitors.Length == 0)
+            {
+                return null;
+            }
+
+            return new MonitorPanel(
+                type.GetDescription(),
+                "M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.6 5.6l2.1 2.1 M16.3 16.3l2.1 2.1 M5.6 18.4l2.1-2.1 M16.3 7.7l2.1-2.1 M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z",
+                _monitors
                 );
         }
 
@@ -2254,7 +2282,8 @@ namespace SidebarDiagnostics.Monitoring
         HD,
         Network,
         Motherboard,
-        Battery
+        Battery,
+        AIUsage
     }
 
     public class MonitorConfig : INotifyPropertyChanged, ICloneable
@@ -2488,7 +2517,7 @@ namespace SidebarDiagnostics.Monitoring
         {
             get
             {
-                return new MonitorConfig[7]
+                return new MonitorConfig[8]
                 {
                     new MonitorConfig()
                     {
@@ -2646,6 +2675,27 @@ namespace SidebarDiagnostics.Monitoring
                             ConfigParam.Defaults.HardwareNames,
                             ConfigParam.Defaults.RoundAll
                         }
+                    },
+                    new MonitorConfig()
+                    {
+                        Type = MonitorType.AIUsage,
+                        // the card stays hidden until a provider is ticked in
+                        // Settings > Monitors > AI CLI Usage; every provider starts off
+                        Enabled = true,
+                        Order = 0,
+                        Hardware = new HardwareConfig[0],
+                        Metrics = new MetricConfig[3]
+                        {
+                            new MetricConfig(MetricKey.UsageFiveHour, true),
+                            new MetricConfig(MetricKey.UsageWeekly, true),
+                            new MetricConfig(MetricKey.UsageMonthly, true)
+                        },
+                        Params = new ConfigParam[3]
+                        {
+                            ConfigParam.Defaults.HardwareNames,
+                            ConfigParam.Defaults.RoundAll,
+                            ConfigParam.Defaults.UsageAlert
+                        }
                     }
                 };
             }
@@ -2742,6 +2792,51 @@ namespace SidebarDiagnostics.Monitoring
                 _enabled = value;
 
                 NotifyPropertyChanged("Enabled");
+            }
+        }
+
+        // live detection text shown next to AI CLI providers in Settings; never saved
+        private string _status { get; set; }
+
+        [JsonIgnore]
+        public string Status
+        {
+            get
+            {
+                return _status;
+            }
+            set
+            {
+                if (string.Equals(_status, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _status = value;
+
+                NotifyPropertyChanged("Status");
+            }
+        }
+
+        private string _customPath { get; set; }
+
+        // optional per-provider credentials path (AI CLI Usage only); null = defaults
+        public string CustomPath
+        {
+            get
+            {
+                return _customPath;
+            }
+            set
+            {
+                if (string.Equals(_customPath, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _customPath = value;
+
+                NotifyPropertyChanged("CustomPath");
             }
         }
 
@@ -2889,7 +2984,12 @@ namespace SidebarDiagnostics.Monitoring
         BatteryLevel = 31,
         BatteryVoltage = 32,
         BatteryRate = 33,
-        BatteryTimeRemaining = 34
+        BatteryTimeRemaining = 34,
+
+        UsageStatus = 35,
+        UsageFiveHour = 36,
+        UsageWeekly = 37,
+        UsageMonthly = 38
     }
 
     public class ConfigParam : INotifyPropertyChanged, ICloneable
@@ -3037,6 +3137,9 @@ namespace SidebarDiagnostics.Monitoring
                     case ParamKey.ShowFanRPM:
                         return Resources.SettingsShowFanRPM;
 
+                    case ParamKey.UsageAlert:
+                        return Resources.SettingsUsageAlert;
+
                     default:
                         return "Unknown";
                 }
@@ -3100,6 +3203,9 @@ namespace SidebarDiagnostics.Monitoring
 
                     case ParamKey.ShowFanRPM:
                         return Resources.SettingsShowFanRPMTooltip;
+
+                    case ParamKey.UsageAlert:
+                        return Resources.SettingsUsageAlertTooltip;
 
                     default:
                         return "Unknown";
@@ -3245,6 +3351,14 @@ namespace SidebarDiagnostics.Monitoring
                 }
             }
 
+            public static ConfigParam UsageAlert
+            {
+                get
+                {
+                    return new ConfigParam() { Key = ParamKey.UsageAlert, Value = 0 };
+                }
+            }
+
             public static ConfigParam ShowFanRPM
             {
                 get
@@ -3310,7 +3424,8 @@ namespace SidebarDiagnostics.Monitoring
         UseGHz,
         UseWatts,
         ShowVRAMGB,
-        ShowFanRPM
+        ShowFanRPM,
+        UsageAlert
     }
 
     public enum DataType : byte
@@ -3689,6 +3804,9 @@ namespace SidebarDiagnostics.Monitoring
                 case MonitorType.Battery:
                     return Resources.Battery;
 
+                case MonitorType.AIUsage:
+                    return Resources.AIUsage;
+
                 default:
                     throw new ArgumentException("Invalid MonitorType.");
             }
@@ -3808,6 +3926,18 @@ namespace SidebarDiagnostics.Monitoring
                 case MetricKey.BatteryTimeRemaining:
                     return Resources.BatteryTimeRemaining;
 
+                case MetricKey.UsageStatus:
+                    return Resources.UsageStatusLabel;
+
+                case MetricKey.UsageFiveHour:
+                    return Resources.UsageFiveHour;
+
+                case MetricKey.UsageWeekly:
+                    return Resources.UsageWeekly;
+
+                case MetricKey.UsageMonthly:
+                    return Resources.UsageMonthly;
+
                 default:
                     return "Unknown";
             }
@@ -3921,6 +4051,18 @@ namespace SidebarDiagnostics.Monitoring
 
                 case MetricKey.BatteryTimeRemaining:
                     return Resources.BatteryTimeRemainingLabel;
+
+                case MetricKey.UsageStatus:
+                    return Resources.UsageStatusLabel;
+
+                case MetricKey.UsageFiveHour:
+                    return Resources.UsageFiveHourLabel;
+
+                case MetricKey.UsageWeekly:
+                    return Resources.UsageWeeklyLabel;
+
+                case MetricKey.UsageMonthly:
+                    return Resources.UsageMonthlyLabel;
 
                 default:
                     return "Unknown";

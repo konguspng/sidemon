@@ -2354,5 +2354,311 @@ namespace SidebarDiagnostics.Framework {
                 return ResourceManager.GetString("UpdateTitle", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AI CLI Usage.
+        /// </summary>
+        public static string AIUsage {
+            get {
+                return ResourceManager.GetString("AIUsage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 5-hour limit.
+        /// </summary>
+        public static string UsageFiveHour {
+            get {
+                return ResourceManager.GetString("UsageFiveHour", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 5-hour.
+        /// </summary>
+        public static string UsageFiveHourLabel {
+            get {
+                return ResourceManager.GetString("UsageFiveHourLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Weekly limit.
+        /// </summary>
+        public static string UsageWeekly {
+            get {
+                return ResourceManager.GetString("UsageWeekly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Weekly.
+        /// </summary>
+        public static string UsageWeeklyLabel {
+            get {
+                return ResourceManager.GetString("UsageWeeklyLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Monthly limit.
+        /// </summary>
+        public static string UsageMonthly {
+            get {
+                return ResourceManager.GetString("UsageMonthly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Monthly.
+        /// </summary>
+        public static string UsageMonthlyLabel {
+            get {
+                return ResourceManager.GetString("UsageMonthlyLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Status.
+        /// </summary>
+        public static string UsageStatusLabel {
+            get {
+                return ResourceManager.GetString("UsageStatusLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Premium.
+        /// </summary>
+        public static string UsageSlotPremium {
+            get {
+                return ResourceManager.GetString("UsageSlotPremium", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Chat.
+        /// </summary>
+        public static string UsageSlotChat {
+            get {
+                return ResourceManager.GetString("UsageSlotChat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Completions.
+        /// </summary>
+        public static string UsageSlotCompletions {
+            get {
+                return ResourceManager.GetString("UsageSlotCompletions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to resets in {0}.
+        /// </summary>
+        public static string UsageResetsIn {
+            get {
+                return ResourceManager.GetString("UsageResetsIn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to stale.
+        /// </summary>
+        public static string UsageStale {
+            get {
+                return ResourceManager.GetString("UsageStale", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Loading....
+        /// </summary>
+        public static string UsageLoading {
+            get {
+                return ResourceManager.GetString("UsageLoading", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to N/A.
+        /// </summary>
+        public static string UsageNA {
+            get {
+                return ResourceManager.GetString("UsageNA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detected.
+        /// </summary>
+        public static string UsageDetected {
+            get {
+                return ResourceManager.GetString("UsageDetected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not installed.
+        /// </summary>
+        public static string UsageNotInstalled {
+            get {
+                return ResourceManager.GetString("UsageNotInstalled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not logged in.
+        /// </summary>
+        public static string UsageNotLoggedIn {
+            get {
+                return ResourceManager.GetString("UsageNotLoggedIn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detected, no usage API.
+        /// </summary>
+        public static string UsageDetectedNoApi {
+            get {
+                return ResourceManager.GetString("UsageDetectedNoApi", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Login expired, sign in again.
+        /// </summary>
+        public static string UsageAuthExpired {
+            get {
+                return ResourceManager.GetString("UsageAuthExpired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Rate limited, retrying later.
+        /// </summary>
+        public static string UsageRateLimited {
+            get {
+                return ResourceManager.GetString("UsageRateLimited", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unavailable.
+        /// </summary>
+        public static string UsageError {
+            get {
+                return ResourceManager.GetString("UsageError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No Copilot plan.
+        /// </summary>
+        public static string UsageNoPlan {
+            get {
+                return ResourceManager.GetString("UsageNoPlan", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gemini.
+        /// </summary>
+        public static string UsageGroupGemini {
+            get {
+                return ResourceManager.GetString("UsageGroupGemini", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Claude/GPT.
+        /// </summary>
+        public static string UsageGroupClaudeGpt {
+            get {
+                return ResourceManager.GetString("UsageGroupClaudeGpt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Custom path (optional).
+        /// </summary>
+        public static string SettingsUsageCustomPathColumn {
+            get {
+                return ResourceManager.GetString("SettingsUsageCustomPathColumn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Only needed for unusual setups: a file or folder holding this tool's login file (or the agy executable). Leave empty to use the default locations..
+        /// </summary>
+        public static string SettingsUsageCustomPathTooltip {
+            get {
+                return ResourceManager.GetString("SettingsUsageCustomPathTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Applies after Save.
+        /// </summary>
+        public static string UsageAppliesAfterSave {
+            get {
+                return ResourceManager.GetString("UsageAppliesAfterSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Usage Alert (%).
+        /// </summary>
+        public static string SettingsUsageAlert {
+            get {
+                return ResourceManager.GetString("SettingsUsageAlert", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Highlights a limit in the alert color once its used percentage reaches this value. 0 disables the alert..
+        /// </summary>
+        public static string SettingsUsageAlertTooltip {
+            get {
+                return ResourceManager.GetString("SettingsUsageAlertTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Every provider is OFF by default. Only enabled providers are polled (read-only, at most every 5 minutes); credentials are never modified, logged or shown..
+        /// </summary>
+        public static string SettingsUsageNote {
+            get {
+                return ResourceManager.GetString("SettingsUsageNote", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Provider.
+        /// </summary>
+        public static string SettingsUsageProviderColumn {
+            get {
+                return ResourceManager.GetString("SettingsUsageProviderColumn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Status.
+        /// </summary>
+        public static string SettingsUsageStatusColumn {
+            get {
+                return ResourceManager.GetString("SettingsUsageStatusColumn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Poll this provider and show its usage in the sidebar..
+        /// </summary>
+        public static string SettingsUsageEnabledTooltip {
+            get {
+                return ResourceManager.GetString("SettingsUsageEnabledTooltip", resourceCulture);
+            }
+        }
     }
 }
