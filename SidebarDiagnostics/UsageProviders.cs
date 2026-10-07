@@ -197,7 +197,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
     public class AgyProvider : IUsageProvider
     {
         public string Id => "AIUsage_Agy";
-        public string DisplayName => "agy (Gemini/Antigravity)";
+        public string DisplayName => "agy (Antigravity)";
 
         public string CustomPath { get; set; }
 
@@ -282,7 +282,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
     public class CodexProvider : IUsageProvider
     {
         public string Id => "AIUsage_Codex";
-        public string DisplayName => "OpenAI Codex CLI";
+        public string DisplayName => "Codex CLI";
 
         public string CustomPath { get; set; }
 

@@ -197,6 +197,46 @@
                                                 </StackPanel>
                                             </DataTemplate>
 
+                                            <DataTemplate DataType="{x:Type monitor:UsageMonitor}">
+                                                <StackPanel Style="{StaticResource MonitorPanel}">
+                                                    <TextBlock Text="{Binding Path=Name, Mode=OneWay}" Style="{StaticResource HardwareText}" />
+
+                                                    <ItemsControl ItemsSource="{Binding Path=Metrics, Mode=OneWay}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate DataType="{x:Type monitor:UsageMetric}">
+                                                                <StackPanel Style="{StaticResource VerticalPanel}" Margin="0,0,0,4">
+                                                                    <DockPanel Style="{StaticResource MetricPanel}">
+                                                                        <TextBlock Text="{Binding Path=Label, Mode=OneWay}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource MetricLabel}" />
+                                                                        <TextBlock Text="{Binding Path=Text, Mode=OneWay}" TextWrapping="NoWrap" Style="{StaticResource MetricValue}" />
+                                                                    </DockPanel>
+                                                                    <ProgressBar Value="{Binding Path=nValue, Mode=OneWay}" Style="{StaticResource AccentBar}" />
+                                                                    <TextBlock Text="{Binding Path=ResetText, Mode=OneWay}" TextWrapping="NoWrap" Opacity="0.6">
+                                                                        <TextBlock.Style>
+                                                                            <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource AppText}">
+                                                                                <Setter Property="Margin" Value="0,1,0,0" />
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding Path=ResetText, Mode=OneWay}" Value="{x:Null}">
+                                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                                    </DataTrigger>
+                                                                                    <DataTrigger Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=TextAlign, Mode=OneWay}" Value="Right">
+                                                                                        <Setter Property="TextAlignment" Value="Right" />
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </TextBlock.Style>
+                                                                    </TextBlock>
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <StackPanel Style="{StaticResource VerticalPanel}" />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </DataTemplate>
+
                                             <DataTemplate DataType="{x:Type monitor:DriveMonitor}">
                                                 <StackPanel Style="{StaticResource MonitorPanel}">
                                                     <ContentControl>

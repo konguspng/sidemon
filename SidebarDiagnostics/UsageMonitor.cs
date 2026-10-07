@@ -32,29 +32,46 @@ namespace SidebarDiagnostics.Monitoring
             get { return false; }
         }
 
-        // used percentage (0..100) plus an optional "resets in ..." suffix
-        public void SetUsage(double percent, string suffix)
+        // second, smaller line under the bar ("resets in 4h 24m"); null hides it
+        private string _resetText;
+
+        public string ResetText
         {
-            if (_hasValue && _lastPercent == percent && string.Equals(_lastSuffix, suffix, StringComparison.Ordinal))
+            get
+            {
+                return _resetText;
+            }
+            private set
+            {
+                if (string.Equals(_resetText, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _resetText = value;
+
+                NotifyPropertyChanged("ResetText");
+            }
+        }
+
+        // used percentage (0..100); the reset countdown goes on its own line
+        public void SetUsage(double percent, string resetText)
+        {
+            if (_hasValue && _lastPercent == percent && string.Equals(_lastSuffix, resetText, StringComparison.Ordinal))
             {
                 return;
             }
 
             _hasValue = true;
             _lastPercent = percent;
-            _lastSuffix = suffix;
+            _lastSuffix = resetText;
             _lastNote = null;
 
             Update(percent);
 
-            string _text = string.Format("{0:#,##0.##}%", percent.Round(_round));
+            Text = string.Format("{0:#,##0.##}%", percent.Round(_round));
 
-            if (!string.IsNullOrEmpty(suffix))
-            {
-                _text = string.Format("{0} \u00B7 {1}", _text, suffix);
-            }
-
-            Text = _text;
+            ResetText = string.IsNullOrEmpty(resetText) ? null : resetText;
         }
 
         // textual state ("Loading...", "N/A", "Not logged in"): no bar, no alert
@@ -71,6 +88,8 @@ namespace SidebarDiagnostics.Monitoring
             Update(0d);
 
             Text = text;
+
+            ResetText = null;
         }
 
         private bool _hasValue;
