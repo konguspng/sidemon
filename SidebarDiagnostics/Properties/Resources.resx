@@ -181,7 +181,7 @@
     <comment>Text of the show button</comment>
   </data>
   <data name="Sidebar" xml:space="preserve">
-    <value>Sidebar</value>
+    <value>SideMon</value>
     <comment>Title of the sidebar window</comment>
   </data>
   <data name="CPUTemp" xml:space="preserve">
@@ -509,7 +509,7 @@
     <comment>Text of the performance counter error</comment>
   </data>
   <data name="ErrorTitle" xml:space="preserve">
-    <value>Sidebar Error</value>
+    <value>SideMon Error</value>
     <comment>Title of the error popup</comment>
   </data>
   <data name="GraphConfigSectionTitle" xml:space="preserve">
@@ -941,7 +941,7 @@
     <comment>Settings temperature alert tooltip</comment>
   </data>
   <data name="SettingsTitle" xml:space="preserve">
-    <value>Sidebar Settings</value>
+    <value>SideMon Settings</value>
     <comment>Title of the settings window</comment>
   </data>
   <data name="SettingsUIScale" xml:space="preserve">
@@ -1137,7 +1137,7 @@
     <comment>Settings show machine name tooltip</comment>
   </data>
   <data name="AIUsage" xml:space="preserve">
-    <value>AI CLI Usage</value>
+    <value>AI Usage</value>
     <comment>AI CLI usage monitor title</comment>
   </data>
   <data name="UsageFiveHour" xml:space="preserve">
@@ -1265,5 +1265,35 @@
   </data>
   <data name="UsageAppliesAfterSave" xml:space="preserve">
     <value>Applies after Save</value>
+  </data>
+  <data name="SettingsAutoFitScale" xml:space="preserve">
+    <value>Shrink automatically to fit the screen</value>
+  </data>
+  <data name="SettingsAutoFitScaleTooltip" xml:space="preserve">
+    <value>Automatically shrink the UI scale if the enabled monitors and drives require more space than the screen height.</value>
+  </data>
+  <data name="SettingsUsageShowExtraColumn" xml:space="preserve">
+    <value>Claude/GPT bars</value>
+  </data>
+  <data name="SettingsUsageStaleNote" xml:space="preserve">
+    <value>last known {0} ago</value>
+  </data>
+  <data name="TrayUpdateAvailable" xml:space="preserve">
+    <value>Update available: v{0} - Download</value>
+  </data>
+  <data name="SettingsUpdateAvailable" xml:space="preserve">
+    <value>Update available: v{0}</value>
+  </data>
+  <data name="SettingsUpdateDownload" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="SettingsUpdateCheckNow" xml:space="preserve">
+    <value>Check for updates now</value>
+  </data>
+  <data name="UpdateNotAvailable" xml:space="preserve">
+    <value>You are running the latest version.</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>Could not reach GitHub.</value>
   </data>
 </root>

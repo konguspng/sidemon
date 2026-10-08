@@ -195,24 +195,32 @@ namespace SidebarDiagnostics.Monitoring
         //     "primary_window":   { "used_percent": 12, "limit_window_seconds": 18000,  "reset_at": 1759999999 },
         //     "secondary_window": { "used_percent":  4, "limit_window_seconds": 604800, "reset_at": 1760500000 } },
         //   "credits": { "has_credits": true, "unlimited": false, "balance": "5.00" } }
-        public static List<UsageWindow> ParseCodex(string json, DateTimeOffset now)
+        public static void ParseCodex(string json, DateTimeOffset now, out List<UsageWindow> list, out string plan)
         {
-            List<UsageWindow> _list = new List<UsageWindow>();
+            list = new List<UsageWindow>();
+            plan = null;
 
             using (JsonDocument _doc = JsonDocument.Parse(json))
             {
                 JsonElement _root = _doc.RootElement;
+                if (_root.ValueKind != JsonValueKind.Object) return;
 
-                if (_root.ValueKind != JsonValueKind.Object || !_root.TryGetProperty("rate_limit", out JsonElement _rate) || _rate.ValueKind != JsonValueKind.Object)
+                if (_root.TryGetProperty("plan_type", out JsonElement _plan) && _plan.ValueKind == JsonValueKind.String)
                 {
-                    return _list;
+                    string p = _plan.GetString();
+                    if (!string.IsNullOrEmpty(p)) plan = char.ToUpper(p[0]) + p.Substring(1);
                 }
 
-                AddCodexWindow(_list, _rate, "primary_window", UsageKind.FiveHour, now);
-                AddCodexWindow(_list, _rate, "secondary_window", UsageKind.Weekly, now);
+                if (!_root.TryGetProperty("rate_limit", out JsonElement _rate) || _rate.ValueKind != JsonValueKind.Object)
+                {
+                    return;
+                }
+
+                AddCodexWindow(list, _rate, "primary_window", UsageKind.FiveHour, now);
+                AddCodexWindow(list, _rate, "secondary_window", UsageKind.Weekly, now);
             }
 
-            return _list.OrderBy(w => w.Kind).ToList();
+            list = list.OrderBy(w => w.Kind).ToList();
         }
 
         private static void AddCodexWindow(List<UsageWindow> list, JsonElement rate, string name, UsageKind fallbackKind, DateTimeOffset now)

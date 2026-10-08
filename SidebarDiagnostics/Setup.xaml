@@ -14,7 +14,7 @@
         Icon="Sidebar.ico"
         Height="400"
         Width="400"
-        ShowIcon="False"
+        ShowIcon="Sidebar.ico"
         ShowTitle="False"
         ShowMinimize="False"
         ShowMaximize="False"

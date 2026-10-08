@@ -32,6 +32,14 @@ namespace SidebarDiagnostics.Monitoring
             get { return false; }
         }
 
+        private double _rowOpacity = 1.0;
+
+        public double RowOpacity
+        {
+            get { return _rowOpacity; }
+            set { if (_rowOpacity == value) return; _rowOpacity = value; NotifyPropertyChanged("RowOpacity"); }
+        }
+
         // second, smaller line under the bar ("resets in 4h 24m"); null hides it
         private string _resetText;
 
@@ -108,9 +116,14 @@ namespace SidebarDiagnostics.Monitoring
     // update tick.
     public class UsageMonitor : BaseMonitor
     {
-        public UsageMonitor(IUsageProvider provider, string name, MetricConfig[] metrics, bool showName, bool roundAll, double alertValue) : base(provider.Id, name, showName)
+        private string _originalName;
+        private bool? _showExtra;
+
+        public UsageMonitor(IUsageProvider provider, string name, bool? showExtra, MetricConfig[] metrics, bool showName, bool roundAll, double alertValue) : base(provider.Id, name, showName)
         {
+            _originalName = name;
             _provider = provider;
+            _showExtra = showExtra;
             _metricConfig = metrics;
             _roundAll = roundAll;
             _alertValue = alertValue;
@@ -147,7 +160,7 @@ namespace SidebarDiagnostics.Monitoring
             {
                 string _name = string.IsNullOrEmpty(_item.c.Name) ? _item.provider.DisplayName : _item.c.Name;
 
-                _list.Add(new UsageMonitor(_item.provider, _name, metrics, _showName, _roundAll, _alert));
+                _list.Add(new UsageMonitor(_item.provider, _name, _item.c.ShowExtra, metrics, _showName, _roundAll, _alert));
             }
 
             return _list.ToArray();
@@ -169,13 +182,32 @@ namespace SidebarDiagnostics.Monitoring
 
             UsageSnapshot _snapshot = UsageRegistry.GetSnapshot(_provider.Id);
 
-            List<UsageWindow> _windows = _snapshot.Windows
+            if (_snapshot.Plan != null)
+            {
+                string newName = _originalName + " - " + _snapshot.Plan;
+                if (Name != newName) Name = newName;
+            }
+
+            var _rawWindows = _snapshot.Windows.AsEnumerable();
+            if (_showExtra == false)
+            {
+                _rawWindows = _rawWindows.Where(w => !IsGroup(w.Slot, "Claude") && !IsGroup(w.Slot, "GPT"));
+            }
+
+            List<UsageWindow> _windows = _rawWindows
                 .Where(w => IsKindEnabled(w.Kind))
                 .OrderBy(w => SlotOrder(w.Slot))
                 .ThenBy(w => w.Kind)
                 .ToList();
 
-            bool _statusRow = _snapshot.Windows.Count == 0;
+            var _groups = _windows.Where(w => w.Slot != null && w.Slot.StartsWith("grp:")).Select(w => {
+                if (IsGroup(w.Slot, "Gemini")) return "Gemini";
+                if (IsGroup(w.Slot, "Claude") || IsGroup(w.Slot, "GPT")) return "ClaudeGpt";
+                return w.Slot.Substring(4);
+            }).Distinct().ToList();
+            bool _multiGroup = _groups.Count > 1;
+
+            bool _statusRow = _windows.Count == 0 && _snapshot.Windows.Count == 0;
 
             string _signature = _statusRow
                 ? "status"
@@ -195,7 +227,7 @@ namespace SidebarDiagnostics.Monitoring
                 {
                     foreach (UsageWindow _window in _windows)
                     {
-                        _rows.Add(new UsageMetric(KindToKey(_window.Kind), GetLabel(_window), _roundAll, _alertValue));
+                        _rows.Add(new UsageMetric(KindToKey(_window.Kind), GetLabel(_window, _multiGroup), _roundAll, _alertValue));
                     }
                 }
 
@@ -220,17 +252,28 @@ namespace SidebarDiagnostics.Monitoring
             for (int i = 0; i < _currentRows.Length; i++)
             {
                 UsageWindow _window = _windows[i];
+                
+                _currentRows[i].RowOpacity = _snapshot.IsStale ? 0.5 : 1.0;
 
                 if (_window.UsedPercent.HasValue)
                 {
-                    string _suffix = FormatReset(_window.ResetsAt);
-
-                    if (_snapshot.IsStale)
+                    if (_window.ResetsAt.HasValue && _window.ResetsAt.Value <= DateTimeOffset.Now)
                     {
-                        _suffix = string.IsNullOrEmpty(_suffix) ? Resources.UsageStale : string.Format("{0} ({1})", _suffix, Resources.UsageStale);
+                        _currentRows[i].SetNote("resets now - refreshing");
                     }
+                    else
+                    {
+                        string _suffix = FormatReset(_window.ResetsAt);
 
-                    _currentRows[i].SetUsage(_window.UsedPercent.Value, _suffix);
+                        if (_snapshot.IsStale)
+                        {
+                            string ageText = FormatAge(_snapshot.LastGoodAt);
+                            string staleText = string.Format(Resources.SettingsUsageStaleNote, ageText);
+                            _suffix = string.IsNullOrEmpty(_suffix) ? staleText : string.Format("{0} ({1})", _suffix, staleText);
+                        }
+
+                        _currentRows[i].SetUsage(_window.UsedPercent.Value, _suffix);
+                    }
                 }
                 else
                 {
@@ -315,7 +358,7 @@ namespace SidebarDiagnostics.Monitoring
             return slot != null && slot.StartsWith("grp:", StringComparison.Ordinal) && slot.IndexOf(name, 4, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private static string GetLabel(UsageWindow window)
+        private static string GetLabel(UsageWindow window, bool multiGroup)
         {
             switch (window.Slot)
             {
@@ -334,6 +377,8 @@ namespace SidebarDiagnostics.Monitoring
                 default:
                     if (window.Slot != null && window.Slot.StartsWith("grp:", StringComparison.Ordinal))
                     {
+                        if (!multiGroup) return KindToKey(window.Kind).GetLabel();
+
                         string _group = IsGroup(window.Slot, "Gemini") ? Resources.UsageGroupGemini
                             : (IsGroup(window.Slot, "Claude") || IsGroup(window.Slot, "GPT")) ? Resources.UsageGroupClaudeGpt
                             : window.Slot.Substring(4);
@@ -343,6 +388,16 @@ namespace SidebarDiagnostics.Monitoring
 
                     return window.Slot;
             }
+        }
+
+        private static string FormatAge(DateTimeOffset? lastGoodAt)
+        {
+            if (!lastGoodAt.HasValue) return "unknown";
+            TimeSpan _age = DateTimeOffset.Now - lastGoodAt.Value;
+            if (_age.TotalDays >= 1d) return string.Format("{0}d {1}h", (int)_age.TotalDays, _age.Hours);
+            if (_age.TotalHours >= 1d) return string.Format("{0}h {1}m", (int)_age.TotalHours, _age.Minutes);
+            if (_age.TotalMinutes >= 1d) return string.Format("{0}m", (int)_age.TotalMinutes);
+            return "just now";
         }
 
         // "2d 4h", "2h 10m", "35m"; empty when unknown or already past

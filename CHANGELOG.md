@@ -2,6 +2,15 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.3.1 (released 2026-10-09)
+- **Fixed: SideMon could cover the tray "^" (hidden icons) popup.** In the desktop-widget lift (Win+D / bare desktop) and in Always On Top mode SideMon placed itself above ALL topmost windows, which includes the taskbar and its overflow flyout, so the popup opened underneath the sidebar. It now inserts itself directly beneath the lowest topmost shell window (taskbar, tray overflow, Start/Search, jump lists, tray menus) or, for the bare-desktop lift, only at the top of the normal window band, so it can never be above a shell flyout. Shell flyouts taking the foreground no longer trigger any z-order change. Checked by opening the real tray overflow popup and reading the actual window stack.
+- **Crash Prevention**: Improved defensive coding across startup paths, monitor detection, performance counters, and settings loading to prevent crashes on diverse hardware configurations. Unhandled exceptions are now safely logged.
+- **UI Scale Auto-Fit**: Added a toggle for "Shrink automatically to fit the screen" (enabled by default). The UI Scale slider is no longer hard-capped below 1.00 when auto-fit reduces the scale, allowing you to freely adjust it up to 3.00.
+- **Settings Window Improvements**: The Settings window now appears in the taskbar, opens correctly above other windows, displays the app's proper icon, and is titled "SideMon Settings". Renamed user-facing product references from "Sidebar Diagnostics" to "SideMon".
+- **Update Notifications**: SideMon now checks 1 minute after launch and then every 6 hours (before: once per launch, so a long-running copy never noticed), falls back to the release page when GitHub's API is rate-limited, and shows a one-time notice per version even when the tray icon is hidden. Improved update checks to show a persistent tray menu item and a notice in the Settings window when an update is available. The tray balloon notice now reliably displays even if it was triggered before the desktop loaded.
+- **AI Usage Improvements**: Renamed "AI CLI Usage" to "AI Usage" and "agy (Antigravity)" to "Gemini (agy)". Added an option to hide Claude/GPT bars for the Gemini (agy) provider.
+- **AI Usage Accuracy**: Stale usage values are now dimmed with a "last known" age to distinguish them from live data. Polled quotas that have already reset now correctly show "resets now - refreshing" instead of a meaningless percentage. Added plan names (e.g. "Pro") to the Claude Code and Codex headings.
+
 ## 4.3.0 (released 2026-10-07)
 
 - **Z-Order & Focus Fixes**: Added `WS_EX_NOACTIVATE` and intercepted `WM_MOUSEACTIVATE` to prevent the widget from stealing focus. Added centralized Z-order policy that respects Win+D behavior without covering ordinary application windows.

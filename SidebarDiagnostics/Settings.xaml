@@ -15,7 +15,7 @@
         Closing="Window_Closing"
         Closed="Window_Closed"
         Title="{x:Static frame:Resources.SettingsTitle}"
-        Icon="Settings.ico"
+        Icon="Sidebar.ico"
         Width="800"
         SizeToContent="Height"
         ShowMaximize="False"
@@ -54,6 +54,7 @@
                         <RowDefinition Height="38px"></RowDefinition>
                         <RowDefinition Height="38px"></RowDefinition>
                         <RowDefinition Height="38px"></RowDefinition>
+                        <RowDefinition Height="Auto"></RowDefinition>
                         <RowDefinition Height="Auto"></RowDefinition>
                         <RowDefinition Height="Auto"></RowDefinition>
                         <RowDefinition Height="Auto"></RowDefinition>
@@ -115,24 +116,32 @@
                     <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsUIScale}" />
                     <DockPanel Grid.Column="1" Grid.Row="0">
                         <TextBox Text="{Binding ElementName=UIScaleSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" PreviewTextInput="NumberBox_PreviewTextInput" />
-                        <Slider x:Name="UIScaleSlider" Value="{Binding Path=UIScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.5" Maximum="{Binding Path=MaxUIScale, Mode=OneWay}" TickFrequency="0.1" LargeChange="0.5" ToolTip="{x:Static frame:Resources.SettingsUIScaleTooltip}" />
+                        <Slider x:Name="UIScaleSlider" Value="{Binding Path=UIScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.5" Maximum="3.0" TickFrequency="0.05" IsSnapToTickEnabled="True" LargeChange="0.5" ToolTip="{x:Static frame:Resources.SettingsUIScaleTooltip}" />
                     </DockPanel>
 
-                    <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1" TextWrapping="Wrap" Foreground="#B45309" FontSize="11" Margin="0,2,0,4">
-                        <TextBlock.Style>
-                            <Style TargetType="{x:Type TextBlock}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Path=UIScaleCapped, Mode=OneWay}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                        <TextBlock.Text>
-                            <Binding Path="MaxUIScale" Mode="OneWay" StringFormat="Your enabled monitors need more room than the screen at full size, so UI Scale is capped at {0:F2} to keep everything visible. Disable some monitors/drives to raise the cap." />
-                        </TextBlock.Text>
-                    </TextBlock>
+                    <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1" Margin="0,2,0,4">
+                        <CheckBox Content="{x:Static frame:Resources.SettingsAutoFitScale}" IsChecked="{Binding Path=AutoFitScale}" Margin="0,0,0,4" ToolTip="{x:Static frame:Resources.SettingsAutoFitScaleTooltip}" />
+                        
+                        <TextBlock TextWrapping="Wrap" FontSize="11">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Path=AutoFitScale, Mode=OneWay}" Value="True" />
+                                                <Condition Binding="{Binding Path=UIScaleCapped, Mode=OneWay}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <TextBlock.Text>
+                                <Binding Path="MaxUIScale" Mode="OneWay" StringFormat="Auto-fit reduced the scale to {0:F2} because your monitors/drives don't fit the screen height. Untick 'Shrink automatically' to set it yourself." />
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </StackPanel>
 
                     <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.SettingsHorizontalOffset}" />
                     <DockPanel Grid.Column="1" Grid.Row="2">
@@ -421,6 +430,24 @@
                                                             <GridViewColumn.CellTemplate>
                                                                 <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
                                                                     <TextBox Text="{Binding Path=CustomPath, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Style="{StaticResource MonitorHardwareText}" ToolTip="{x:Static frame:Resources.SettingsUsageCustomPathTooltip}" />
+                                                                </DataTemplate>
+                                                            </GridViewColumn.CellTemplate>
+                                                        </GridViewColumn>
+                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageShowExtraColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="110">
+                                                            <GridViewColumn.CellTemplate>
+                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
+                                                                    <CheckBox IsChecked="{Binding Path=ShowExtra, TargetNullValue=True, FallbackValue=True, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                        <CheckBox.Style>
+                                                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+                                                                                <Setter Property="Visibility" Value="Hidden" />
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding ID}" Value="AIUsage_Agy">
+                                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </CheckBox.Style>
+                                                                    </CheckBox>
                                                                 </DataTemplate>
                                                             </GridViewColumn.CellTemplate>
                                                         </GridViewColumn>

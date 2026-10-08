@@ -85,6 +85,22 @@ namespace SidebarDiagnostics.Framework
             }
         }
 
+        private string _lastNotifiedUpdate { get; set; } = null;
+
+        public string LastNotifiedUpdate
+        {
+            get
+            {
+                return _lastNotifiedUpdate;
+            }
+            set
+            {
+                _lastNotifiedUpdate = value;
+
+                NotifyPropertyChanged("LastNotifiedUpdate");
+            }
+        }
+
         private bool _initialSetup { get; set; } = true;
 
         public bool InitialSetup
@@ -214,6 +230,22 @@ namespace SidebarDiagnostics.Framework
         }
 
         private double _uiScale { get; set; } = 1d;
+
+        private bool _autoFitScale { get; set; } = true;
+
+        public bool AutoFitScale
+        {
+            get
+            {
+                return _autoFitScale;
+            }
+            set
+            {
+                _autoFitScale = value;
+
+                NotifyPropertyChanged("AutoFitScale");
+            }
+        }
 
         public double UIScale
         {
@@ -861,11 +893,9 @@ namespace SidebarDiagnostics.Framework
         public System.Windows.Media.FontFamily Family { get; private set; }
     }
 
-    public static class SidebarFonts
+        public static class SidebarFonts
     {
         public const string DefaultName = "Segoe UI";
-
-        private static readonly Uri _packUri = new Uri("pack://application:,,,/");
 
         private static FontOption[] _all;
 
@@ -875,13 +905,16 @@ namespace SidebarDiagnostics.Framework
             {
                 if (_all == null)
                 {
+                    Uri _packUri = null;
+                    try { _packUri = new Uri("pack://application:,,,/"); } catch { }
+
                     _all = new FontOption[]
                     {
                         new FontOption(DefaultName, new System.Windows.Media.FontFamily(DefaultName)),
-                        new FontOption("Titillium Web", new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Titillium Web")),
-                        new FontOption("Rajdhani", new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Rajdhani")),
-                        new FontOption("Chakra Petch", new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Chakra Petch")),
-                        new FontOption("Share Tech Mono", new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Share Tech Mono"))
+                        new FontOption("Titillium Web", _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Titillium Web") : new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Rajdhani", _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Rajdhani") : new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Chakra Petch", _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Chakra Petch") : new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Share Tech Mono", _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Share Tech Mono") : new System.Windows.Media.FontFamily(DefaultName))
                     };
                 }
 

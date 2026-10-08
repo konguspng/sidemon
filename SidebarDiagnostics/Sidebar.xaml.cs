@@ -141,11 +141,13 @@ namespace SidebarDiagnostics
             else
             {
                 // If there are no normal windows visible (e.g. Win+D was pressed),
-                // we must bring the sidebar to the top so it's not hidden behind the desktop.
+                // lift the sidebar above the desktop so it is not hidden behind it, but only
+                // to the top of the NORMAL band (SetTop): that is always below the taskbar and
+                // every tray flyout, so SideMon can never cover the "^" overflow popup.
                 // Otherwise, pin it to the bottom of the window stack.
                 if (!ShowDesktop.AnyNormalWindowVisible())
                 {
-                    SetTopMost(false);
+                    SetTop(false);
                 }
                 else
                 {
@@ -340,13 +342,6 @@ namespace SidebarDiagnostics
                 return;
             }
 
-            // ActualHeight can't be trusted here: setting UIScale elsewhere triggers
-            // legacy DPI-scaling code (UpdateScale/HandleDPI) that overwrites the
-            // window's WPF-level Height using a stale/zero baseline captured at
-            // startup, silently corrupting it after the very first auto-shrink. The
-            // monitor's real work area is authoritative and immune to that, since
-            // the window's on-screen height always equals the full work area
-            // regardless of UI Scale (only width scales with it).
             Windows.Monitor _monitor = Windows.Monitor.GetMonitorFromIndex(Framework.Settings.Instance.ScreenIndex);
 
             double _screenHeight = (_monitor.WorkArea.Bottom - _monitor.WorkArea.Top) * _monitor.InverseScaleY;
@@ -366,22 +361,40 @@ namespace SidebarDiagnostics
 
             bool _overflowing = _naturalHeight > _availableHeight && _naturalHeight > 0d;
 
-            double _scale = _overflowing
-                ? Math.Round(Math.Max(0.5d, Math.Min(3.0d, _availableHeight / _naturalHeight)), 2)
-                : 1.0d;
+            if (!Framework.Settings.Instance.AutoFitScale)
+            {
+                if (Math.Abs(Framework.Settings.Instance.MaxUIScale - 3.0d) > 0.01d)
+                {
+                    Framework.Settings.Instance.MaxUIScale = 3.0d;
+                    Framework.Settings.Instance.Save();
+                }
+                return;
+            }
 
-            // hard cap: once the enabled monitors need more room than the screen at
-            // full size, the user can no longer scale back up past the point where
-            // it would overflow again
-            double _maxScale = _overflowing ? _scale : 3.0d;
+            bool _changed = false;
+            double _reducedScale = 3.0d;
 
-            bool _changed = Math.Abs(Framework.Settings.Instance.UIScale - _scale) > 0.01d
-                || Math.Abs(Framework.Settings.Instance.MaxUIScale - _maxScale) > 0.01d;
+            if (_overflowing)
+            {
+                double _scale = Math.Round(Math.Max(0.5d, Math.Min(3.0d, _availableHeight / _naturalHeight)), 2);
+                _reducedScale = _scale;
+                if (Math.Abs(Framework.Settings.Instance.UIScale - _scale) > 0.01d)
+                {
+                    Framework.Settings.Instance.UIScale = _scale;
+                    _changed = true;
+                }
+            }
+
+            // We use MaxUIScale to pass the reduced scale to SettingsModel so it knows when to show the warning.
+            // The slider in Settings.xaml will be hardcoded to Maximum="3.0".
+            if (Math.Abs(Framework.Settings.Instance.MaxUIScale - _reducedScale) > 0.01d)
+            {
+                Framework.Settings.Instance.MaxUIScale = _reducedScale;
+                _changed = true;
+            }
 
             if (_changed)
             {
-                Framework.Settings.Instance.MaxUIScale = _maxScale;
-                Framework.Settings.Instance.UIScale = _scale;
                 Framework.Settings.Instance.Save();
             }
         }

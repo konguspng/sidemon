@@ -2261,9 +2261,7 @@ namespace SidebarDiagnostics.Monitoring
             {
                 Update(_counter.NextValue());
             }
-            catch (InvalidOperationException)
-            {
-                // the counter's instance (e.g. a drive letter) went away since the
+            catch (Exception) { // the counter\'s instance (e.g. a drive letter) went away since the
                 // counter was created; skip this tick rather than crash the reload
             }
         }
@@ -2474,7 +2472,7 @@ namespace SidebarDiagnostics.Monitoring
 
             foreach (MonitorConfig _record in config)
             {
-                MonitorConfig _defaultRecord = _default.Single(d => d.Type == _record.Type);
+                MonitorConfig _defaultRecord = _default.FirstOrDefault(d => d.Type == _record.Type) ?? _default[0];
 
                 if (_record.Hardware == null)
                 {
@@ -2837,6 +2835,28 @@ namespace SidebarDiagnostics.Monitoring
                 _customPath = value;
 
                 NotifyPropertyChanged("CustomPath");
+            }
+        }
+
+        private bool? _showExtra { get; set; } = null;
+
+        // optional per-provider flag (AI CLI Usage only); null/true = show all bars, false = hide secondary bars
+        public bool? ShowExtra
+        {
+            get
+            {
+                return _showExtra;
+            }
+            set
+            {
+                if (_showExtra == value)
+                {
+                    return;
+                }
+
+                _showExtra = value;
+
+                NotifyPropertyChanged("ShowExtra");
             }
         }
 
@@ -3814,7 +3834,7 @@ namespace SidebarDiagnostics.Monitoring
 
         public static T GetValue<T>(this ConfigParam[] parameters, ParamKey key)
         {
-            return (T)parameters.Single(p => p.Key == key).Value;
+            var p = parameters.FirstOrDefault(x => x.Key == key); return p != null ? (T)p.Value : default(T);
         }
 
         public static string GetFullName(this MetricKey key)

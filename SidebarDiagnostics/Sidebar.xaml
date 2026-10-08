@@ -204,7 +204,7 @@
                                                     <ItemsControl ItemsSource="{Binding Path=Metrics, Mode=OneWay}">
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate DataType="{x:Type monitor:UsageMetric}">
-                                                                <StackPanel Style="{StaticResource VerticalPanel}" Margin="0,0,0,4">
+                                                                <StackPanel Style="{StaticResource VerticalPanel}" Margin="0,0,0,4" Opacity="{Binding Path=RowOpacity, Mode=OneWay}">
                                                                     <DockPanel Style="{StaticResource MetricPanel}">
                                                                         <TextBlock Text="{Binding Path=Label, Mode=OneWay}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource MetricLabel}" />
                                                                         <TextBlock Text="{Binding Path=Text, Mode=OneWay}" TextWrapping="NoWrap" Style="{StaticResource MetricValue}" />

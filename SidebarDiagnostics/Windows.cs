@@ -235,6 +235,14 @@ namespace SidebarDiagnostics.Windows
                     return;
                 }
 
+                // A tray overflow / jump list / menu flyout taking the foreground never
+                // changes what SideMon should do, and re-applying the policy while one is
+                // open is exactly when SideMon used to end up on top of it: do nothing.
+                if (hwnd != IntPtr.Zero && IsTransientFlyoutClass(GetWindowClass(hwnd)))
+                {
+                    return;
+                }
+
                 // Re-evaluate z-order based on what's visible
                 _ = LiftIfDesktopShown(false);
             }
@@ -277,6 +285,113 @@ namespace SidebarDiagnostics.Windows
             _sidebar.ApplyZOrderPolicy();
         }
 
+        // short-lived shell surfaces: tray overflow ("^" arrow), jump lists / thumbnails,
+        // popup menus (tray icon context menus use #32768)
+        private static readonly string[] TRANSIENTFLYOUTS = { "NotifyIconOverflowWindow", "TopLevelWindowForOverflowXamlIsland", "XamlExplorerHostIslandWindow", "Xaml_WindowedPopupClass", "#32768", "TaskListThumbnailWnd", "TaskListOverlayWnd", "Shell_InputSwitchTopLevelWindow", "DV2ControlHost" };
+
+        private static readonly string[] SHELLPROCESSES = { "explorer", "shellexperiencehost", "startmenuexperiencehost", "searchhost", "searchapp", "textinputhost", "shellhost", "lockapp" };
+
+        private static bool IsTransientFlyoutClass(string cls)
+        {
+            foreach (string _c in TRANSIENTFLYOUTS)
+            {
+                if (string.Equals(cls, _c, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsShellProcess(uint pid)
+        {
+            try
+            {
+                using (System.Diagnostics.Process _p = System.Diagnostics.Process.GetProcessById((int)pid))
+                {
+                    return Array.IndexOf(SHELLPROCESSES, _p.ProcessName.ToLowerInvariant()) >= 0;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // The LOWEST window in the topmost band that belongs to the Windows shell: the
+        // taskbar, the tray overflow flyout, Start/Search, jump lists, tray menus. A
+        // topmost SideMon must be inserted directly BELOW it, never above any shell
+        // surface (HWND_TOPMOST would put it above all of them). Zero when none is open.
+        public static IntPtr FindLowestTopmostShellWindow(IntPtr ownHwnd)
+        {
+            IntPtr _found = IntPtr.Zero;
+
+            try
+            {
+                uint _ownPid = (uint)Environment.ProcessId;
+
+                DesktopNative.EnumWindows((hwnd, lparam) =>
+                {
+                    try
+                    {
+                        if (hwnd == ownHwnd || !DesktopNative.IsWindowVisible(hwnd))
+                        {
+                            return true;
+                        }
+
+                        long _exstyle = DesktopNative.GetWindowLongPtr(hwnd, -20).ToInt64();
+
+                        if ((_exstyle & 8L) == 0L) // not WS_EX_TOPMOST
+                        {
+                            return true;
+                        }
+
+                        DesktopNative.GetWindowThreadProcessId(hwnd, out uint _pid);
+
+                        if (_pid == _ownPid) // never anchor to our own windows (FPS overlay...)
+                        {
+                            return true;
+                        }
+
+                        string _class = GetWindowClass(hwnd);
+
+                        if (!IsShellClass(_class) && !IsTransientFlyoutClass(_class) && !IsShellProcess(_pid))
+                        {
+                            return true;
+                        }
+
+                        int _cloaked = 0;
+                        try { DesktopNative.DwmGetWindowAttribute(hwnd, 14, out _cloaked, sizeof(int)); } catch { }
+
+                        if (_cloaked != 0)
+                        {
+                            return true;
+                        }
+
+                        RECT _rect;
+
+                        if (!NativeMethods.GetWindowRect(hwnd, out _rect) || _rect.Right - _rect.Left <= 10 || _rect.Bottom - _rect.Top <= 10 || _rect.Left <= -30000 || _rect.Top <= -30000)
+                        {
+                            return true;
+                        }
+
+                        _found = hwnd; // EnumWindows walks top to bottom: the last match is the lowest
+                    }
+                    catch
+                    {
+                    }
+
+                    return true;
+                }, IntPtr.Zero);
+            }
+            catch
+            {
+            }
+
+            return _found;
+        }
+
         private static readonly string[] SHELLCLASSES = { WORKERW, PROGMAN, TRAYWND, "Shell_SecondaryTrayWnd", "Windows.UI.Core.CoreWindow", "XamlExplorerHostIslandWindow", "TopLevelWindowForOverflowXamlIsland", "NotifyIconOverflowWindow" };
 
         public static bool AnyNormalWindowVisible()
@@ -313,8 +428,7 @@ namespace SidebarDiagnostics.Windows
                 }
 
                 // skip DWM-cloaked ghosts (suspended UWP apps, other virtual desktops)
-                int _cloaked;
-                DesktopNative.DwmGetWindowAttribute(hwnd, 14, out _cloaked, sizeof(int));
+                int _cloaked = 0; try { DesktopNative.DwmGetWindowAttribute(hwnd, 14, out _cloaked, sizeof(int)); } catch { }
 
                 if (_cloaked != 0)
                 {
@@ -366,6 +480,9 @@ namespace SidebarDiagnostics.Windows
 
             [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
             public static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
+
+            [DllImport("user32.dll")]
+            public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
             [DllImport("dwmapi.dll")]
             public static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out int pvAttribute, int cbAttribute);
@@ -974,18 +1091,24 @@ namespace SidebarDiagnostics.Windows
             };
         }
 
-        public static Monitor[] GetMonitors()
+                public static Monitor[] GetMonitors()
         {
             List<Monitor> _monitors = new List<Monitor>();
 
-            EnumCallback _callback = (IntPtr hMonitor, IntPtr hdc, ref RECT pRect, int dwData) =>
+            try {
+                EnumCallback _callback = (IntPtr hMonitor, IntPtr hdc, ref RECT pRect, int dwData) =>
+                {
+                    try { _monitors.Add(GetMonitor(hMonitor)); } catch {}
+                    return true;
+                };
+
+                NativeMethods.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, _callback, 0);
+            } catch (Exception ex) { Utilities.ErrorLog.Write(ex); }
+
+            if (_monitors.Count == 0)
             {
-                _monitors.Add(GetMonitor(hMonitor));
-
-                return true;
-            };
-
-            NativeMethods.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, _callback, 0);
+                _monitors.Add(new Monitor[] { }.GetPrimary());
+            }
 
             return _monitors.OrderByDescending(m => m.IsPrimary).ToArray();
         }
@@ -995,9 +1118,9 @@ namespace SidebarDiagnostics.Windows
             return GetMonitorFromIndex(index, GetMonitors());
         }
 
-        private static Monitor GetMonitorFromIndex(int index, Monitor[] monitors)
+                private static Monitor GetMonitorFromIndex(int index, Monitor[] monitors)
         {
-            if (index < monitors.Length)
+            if (index >= 0 && index < monitors.Length)
                 return monitors[index];
             else
                 return monitors.GetPrimary();
@@ -1066,9 +1189,20 @@ namespace SidebarDiagnostics.Windows
 
     public static class MonitorExtensions
     {
-        public static Monitor GetPrimary(this Monitor[] monitors)
+                public static Monitor GetPrimary(this Monitor[] monitors)
         {
-            return monitors.Where(m => m.IsPrimary).Single();
+            if (monitors == null || monitors.Length == 0)
+            {
+                return new Monitor()
+                {
+                    Size = new RECT { Right = 1920, Bottom = 1080 },
+                    WorkArea = new RECT { Right = 1920, Bottom = 1080 },
+                    DPIx = 96,
+                    DPIy = 96,
+                    IsPrimary = true
+                };
+            }
+            return monitors.FirstOrDefault(m => m.IsPrimary) ?? monitors.FirstOrDefault();
         }
     }
 
@@ -1473,7 +1607,12 @@ namespace SidebarDiagnostics.Windows
         {
             IsTopMost = true;
 
-            SetPos(HWND_FLAG.HWND_TOPMOST, activate);
+            // Never plain HWND_TOPMOST: that lands above the taskbar and every tray flyout
+            // (the "^" overflow popup was drawn UNDER SideMon). Insert directly beneath the
+            // lowest shell window instead; this is a single call, so there is no flicker.
+            IntPtr _shell = ShowDesktop.FindLowestTopmostShellWindow(new WindowInteropHelper(this).Handle);
+
+            SetPos(_shell != IntPtr.Zero ? _shell : HWND_FLAG.HWND_TOPMOST, activate);
         }
 
         public void ClearTopMost(bool activate)
@@ -1497,6 +1636,9 @@ namespace SidebarDiagnostics.Windows
         {
             IsTopMost = true;
 
+            // leave the topmost band first so HWND_TOP means "top of the normal windows",
+            // which is always below the taskbar and every tray flyout
+            SetPos(HWND_FLAG.HWND_NOTOPMOST, activate);
             SetPos(HWND_FLAG.HWND_TOP, activate);
         }
 
@@ -1504,15 +1646,7 @@ namespace SidebarDiagnostics.Windows
         {
             uint _uflags = HWND_FLAG.SWP_NOMOVE | HWND_FLAG.SWP_NOSIZE | HWND_FLAG.SWP_NOACTIVATE;
 
-            NativeMethods.SetWindowPos(
-                new WindowInteropHelper(this).Handle,
-                hwnd_after,
-                0,
-                0,
-                0,
-                0,
-                _uflags
-                );
+            try { NativeMethods.SetWindowPos(new WindowInteropHelper(this).Handle, hwnd_after, 0, 0, 0, 0, _uflags); } catch { }
         }
 
         public void SetClickThrough()
@@ -1584,7 +1718,7 @@ namespace SidebarDiagnostics.Windows
                 data.SizeOfData = accentStructSize;
                 data.Data = accentPtr;
 
-                NativeMethods.SetWindowCompositionAttribute(_hwnd, ref data);
+                try { NativeMethods.SetWindowCompositionAttribute(_hwnd, ref data); } catch { }
             }
             finally
             {
@@ -1610,7 +1744,7 @@ namespace SidebarDiagnostics.Windows
                 data.SizeOfData = accentStructSize;
                 data.Data = accentPtr;
 
-                NativeMethods.SetWindowCompositionAttribute(_hwnd, ref data);
+                try { NativeMethods.SetWindowCompositionAttribute(_hwnd, ref data); } catch { }
             }
             finally
             {
@@ -1622,10 +1756,11 @@ namespace SidebarDiagnostics.Windows
         {
             IntPtr _hwnd = new WindowInteropHelper(this).Handle;
 
-            IntPtr _status = Marshal.AllocHGlobal(sizeof(int));
-            Marshal.WriteInt32(_status, 1);
-
-            NativeMethods.DwmSetWindowAttribute(_hwnd, DWMWINDOWATTRIBUTE.DWMWA_EXCLUDED_FROM_PEEK, _status, sizeof(int));
+                        try {
+                IntPtr _status = Marshal.AllocHGlobal(sizeof(int));
+                Marshal.WriteInt32(_status, 1);
+                NativeMethods.DwmSetWindowAttribute(_hwnd, DWMWINDOWATTRIBUTE.DWMWA_EXCLUDED_FROM_PEEK, _status, sizeof(int));
+            } catch { }
         }
 
         private void SetWindowLong(long? add, long? remove)
@@ -1698,9 +1833,7 @@ namespace SidebarDiagnostics.Windows
 
             APPBARDATA _data = NewData();
 
-            _callbackID = _data.uCallbackMessage = NativeMethods.RegisterWindowMessage("AppBarMessage");
-
-            NativeMethods.SHAppBarMessage(APPBARMSG.ABM_NEW, ref _data);
+            try { _callbackID = _data.uCallbackMessage = NativeMethods.RegisterWindowMessage("AppBarMessage"); NativeMethods.SHAppBarMessage(APPBARMSG.ABM_NEW, ref _data); } catch { }
 
             Screen = screen;
             DockEdge = edge;
@@ -1714,9 +1847,10 @@ namespace SidebarDiagnostics.Windows
                 Bottom = (int)Math.Round(appbarWA.Bottom)
             };
 
-            NativeMethods.SHAppBarMessage(APPBARMSG.ABM_QUERYPOS, ref _data);
-
-            NativeMethods.SHAppBarMessage(APPBARMSG.ABM_SETPOS, ref _data);
+                        try {
+                NativeMethods.SHAppBarMessage(APPBARMSG.ABM_QUERYPOS, ref _data);
+                NativeMethods.SHAppBarMessage(APPBARMSG.ABM_SETPOS, ref _data);
+            } catch { }
 
             IsAppBar = true;
 
@@ -1746,9 +1880,7 @@ namespace SidebarDiagnostics.Windows
 
             HwndSource.RemoveHook(AppBarHook);
 
-            APPBARDATA _data = NewData();
-
-            NativeMethods.SHAppBarMessage(APPBARMSG.ABM_REMOVE, ref _data);
+            try { APPBARDATA _data = NewData(); NativeMethods.SHAppBarMessage(APPBARMSG.ABM_REMOVE, ref _data); } catch { }
 
             IsAppBar = false;
         }

@@ -1,4 +1,4 @@
-<Window x:Class="SidebarDiagnostics.ProgressDialog"
+<Window Icon="Sidebar.ico" x:Class="SidebarDiagnostics.ProgressDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="SideMon"

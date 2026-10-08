@@ -116,10 +116,21 @@ namespace SidebarDiagnostics.Utilities
 
     public static class ErrorLog
     {
-        public static void Write(Exception ex)
+                public static void Write(Exception ex)
         {
-            Write(ex.ToString());
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            sb.AppendLine(ex.ToString());
+            Exception inner = ex.InnerException;
+            while(inner != null)
+            {
+                sb.AppendLine("Inner Exception:");
+                sb.AppendLine(inner.ToString());
+                inner = inner.InnerException;
+            }
+            Write(sb.ToString().TrimEnd());
         }
+
+        private static bool _startupLogged = false;
 
         // plain-text trace line, for pinning down silent/no-op code paths that
         // aren't exceptions (e.g. a prompt that should have appeared but didn't)
@@ -141,6 +152,19 @@ namespace SidebarDiagnostics.Utilities
                         var content = File.ReadAllText(file);
                         File.WriteAllText(file, content.Substring(content.Length / 2));
                     }
+                }
+
+                if (!_startupLogged)
+                {
+                    _startupLogged = true;
+                    try
+                    {
+                        int monitorCount = 0;
+                        try { monitorCount = SidebarDiagnostics.Windows.Monitor.GetMonitors().Count(); } catch {}
+                        string diag = $"[Diagnostic] OS={Environment.OSVersion} .NET={Environment.Version} Culture={System.Globalization.CultureInfo.CurrentCulture.Name} Monitors={monitorCount}";
+                        File.AppendAllText(file, string.Format("[{0:u}] {1}{2}", DateTime.Now, diag, Environment.NewLine));
+                    }
+                    catch { }
                 }
 
                 File.AppendAllText(file, string.Format("[{0:u}] {1}{2}{2}", DateTime.Now, message, Environment.NewLine));
@@ -323,47 +347,103 @@ namespace SidebarDiagnostics.Utilities
     public static class UpdateCheck
     {
         private const string API = "https://api.github.com/repos/konguspng/sidemon/releases/latest";
-
         public const string DOWNLOADPAGE = "https://github.com/konguspng/sidemon/releases/latest";
+        
+        public static bool LastFailed = false;
+        private static DateTime _lastErrorLog = DateTime.MinValue;
+
+        private static readonly HttpClient _client;
+        
+        static UpdateCheck()
+        {
+            var handler = new HttpClientHandler { AllowAutoRedirect = false };
+            _client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
+            Version v = Assembly.GetExecutingAssembly().GetName().Version;
+            _client.DefaultRequestHeaders.UserAgent.ParseAdd("SideMon/" + v.ToString(3));
+        }
+
+        public static string ParseTagFromLocation(string location)
+        {
+            if (string.IsNullOrEmpty(location)) return null;
+            int idx = location.LastIndexOf("/tag/");
+            if (idx >= 0)
+            {
+                return location.Substring(idx + 5);
+            }
+            return null;
+        }
+
+        public static bool IsNewer(string tag, Version current)
+        {
+            if (string.IsNullOrEmpty(tag)) return false;
+            if (!Version.TryParse(tag.TrimStart('v', 'V'), out Version latest)) return false;
+            return new Version(latest.Major, latest.Minor, Math.Max(latest.Build, 0)) > new Version(current.Major, current.Minor, Math.Max(current.Build, 0));
+        }
 
         public static async System.Threading.Tasks.Task<UpdateInfo> CheckAsync()
         {
+            LastFailed = false;
             try
             {
-                using (HttpClient _client = new HttpClient())
+                string tag = null;
+                string url = DOWNLOADPAGE;
+
+                using (var request = new HttpRequestMessage(HttpMethod.Get, API))
+                using (var response = await _client.SendAsync(request).ConfigureAwait(false))
                 {
-                    _client.Timeout = TimeSpan.FromSeconds(15);
-                    _client.DefaultRequestHeaders.UserAgent.ParseAdd("SideMon");
-
-                    string _json = await _client.GetStringAsync(API).ConfigureAwait(false);
-
-                    using (System.Text.Json.JsonDocument _doc = System.Text.Json.JsonDocument.Parse(_json))
+                    if (response.IsSuccessStatusCode)
                     {
-                        string _tag = _doc.RootElement.GetProperty("tag_name").GetString();
-
-                        Version _latest;
-
-                        if (!Version.TryParse(_tag.TrimStart('v', 'V'), out _latest))
+                        string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        using (var doc = System.Text.Json.JsonDocument.Parse(json))
                         {
-                            return null;
-                        }
-
-                        Version _current = Assembly.GetExecutingAssembly().GetName().Version;
-
-                        if (new Version(_latest.Major, _latest.Minor, Math.Max(_latest.Build, 0)) > new Version(_current.Major, _current.Minor, Math.Max(_current.Build, 0)))
-                        {
-                            System.Text.Json.JsonElement _url;
-
-                            return new UpdateInfo()
+                            tag = doc.RootElement.GetProperty("tag_name").GetString();
+                            if (doc.RootElement.TryGetProperty("html_url", out var urlElement))
                             {
-                                Version = _latest.ToString(),
-                                URL = _doc.RootElement.TryGetProperty("html_url", out _url) ? _url.GetString() : DOWNLOADPAGE
-                            };
+                                url = urlElement.GetString();
+                            }
                         }
                     }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.Forbidden || response.StatusCode == (System.Net.HttpStatusCode)429)
+                    {
+                        using (var fallbackRequest = new HttpRequestMessage(HttpMethod.Get, DOWNLOADPAGE))
+                        using (var fallbackResponse = await _client.SendAsync(fallbackRequest).ConfigureAwait(false))
+                        {
+                            if (fallbackResponse.StatusCode == System.Net.HttpStatusCode.Found || fallbackResponse.StatusCode == System.Net.HttpStatusCode.Redirect)
+                            {
+                                tag = ParseTagFromLocation(fallbackResponse.Headers.Location?.ToString());
+                            }
+                            else
+                            {
+                                throw new Exception("Fallback HTTP " + (int)fallbackResponse.StatusCode);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("API HTTP " + (int)response.StatusCode);
+                    }
+                }
+
+                Version current = Assembly.GetExecutingAssembly().GetName().Version;
+                if (IsNewer(tag, current))
+                {
+                    Version.TryParse(tag.TrimStart('v', 'V'), out Version parsedTag);
+                    return new UpdateInfo()
+                    {
+                        Version = parsedTag.ToString(),
+                        URL = url
+                    };
                 }
             }
-            catch { } // no network or rate-limited; check again next launch
+            catch (Exception ex)
+            {
+                LastFailed = true;
+                if (DateTime.Now.Subtract(_lastErrorLog).TotalDays >= 1)
+                {
+                    _lastErrorLog = DateTime.Now;
+                    ErrorLog.Write(new Exception("Update check failed: " + ex.GetType().Name + " - " + ex.Message));
+                }
+            }
 
             return null;
         }

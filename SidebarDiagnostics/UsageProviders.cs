@@ -185,7 +185,31 @@ namespace SidebarDiagnostics.Monitoring.Providers
 
                 var resJson = await res.Content.ReadAsStringAsync();
                 var windows = UsageParsers.ParseClaude(resJson);
-                return UsageResult.Ok(windows);
+
+                string plan = null;
+                var tp = FindTokenPath();
+                if (tp != null)
+                {
+                    try
+                    {
+                        var credJson = System.IO.File.ReadAllText(tp);
+                        using (var doc = System.Text.Json.JsonDocument.Parse(credJson))
+                        {
+                            // the plan lives inside the claudeAiOauth object (a plain label like "pro")
+                            if (doc.RootElement.TryGetProperty("claudeAiOauth", out var oauthProp)
+                                && oauthProp.ValueKind == System.Text.Json.JsonValueKind.Object
+                                && oauthProp.TryGetProperty("subscriptionType", out var subProp)
+                                && subProp.ValueKind == System.Text.Json.JsonValueKind.String)
+                            {
+                                var p = subProp.GetString();
+                                if (!string.IsNullOrEmpty(p)) plan = char.ToUpper(p[0]) + p.Substring(1);
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
+                return UsageResult.Ok(windows, plan);
             }
             catch
             {
@@ -197,7 +221,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
     public class AgyProvider : IUsageProvider
     {
         public string Id => "AIUsage_Agy";
-        public string DisplayName => "agy (Antigravity)";
+        public string DisplayName => "Gemini (agy)";
 
         public string CustomPath { get; set; }
 
@@ -242,7 +266,10 @@ namespace SidebarDiagnostics.Monitoring.Providers
                     CreateNoWindow = true
                 };
 
-                using var process = Process.Start(psi);
+                Process process;
+                try {
+                    process = Process.Start(psi);
+                } catch { return UsageResult.Fail(UsageStatus.Error); }
                 if (process == null) return UsageResult.Fail(UsageStatus.Error);
 
                 string output;
@@ -366,8 +393,10 @@ namespace SidebarDiagnostics.Monitoring.Providers
                 res.EnsureSuccessStatusCode();
 
                 var json = await res.Content.ReadAsStringAsync();
-                var windows = UsageParsers.ParseCodex(json, DateTimeOffset.UtcNow);
-                return UsageResult.Ok(windows);
+                List<UsageWindow> windows;
+                string plan;
+                UsageParsers.ParseCodex(json, DateTimeOffset.UtcNow, out windows, out plan);
+                return UsageResult.Ok(windows, plan);
             }
             catch
             {
@@ -455,7 +484,10 @@ namespace SidebarDiagnostics.Monitoring.Providers
                     CreateNoWindow = true
                 };
 
-                using var proc = Process.Start(psi);
+                Process proc;
+                try {
+                    proc = Process.Start(psi);
+                } catch { return null; }
                 if (proc == null) return null;
 
                 try { proc.StandardInput.Close(); } catch { }

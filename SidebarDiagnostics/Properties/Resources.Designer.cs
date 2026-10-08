@@ -2356,7 +2356,7 @@ namespace SidebarDiagnostics.Framework {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to AI CLI Usage.
+        ///   Looks up a localized string similar to AI Usage.
         /// </summary>
         public static string AIUsage {
             get {
@@ -2659,6 +2659,49 @@ namespace SidebarDiagnostics.Framework {
             get {
                 return ResourceManager.GetString("SettingsUsageEnabledTooltip", resourceCulture);
             }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Shrink automatically to fit the screen.
+        /// </summary>
+        public static string SettingsAutoFitScale {
+            get {
+                return ResourceManager.GetString("SettingsAutoFitScale", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Automatically shrink the UI scale if the enabled monitors and drives require more space than the screen height..
+        /// </summary>
+        public static string SettingsAutoFitScaleTooltip {
+            get {
+                return ResourceManager.GetString("SettingsAutoFitScaleTooltip", resourceCulture);
+            }
+        }
+
+        public static string SettingsUsageShowExtraColumn {
+            get { return ResourceManager.GetString("SettingsUsageShowExtraColumn", resourceCulture); }
+        }
+        public static string SettingsUsageStaleNote {
+            get { return ResourceManager.GetString("SettingsUsageStaleNote", resourceCulture); }
+        }
+        public static string TrayUpdateAvailable {
+            get { return ResourceManager.GetString("TrayUpdateAvailable", resourceCulture); }
+        }
+        public static string SettingsUpdateAvailable {
+            get { return ResourceManager.GetString("SettingsUpdateAvailable", resourceCulture); }
+        }
+        public static string SettingsUpdateDownload {
+            get { return ResourceManager.GetString("SettingsUpdateDownload", resourceCulture); }
+        }
+        public static string SettingsUpdateCheckNow {
+            get { return ResourceManager.GetString("SettingsUpdateCheckNow", resourceCulture); }
+        }
+        public static string UpdateNotAvailable {
+            get { return ResourceManager.GetString("UpdateNotAvailable", resourceCulture); }
+        }
+        public static string UpdateCheckFailed {
+            get { return ResourceManager.GetString("UpdateCheckFailed", resourceCulture); }
         }
     }
 }

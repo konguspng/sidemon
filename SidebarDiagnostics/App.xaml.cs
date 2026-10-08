@@ -58,7 +58,7 @@ namespace SidebarDiagnostics
             // UPDATE CHECK
             if (Framework.Settings.Instance.CheckForUpdates)
             {
-                _ = CheckForUpdatesAsync(false);
+                _ = StartUpdateCheckLoop();
             }
 
             // START APP
@@ -89,6 +89,7 @@ namespace SidebarDiagnostics
 
         protected override void OnExit(ExitEventArgs e)
         {
+            _updateLoopRunning = false;
             TrayIcon.Dispose();
 
             base.OnExit(e);
@@ -296,6 +297,19 @@ namespace SidebarDiagnostics
 
             TrayIcon.ContextMenu.HorizontalOffset *= _primary.InverseScaleX;
             TrayIcon.ContextMenu.VerticalOffset *= _primary.InverseScaleY;
+            
+            // Dynamic update item
+            MenuItem firstItem = TrayIcon.ContextMenu.Items[0] as MenuItem;
+            if (firstItem != null && firstItem.Name == "DynamicUpdateItem") {
+                TrayIcon.ContextMenu.Items.RemoveAt(0);
+            }
+            if (AvailableUpdateVersion != null) {
+                MenuItem newItem = new MenuItem();
+                newItem.Name = "DynamicUpdateItem";
+                newItem.Header = string.Format(Framework.Resources.TrayUpdateAvailable, AvailableUpdateVersion);
+                newItem.Click += TrayIcon_BalloonClicked;
+                TrayIcon.ContextMenu.Items.Insert(0, newItem);
+            }
         }
 
         private void Settings_Click(object sender, EventArgs e)
@@ -388,29 +402,85 @@ namespace SidebarDiagnostics
             _ = CheckForUpdatesAsync(true);
         }
 
-        private static string _updateURL = null;
+        public static string AvailableUpdateVersion = null;
+        public static string AvailableUpdateURL = null;
+        private static bool _updateLoopRunning = false;
+        private static bool _updateCheckInFlight = false;
 
-        private static async System.Threading.Tasks.Task CheckForUpdatesAsync(bool manual)
+        private static async System.Threading.Tasks.Task StartUpdateCheckLoop()
         {
-            UpdateInfo _update = await UpdateCheck.CheckAsync();
-
-            if (_update != null)
+            if (_updateLoopRunning) return;
+            _updateLoopRunning = true;
+            await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(60));
+            while (_updateLoopRunning)
             {
-                _updateURL = _update.URL;
-
-                TrayIcon.ShowBalloonTip(Framework.Resources.AppName, string.Format("Version {0} is available. Click here to download.", _update.Version), BalloonIcon.Info);
+                await CheckForUpdatesAsync(false);
+                await System.Threading.Tasks.Task.Delay(TimeSpan.FromHours(6));
             }
-            else if (manual)
+        }
+
+        public static async System.Threading.Tasks.Task CheckForUpdatesAsync(bool manual)
+        {
+            if (_updateCheckInFlight) return;
+            _updateCheckInFlight = true;
+            try
             {
-                TrayIcon.ShowBalloonTip(Framework.Resources.AppName, "You are running the latest version.", BalloonIcon.Info);
+                UpdateInfo _update = await UpdateCheck.CheckAsync();
+
+                if (_update != null)
+                {
+                    AvailableUpdateVersion = _update.Version;
+                    AvailableUpdateURL = _update.URL;
+                    
+                    if (Current.Windows.OfType<Settings>().FirstOrDefault() is Settings settingsWindow)
+                    {
+                        settingsWindow.Model.HasUpdate = true;
+                        settingsWindow.Model.AvailableUpdateText = string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version);
+                    }
+
+                    TrayIcon.ToolTipText = string.Format("{0} v{1} (update available)", Framework.Resources.AppName, System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
+
+                    if (Framework.Settings.Instance.LastNotifiedUpdate != _update.Version)
+                    {
+                        Framework.Settings.Instance.LastNotifiedUpdate = _update.Version;
+                        Framework.Settings.Instance.Save();
+                        
+                        if (Framework.Settings.Instance.ShowTrayIcon)
+                        {
+                            TrayIcon.ShowBalloonTip(Framework.Resources.AppName, string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version), BalloonIcon.Info);
+                        }
+                        else
+                        {
+                            // no tray icon to click: ask once per version, with a Download button
+                            if (MessageBox.Show(string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version) + "\n\nOpen the download page now?", Framework.Resources.AppName, MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
+                            {
+                                OpenURL(AvailableUpdateURL);
+                            }
+                        }
+                    }
+                    
+                    if (manual)
+                    {
+                        MessageBox.Show(string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version), Framework.Resources.AppName, MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+                else if (manual)
+                {
+                    string msg = UpdateCheck.LastFailed ? Framework.Resources.UpdateCheckFailed : Framework.Resources.UpdateNotAvailable;
+                    MessageBox.Show(msg, Framework.Resources.AppName, MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            finally
+            {
+                _updateCheckInFlight = false;
             }
         }
 
         private static void TrayIcon_BalloonClicked(object sender, RoutedEventArgs e)
         {
-            if (_updateURL != null)
+            if (AvailableUpdateURL != null)
             {
-                OpenURL(_updateURL);
+                OpenURL(AvailableUpdateURL);
             }
         }
 

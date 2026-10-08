@@ -28,8 +28,8 @@ namespace SidebarDiagnostics
 
             DataContext = Model = new SettingsModel(sidebar);
 
-            Owner = sidebar;
-            ShowDialog();
+            ShowInTaskbar = true;
+            Show();
         }
 
         private async Task Save(bool finalize)
@@ -440,6 +440,7 @@ namespace SidebarDiagnostics
             }
 
             var _prompt = new ReloadPromptDialog("PawnIO installed successfully. Reload SideMon now to start showing CPU and GPU sensor data?");
+            _prompt.Owner = this;
             _prompt.ShowDialog();
 
             if (_prompt.ReloadRequested)
@@ -477,7 +478,7 @@ namespace SidebarDiagnostics
                 }
                 catch { }
 
-                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                if (dialog.ShowDialog(new Win32Window(new System.Windows.Interop.WindowInteropHelper(this).Handle)) == System.Windows.Forms.DialogResult.OK)
                 {
                     string hexColor = "#" + dialog.Color.R.ToString("X2") + dialog.Color.G.ToString("X2") + dialog.Color.B.ToString("X2");
 
@@ -489,8 +490,11 @@ namespace SidebarDiagnostics
             }
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+                private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            Topmost = true;
+            Topmost = false;
+            Activate();
             Hotkey.Disable();
 
             // keep the whole dialog (incl. Save/Apply) above the taskbar on any resolution
@@ -513,10 +517,34 @@ namespace SidebarDiagnostics
             Hotkey.Enable();
         }
 
+        
+        private void DownloadUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            if (App.AvailableUpdateURL != null)
+            {
+                App.OpenURL(App.AvailableUpdateURL);
+            }
+        }
+
+        private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            await App.CheckForUpdatesAsync(true);
+        }
+
         public SettingsModel Model { get; private set; }
 
         private Hotkey _hotkey { get; set; }
 
         private ToggleButton _keybinder { get; set; }
+    
+    public class Win32Window : System.Windows.Forms.IWin32Window
+    {
+        public System.IntPtr Handle { get; private set; }
+
+        public Win32Window(System.IntPtr handle)
+        {
+            Handle = handle;
+        }
     }
+}
 }

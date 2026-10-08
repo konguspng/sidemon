@@ -34,12 +34,13 @@ namespace SidebarDiagnostics.Models
             }
             else
             {
-                ScreenIndex = _monitors.Where(s => s.IsPrimary).Select((s, i) => i).Single();
+                ScreenIndex = _monitors.Select((s, i) => new { s, i }).FirstOrDefault(x => x.s.IsPrimary)?.i ?? 0;
             }
 
             CultureItems = Utilities.Culture.GetAll();
             Culture = Framework.Settings.Instance.Culture;
 
+            AutoFitScale = Framework.Settings.Instance.AutoFitScale;
             UIScale = Framework.Settings.Instance.UIScale;
             MaxUIScale = Framework.Settings.Instance.MaxUIScale;
             XOffset = Framework.Settings.Instance.XOffset;
@@ -174,6 +175,7 @@ namespace SidebarDiagnostics.Models
             Framework.Settings.Instance.DockEdge = DockEdge;
             Framework.Settings.Instance.ScreenIndex = ScreenIndex;
             Framework.Settings.Instance.Culture = Culture;
+            Framework.Settings.Instance.AutoFitScale = AutoFitScale;
             Framework.Settings.Instance.UIScale = Math.Round(UIScale, 2);
             Framework.Settings.Instance.XOffset = XOffset;
             Framework.Settings.Instance.YOffset = YOffset;
@@ -459,6 +461,22 @@ namespace SidebarDiagnostics.Models
 
         private double _uiScale { get; set; }
 
+        private bool _autoFitScale;
+
+        public bool AutoFitScale
+        {
+            get
+            {
+                return _autoFitScale;
+            }
+            set
+            {
+                _autoFitScale = value;
+
+                NotifyPropertyChanged("AutoFitScale");
+            }
+        }
+
         public double UIScale
         {
             get
@@ -659,6 +677,22 @@ namespace SidebarDiagnostics.Models
 
                 NotifyPropertyChanged("PawnIODriverInstalling");
             }
+        }
+
+        private bool _hasUpdate { get; set; }
+
+        public bool HasUpdate
+        {
+            get { return _hasUpdate; }
+            set { _hasUpdate = value; NotifyPropertyChanged("HasUpdate"); }
+        }
+
+        private string _availableUpdateText { get; set; }
+
+        public string AvailableUpdateText
+        {
+            get { return _availableUpdateText; }
+            set { _availableUpdateText = value; NotifyPropertyChanged("AvailableUpdateText"); }
         }
 
         private int _sidebarWidth { get; set; }

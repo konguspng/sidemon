@@ -70,9 +70,11 @@ namespace SidebarDiagnostics.Monitoring
         // for failures that were detected locally without any network call
         public TimeSpan? RetryIn { get; set; }
 
-        public static UsageResult Ok(IReadOnlyList<UsageWindow> windows)
+        public string Plan { get; set; }
+
+        public static UsageResult Ok(IReadOnlyList<UsageWindow> windows, string plan = null)
         {
-            return new UsageResult() { Status = UsageStatus.Ok, Windows = windows };
+            return new UsageResult() { Status = UsageStatus.Ok, Windows = windows, Plan = plan };
         }
 
         public static UsageResult Fail(UsageStatus status, TimeSpan? retryAfter = null)
@@ -116,6 +118,7 @@ namespace SidebarDiagnostics.Monitoring
 
         // last good windows; kept across failed polls
         public IReadOnlyList<UsageWindow> Windows { get; set; } = Array.Empty<UsageWindow>();
+        public string Plan { get; set; }
 
         public DateTimeOffset? LastGoodAt { get; set; }
 
@@ -287,6 +290,7 @@ namespace SidebarDiagnostics.Monitoring
                         HasAttempt = true,
                         Status = UsageStatus.Ok,
                         Windows = _result.Windows,
+                        Plan = _result.Plan,
                         LastGoodAt = DateTimeOffset.Now
                     };
                 }
@@ -327,6 +331,7 @@ namespace SidebarDiagnostics.Monitoring
                         HasAttempt = true,
                         Status = _result.Status,
                         Windows = _previous.Windows,
+                        Plan = _previous.Plan,
                         LastGoodAt = _previous.LastGoodAt
                     };
                 }

@@ -1,7 +1,23 @@
 [
   {
+    "Version": "4.3.1",
+    "Changes": [
+      "Fixed: SideMon could be drawn on top of the tray \"^\" (hidden icons) popup; it now always stays beneath taskbar and tray flyouts.",
+      "Crash Prevention: Improved defensive coding to prevent crashes on diverse hardware configurations.",
+      "UI Scale Auto-Fit: Added toggle for 'Shrink automatically to fit the screen'. The slider is no longer hard-capped below 1.00 when auto-fit is triggered.",
+      "Settings Window Improvements: Settings window is now properly titled, displays the app's icon, and appears in the taskbar.",
+      "Update Notifications: Improved update checks with a persistent tray menu item and Settings window notice.",
+      "AI Usage Improvements: Added a toggle to hide Claude/GPT bars for the Gemini (agy) provider. Renamed to 'AI Usage'.",
+      "AI Usage Accuracy: Stale usage values are now dimmed and show a 'last known' age. Rows with past resets show 'resets now - refreshing' instead of false percentages. Added plan names (e.g. 'Pro') for Claude Code and Codex.",
+      "Update checks now run 1 minute after launch and every 6 hours."
+    ]
+  },
+  {
     "Version": "4.3.0",
     "Changes": [
+      "Crash Prevention: Improved defensive coding to prevent crashes on diverse hardware configurations.",
+      "UI Scale Auto-Fit: Added toggle for 'Shrink automatically to fit the screen'. The slider is no longer hard-capped below 1.00 when auto-fit is triggered.",
+      "Settings Window Improvements: Settings window is now properly titled, displays the app's icon, and appears in the taskbar.",
       "Fixed Z-order bugs (NEVER overlay other apps unless 'Always On Top' is checked; stay visible on desktop; do not steal focus).",
       "Added global exception handling and crash logging.",
       "Added single-instance guard.",
