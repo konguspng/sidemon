@@ -1,5 +1,12 @@
 [
   {
+    "Version": "4.3.2",
+    "Changes": [
+      "Fixed a crash/restart caused by a NullReferenceException when sensor updates were delivered to the UI after the sidebar had reloaded.",
+      "Stopped logging a missing startup task as an error."
+    ]
+  },
+  {
     "Version": "4.3.1",
     "Changes": [
       "Fixed: SideMon could be drawn on top of the tray \"^\" (hidden icons) popup; it now always stays beneath taskbar and tray flyouts.",

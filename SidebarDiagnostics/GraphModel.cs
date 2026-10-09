@@ -130,11 +130,11 @@ namespace SidebarDiagnostics.Models
             {
                 if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
                 {
-                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => PropertyChanged(this, new PropertyChangedEventArgs(propertyName))));
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => { var _h = PropertyChanged; if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName)); }));
                 }
                 else
                 {
-                    PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
                 }
             }
         }

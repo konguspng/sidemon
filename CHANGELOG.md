@@ -2,6 +2,11 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.3.2 (released 2026-10-09)
+
+- **Fixed: crash / restarts caused by a `NullReferenceException` in property-change notifications** (`BaseMetric.NotifyPropertyChanged`, reported in a user's error.log in bursts of several per second, followed by SideMon restarting). The 4.3.0 change that moves sensor updates onto the UI thread re-read the `PropertyChanged` event inside the deferred callback; when the sidebar was reloaded or rows were rebuilt in the meantime the event was already unsubscribed and the callback threw. The handler is now captured before it is queued, and every other property-change notification in the app (metrics, monitors, panels, settings, graph, sidebar and changelog models) now reads the event once, so none of them can hit this race. Reproduced with a test that raised 300 updates from a worker thread and unsubscribed before the UI thread ran: 900 unhandled exceptions before, 0 after.
+- Fixed: a missing Task Scheduler startup task (a normal state) was written to error.log as an error on every launch; it is no longer logged unless the check really fails.
+
 ## 4.3.1 (released 2026-10-09)
 - **Fixed: SideMon could cover the tray "^" (hidden icons) popup.** In the desktop-widget lift (Win+D / bare desktop) and in Always On Top mode SideMon placed itself above ALL topmost windows, which includes the taskbar and its overflow flyout, so the popup opened underneath the sidebar. It now inserts itself directly beneath the lowest topmost shell window (taskbar, tray overflow, Start/Search, jump lists, tray menus) or, for the bare-desktop lift, only at the top of the normal window band, so it can never be above a shell flyout. Shell flyouts taking the foreground no longer trigger any z-order change. Checked by opening the real tray overflow popup and reading the actual window stack.
 - **Crash Prevention**: Improved defensive coding across startup paths, monitor detection, performance counters, and settings loading to prevent crashes on diverse hardware configurations. Unhandled exceptions are now safely logged.

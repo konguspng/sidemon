@@ -519,6 +519,16 @@ namespace SidebarDiagnostics.Utilities
                         return _output;
                     }
 
+                    // "task does not exist" is the normal answer of a /query or /delete when
+                    // the startup task is simply not there: not an error worth logging
+                    bool _missing = (args.StartsWith("/query", StringComparison.Ordinal) || args.StartsWith("/delete", StringComparison.Ordinal))
+                        && _error != null && _error.IndexOf("cannot find", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                    if (_missing)
+                    {
+                        return null;
+                    }
+
                     // surface the real reason instead of failing silently
                     ErrorLog.Write(new Exception(string.Format("schtasks {0} failed (exit {1}): {2}", args, _process.ExitCode, _error)));
 
