@@ -604,6 +604,24 @@ namespace SidebarDiagnostics.Framework
 
         private string _accentColor { get; set; } = "#22D3EE";
 
+        // the slim load bars are independent of card panels; until the user chooses,
+        // they follow the card setting so existing layouts do not change
+        private bool? _showAccentBars { get; set; }
+
+        public bool ShowAccentBars
+        {
+            get
+            {
+                return _showAccentBars ?? _useCardStyle;
+            }
+            set
+            {
+                _showAccentBars = value;
+
+                NotifyPropertyChanged("ShowAccentBars");
+            }
+        }
+
         public string AccentColor
         {
             get

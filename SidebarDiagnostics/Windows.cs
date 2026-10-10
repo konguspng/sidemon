@@ -180,6 +180,8 @@ namespace SidebarDiagnostics.Windows
     {
         private const uint WINEVENT_OUTOFCONTEXT = 0u;
         private const uint EVENT_SYSTEM_FOREGROUND = 3u;
+        private const uint EVENT_SYSTEM_MINIMIZESTART = 0x0016u;
+        private const uint EVENT_SYSTEM_MINIMIZEEND = 0x0017u;
 
         private const string WORKERW = "WorkerW";
         private const string PROGMAN = "Progman";
@@ -196,8 +198,17 @@ namespace SidebarDiagnostics.Windows
 
             _delegate = new WinEventDelegate(WinEventHook);
             _hookIntPtr = NativeMethods.SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, _delegate, 0, 0, WINEVENT_OUTOFCONTEXT);
+            // "Show desktop" / Win+D / Win+M minimize every window; the shell raises the desktop
+            // window only AFTER that, so react to minimizes too
+            _minimizeHookIntPtr = NativeMethods.SetWinEventHook(EVENT_SYSTEM_MINIMIZESTART, EVENT_SYSTEM_MINIMIZEEND, IntPtr.Zero, _delegate, 0, 0, WINEVENT_OUTOFCONTEXT);
             _sidebar = sidebar;
             _sidebarHwnd = new WindowInteropHelper(sidebar).Handle;
+
+            // Safety net: with no app window open, the desktop must never sit above SideMon,
+            // however the shell got it there (animation timing, peek, explorer restart...)
+            _watchdog = new System.Windows.Threading.DispatcherTimer() { Interval = TimeSpan.FromMilliseconds(1500) };
+            _watchdog.Tick += (s, e) => WatchdogTick();
+            _watchdog.Start();
         }
 
         public static void RemoveHook()
@@ -209,7 +220,19 @@ namespace SidebarDiagnostics.Windows
 
             IsHooked = false;
 
+            if (_watchdog != null)
+            {
+                _watchdog.Stop();
+                _watchdog = null;
+            }
+
             NativeMethods.UnhookWinEvent(_hookIntPtr.Value);
+
+            if (_minimizeHookIntPtr.HasValue)
+            {
+                NativeMethods.UnhookWinEvent(_minimizeHookIntPtr.Value);
+                _minimizeHookIntPtr = null;
+            }
 
             _delegate = null;
             _hookIntPtr = null;
@@ -228,7 +251,7 @@ namespace SidebarDiagnostics.Windows
 
         private static void WinEventHook(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
         {
-            if (eventType == EVENT_SYSTEM_FOREGROUND)
+            if (eventType == EVENT_SYSTEM_FOREGROUND || eventType == EVENT_SYSTEM_MINIMIZESTART || eventType == EVENT_SYSTEM_MINIMIZEEND)
             {
                 if (_sidebar == null)
                 {
@@ -261,18 +284,107 @@ namespace SidebarDiagnostics.Windows
             return false;
         }
 
+        // Win+D / "show desktop" is a sequence, not an instant: windows minimize, then the shell
+        // raises the desktop window some hundreds of ms later (longer on a busy machine). One
+        // check at 0 and 250 ms lost that race, leaving SideMon hidden BEHIND the desktop. Check
+        // repeatedly over the next few seconds; a newer trigger supersedes an older burst.
+        private static readonly int[] BURST_MS = { 0, 120, 300, 600, 1000, 1800, 3000 };
+
+        private static int _burstGeneration = 0;
+
         private static async System.Threading.Tasks.Task LiftIfDesktopShown(bool isDesktop)
         {
-            // evaluate immediately to avoid a visible flicker, then once more after
-            // the minimize-all animation has settled window states
-            EvaluateDesktop(isDesktop);
+            int _generation = ++_burstGeneration;
+            int _elapsed = 0;
 
-            await System.Threading.Tasks.Task.Delay(250);
-
-            if (IsHooked)
+            foreach (int _at in BURST_MS)
             {
+                if (_at > _elapsed)
+                {
+                    await System.Threading.Tasks.Task.Delay(_at - _elapsed);
+                    _elapsed = _at;
+                }
+
+                if (!IsHooked || _generation != _burstGeneration)
+                {
+                    return;
+                }
+
                 EvaluateDesktop(isDesktop);
             }
+        }
+
+        private static void WatchdogTick()
+        {
+            try
+            {
+                if (_sidebar == null || !_sidebarHwnd.HasValue)
+                {
+                    return;
+                }
+
+                if (Framework.Settings.Instance.AlwaysTop && !Framework.Settings.Instance.GlassBackground)
+                {
+                    return;
+                }
+
+                if (IsDesktopAboveWindow(_sidebarHwnd.Value) && !AnyNormalWindowVisible())
+                {
+                    _sidebar.SetTop(false);
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        // the nearest desktop window (Progman, or the visible WorkerW hosting the icons) above hwnd
+        public static IntPtr FindDesktopAbove(IntPtr hwnd)
+        {
+            int _guard = 0;
+
+            for (IntPtr _w = DesktopNative.GetWindow(hwnd, 3 /* GW_HWNDPREV */); _w != IntPtr.Zero && _guard < 4000; _w = DesktopNative.GetWindow(_w, 3), _guard++)
+            {
+                string _class = GetWindowClass(_w);
+
+                if (string.Equals(_class, PROGMAN, StringComparison.Ordinal) ||
+                    (string.Equals(_class, WORKERW, StringComparison.Ordinal) && DesktopNative.IsWindowVisible(_w)))
+                {
+                    return _w;
+                }
+            }
+
+            return IntPtr.Zero;
+        }
+
+        public static IntPtr GetWindowAbove(IntPtr hwnd)
+        {
+            return DesktopNative.GetWindow(hwnd, 3 /* GW_HWNDPREV */);
+        }
+
+        public static bool IsTopMostWindow(IntPtr hwnd)
+        {
+            return (DesktopNative.GetWindowLongPtr(hwnd, -20).ToInt64() & 8L) != 0L; // WS_EX_TOPMOST
+        }
+
+        // true when the desktop window (Progman, or the visible WorkerW hosting the icons) is
+        // above the given window in the z-order
+        public static bool IsDesktopAboveWindow(IntPtr hwnd)
+        {
+            int _guard = 0;
+
+            for (IntPtr _w = DesktopNative.GetWindow(hwnd, 3 /* GW_HWNDPREV */); _w != IntPtr.Zero && _guard < 4000; _w = DesktopNative.GetWindow(_w, 3), _guard++)
+            {
+                string _class = GetWindowClass(_w);
+
+                if (string.Equals(_class, PROGMAN, StringComparison.Ordinal) ||
+                    (string.Equals(_class, WORKERW, StringComparison.Ordinal) && DesktopNative.IsWindowVisible(_w)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void EvaluateDesktop(bool isDesktop)
@@ -484,6 +596,9 @@ namespace SidebarDiagnostics.Windows
             [DllImport("user32.dll")]
             public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
+            [DllImport("user32.dll")]
+            public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+
             [DllImport("dwmapi.dll")]
             public static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out int pvAttribute, int cbAttribute);
         }
@@ -497,6 +612,10 @@ namespace SidebarDiagnostics.Windows
         private static Sidebar _sidebar { get; set; }
 
         private static IntPtr? _sidebarHwnd { get; set; }
+
+        private static IntPtr? _minimizeHookIntPtr { get; set; }
+
+        private static System.Windows.Threading.DispatcherTimer _watchdog { get; set; }
     }
 
     public static class Devices
@@ -1161,12 +1280,6 @@ namespace SidebarDiagnostics.Windows
 
             double _windowWidth = Framework.Settings.Instance.SidebarWidth * _uiScale;
 
-            // in glass mode the blur area may extend beyond the sidebar content
-            if (Framework.Settings.Instance.GlassBackground)
-            {
-                _windowWidth = Math.Max(_windowWidth, Framework.Settings.Instance.BlurWidth * _uiScale);
-            }
-
             windowWA.SetWidth(edge, _windowWidth);
 
             int _offsetX = Framework.Settings.Instance.XOffset;
@@ -1640,6 +1753,26 @@ namespace SidebarDiagnostics.Windows
             // which is always below the taskbar and every tray flyout
             SetPos(HWND_FLAG.HWND_NOTOPMOST, activate);
             SetPos(HWND_FLAG.HWND_TOP, activate);
+
+            // While the desktop is shown (Win+D) the shell keeps the desktop window at the very
+            // top of the normal band and SetWindowPos(HWND_TOP) reports success without moving
+            // us above it. Insert directly above the desktop window instead.
+            IntPtr _self = new WindowInteropHelper(this).Handle;
+            IntPtr _desktop = ShowDesktop.FindDesktopAbove(_self);
+
+            if (_desktop != IntPtr.Zero)
+            {
+                IntPtr _after = ShowDesktop.GetWindowAbove(_desktop);
+
+                if (_after == IntPtr.Zero)
+                {
+                    SetPos(HWND_FLAG.HWND_TOP, activate);
+                }
+                else if (!ShowDesktop.IsTopMostWindow(_after))
+                {
+                    SetPos(_after, activate);
+                }
+            }
         }
 
         private void SetPos(IntPtr hwnd_after, bool activate)
@@ -1694,36 +1827,30 @@ namespace SidebarDiagnostics.Windows
             public const int TABBEDWINDOW = 4;
         }
 
-        // Real DWM acrylic backdrop (Windows 11 22H2+). The legacy accent-policy
-        // acrylic renders black on layered windows since 24H2, so glass mode instead
-        // recreates the sidebar non-layered and lets the WPF background act as tint.
-        // Legacy composition blur-behind effect (ACCENT_ENABLE_BLURBEHIND = 3).
-        // This runs on transparent layered windows (AllowsTransparency = true) and
-        // honors the alpha channel, enabling a feathered blur that fades at the window edges.
-        public void SetGlass()
+        // Real Windows acrylic (ACCENT_ENABLE_ACRYLICBLURBEHIND = 4) through the compositor,
+        // the same live backdrop blur the taskbar and Start menu use. Verified on a layered
+        // (AllowsTransparency) window: it blurs what is truly behind, including while the
+        // window is inactive. Needs Windows 10 1803+ (build 17134).
+        public static bool GlassSupported
+        {
+            get
+            {
+                return Environment.OSVersion.Version.Build >= 17134;
+            }
+        }
+
+        public void SetGlass(System.Windows.Media.Color tint, double opacity)
         {
             IntPtr _hwnd = new WindowInteropHelper(this).Handle;
 
+            byte _alpha = (byte)Math.Max(1d, Math.Min(255d, Math.Round(opacity * 255d)));
+
             var accent = new AccentPolicy();
-            accent.AccentState = 3; // ACCENT_ENABLE_BLURBEHIND
+            accent.AccentState = 4; // ACCENT_ENABLE_ACRYLICBLURBEHIND
+            accent.AccentFlags = 0; // NOT 2: the border flag forces an opaque black result and makes the alpha channel (tint strength) ignored
+            accent.GradientColor = (_alpha << 24) | (tint.B << 16) | (tint.G << 8) | tint.R; // AABBGGRR
 
-            var accentStructSize = Marshal.SizeOf(accent);
-            var accentPtr = Marshal.AllocHGlobal(accentStructSize);
-            try
-            {
-                Marshal.StructureToPtr(accent, accentPtr, false);
-
-                var data = new WindowCompositionAttributeData();
-                data.Attribute = 19; // WCA_ACCENT_POLICY
-                data.SizeOfData = accentStructSize;
-                data.Data = accentPtr;
-
-                try { NativeMethods.SetWindowCompositionAttribute(_hwnd, ref data); } catch { }
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(accentPtr);
-            }
+            ApplyAccent(_hwnd, accent);
         }
 
         public void ClearGlass()
@@ -1733,6 +1860,11 @@ namespace SidebarDiagnostics.Windows
             var accent = new AccentPolicy();
             accent.AccentState = 0; // ACCENT_DISABLED
 
+            ApplyAccent(_hwnd, accent);
+        }
+
+        private static void ApplyAccent(IntPtr hwnd, AccentPolicy accent)
+        {
             var accentStructSize = Marshal.SizeOf(accent);
             var accentPtr = Marshal.AllocHGlobal(accentStructSize);
             try
@@ -1744,13 +1876,14 @@ namespace SidebarDiagnostics.Windows
                 data.SizeOfData = accentStructSize;
                 data.Data = accentPtr;
 
-                try { NativeMethods.SetWindowCompositionAttribute(_hwnd, ref data); } catch { }
+                try { NativeMethods.SetWindowCompositionAttribute(hwnd, ref data); } catch { }
             }
             finally
             {
                 Marshal.FreeHGlobal(accentPtr);
             }
         }
+
 
         public void DisableAeroPeek()
         {

@@ -2,6 +2,13 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.4.0 (released 2026-10-10)
+
+- **Real desktop blur.** The old "Desktop Blur (Glass)" was a fake: it screenshotted the desktop once and blurred the picture, so it went stale whenever the wallpaper or windows changed. It is replaced by real Windows acrylic, the same live compositor blur the taskbar and Start menu use, tinted by your Background color and Opacity. Verified on Windows 11 (build 26300). Needs Windows 10 1803 or newer; older systems fall back to the solid tint. The Blur Strength, Blur Width and Edge Fade controls are gone because the real effect has no equivalent.
+- **Colored Bars are independent of Card Panels.** Settings > Customize > Panels has a new "Colored Bars" checkbox, so the slim load bars can be shown with or without cards. Until you change it, it follows your current Card Panels setting. Accent Color stays editable when cards are off.
+- **Fixed: SideMon disappearing after Win+D / "Show desktop".** After the shell minimized everything it raised the desktop window above SideMon, and the usual "move to top" call reports success without moving past it. SideMon now reacts to minimize events, re-checks for a few seconds, runs a 1.5 s watchdog, and inserts itself directly above the desktop window. Tested with three consecutive Win+D cycles: the desktop never ended up above the sidebar.
+- Known limits: the Settings window layout changes were checked in code but not rendered on screen, and the glass was tested on one PC (Windows 11 26300).
+
 ## 4.3.2 (released 2026-10-09)
 
 - **Fixed: crash / restarts caused by a `NullReferenceException` in property-change notifications** (`BaseMetric.NotifyPropertyChanged`, reported in a user's error.log in bursts of several per second, followed by SideMon restarting). The 4.3.0 change that moves sensor updates onto the UI thread re-read the `PropertyChanged` event inside the deferred callback; when the sidebar was reloaded or rows were rebuilt in the meantime the event was already unsubscribed and the callback threw. The handler is now captured before it is queued, and every other property-change notification in the app (metrics, monitors, panels, settings, graph, sidebar and changelog models) now reads the event once, so none of them can hit this race. Reproduced with a test that raised 300 updates from a worker thread and unsubscribed before the UI thread ran: 900 unhandled exceptions before, 0 after.

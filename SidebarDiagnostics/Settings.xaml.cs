@@ -34,12 +34,11 @@ namespace SidebarDiagnostics
 
         private async Task Save(bool finalize)
         {
-            // any save involving glass must recreate the sidebar: the in-place reset
-            // re-captures the desktop while this dialog may overlap the sidebar, which
-            // pollutes the captured background; card toggles restyle enough to need it too
+            // glass and card/bar toggles restyle the whole window, so recreate the sidebar
             bool _reloadNeeded =
                 Model.GlassBackground != Framework.Settings.Instance.GlassBackground ||
                 Model.UseCardStyle != Framework.Settings.Instance.UseCardStyle ||
+                Model.ShowAccentBars != Framework.Settings.Instance.ShowAccentBars ||
                 Model.GlassBackground;
 
             Model.Save();

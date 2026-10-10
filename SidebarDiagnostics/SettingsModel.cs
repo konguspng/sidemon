@@ -105,6 +105,7 @@ namespace SidebarDiagnostics.Models
             FontSetting = Framework.Settings.Instance.FontSetting;
 
             UseCardStyle = Framework.Settings.Instance.UseCardStyle;
+            ShowAccentBars = Framework.Settings.Instance.ShowAccentBars;
             AccentColor = Framework.Settings.Instance.AccentColor;
 
             FontFamilyItems = SidebarFonts.All;
@@ -203,6 +204,7 @@ namespace SidebarDiagnostics.Models
             Framework.Settings.Instance.FontSetting = FontSetting;
             Framework.Settings.Instance.FontFamilyName = FontOption != null ? FontOption.Name : SidebarFonts.DefaultName;
             Framework.Settings.Instance.UseCardStyle = UseCardStyle;
+            Framework.Settings.Instance.ShowAccentBars = ShowAccentBars;
             Framework.Settings.Instance.AccentColor = AccentColor;
             Framework.Settings.Instance.FontColor = FontColor;
             Framework.Settings.Instance.AlertFontColor = AlertFontColor;
@@ -1126,6 +1128,22 @@ namespace SidebarDiagnostics.Models
                 _useCardStyle = value;
 
                 NotifyPropertyChanged("UseCardStyle");
+            }
+        }
+
+        private bool _showAccentBars { get; set; }
+
+        public bool ShowAccentBars
+        {
+            get
+            {
+                return _showAccentBars;
+            }
+            set
+            {
+                _showAccentBars = value;
+
+                NotifyPropertyChanged("ShowAccentBars");
             }
         }
 

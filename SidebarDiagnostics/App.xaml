@@ -249,7 +249,7 @@
                 </Style.Triggers>
             </Style>
 
-            <!-- slim accent bar under percentage metrics; card style only -->
+            <!-- slim accent bar under percentage metrics; independent of card panels -->
             <Style x:Key="AccentBar" TargetType="{x:Type ProgressBar}">
                 <Setter Property="Minimum" Value="0" />
                 <Setter Property="Maximum" Value="100" />
@@ -276,14 +276,14 @@
                 <Style.Triggers>
                     <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
-                            <Condition Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=UseCardStyle, Mode=OneWay}" Value="True" />
+                            <Condition Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=ShowAccentBars, Mode=OneWay}" Value="True" />
                             <Condition Binding="{Binding Path=Append, Mode=OneWay}" Value=" %" />
                         </MultiDataTrigger.Conditions>
                         <Setter Property="Visibility" Value="Visible" />
                     </MultiDataTrigger>
                     <MultiDataTrigger>
                         <MultiDataTrigger.Conditions>
-                            <Condition Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=UseCardStyle, Mode=OneWay}" Value="True" />
+                            <Condition Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=ShowAccentBars, Mode=OneWay}" Value="True" />
                             <Condition Binding="{Binding Path=Append, Mode=OneWay}" Value="%" />
                         </MultiDataTrigger.Conditions>
                         <Setter Property="Visibility" Value="Visible" />

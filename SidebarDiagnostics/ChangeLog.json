@@ -1,5 +1,13 @@
 [
   {
+    "Version": "4.4.0",
+    "Changes": [
+      "Desktop Blur is now real Windows acrylic (live, like the taskbar) instead of a blurred screenshot. Blur Strength/Width/Edge Fade settings removed.",
+      "New 'Colored Bars' option, independent of Card Panels.",
+      "Fixed the sidebar disappearing behind the desktop after Win+D / Show desktop."
+    ]
+  },
+  {
     "Version": "4.3.2",
     "Changes": [
       "Fixed a crash/restart caused by a NullReferenceException when sensor updates were delivered to the UI after the sidebar had reloaded.",

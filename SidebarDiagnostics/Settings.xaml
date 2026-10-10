@@ -290,16 +290,12 @@
                                 <RowDefinition Height="32px"></RowDefinition>
                                 <RowDefinition Height="38px"></RowDefinition>
                                 <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
                             </Grid.RowDefinitions>
 
                             <Label Grid.Column="0" Grid.Row="0" Content="Style" />
                             <RadioButton Grid.Column="1" Grid.Row="0" GroupName="BGMode" Content="Solid Color" VerticalAlignment="Center" IsChecked="{Binding Path=BGModeSolid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="One flat background color of your choice." />
                             <RadioButton Grid.Column="1" Grid.Row="1" GroupName="BGMode" Content="Windows Accent Color" VerticalAlignment="Center" IsChecked="{Binding Path=BGModeAccent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Follows the accent color from your Windows personalization settings." />
-                            <RadioButton Grid.Column="1" Grid.Row="2" GroupName="BGMode" Content="Desktop Blur (Glass)" VerticalAlignment="Center" IsChecked="{Binding Path=BGModeBlur, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Frosted glass: the desktop behind the sidebar is blurred, tinted with the color below." />
+                            <RadioButton Grid.Column="1" Grid.Row="2" GroupName="BGMode" Content="Desktop Blur (Acrylic)" VerticalAlignment="Center" IsChecked="{Binding Path=BGModeBlur, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Real Windows acrylic, the same live blur as the taskbar and Start menu: the desktop behind the sidebar is blurred in real time and tinted with the color below. Needs Windows 10 (1803) or newer." />
 
                             <Label Grid.Column="0" Grid.Row="3" Content="Color" IsEnabled="{Binding Path=BGModeAccent, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" />
                             <DockPanel Grid.Column="1" Grid.Row="3" IsEnabled="{Binding Path=BGModeAccent, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" LastChildFill="True">
@@ -313,27 +309,7 @@
                                 <Slider x:Name="BGOpacitySlider" Value="{Binding Path=BGOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.01" Maximum="1.0" LargeChange="0.1" TickFrequency="0.01" ToolTip="How solid the background is. Lower values are more see-through; in Desktop Blur mode, lower shows more of the blur." />
                             </DockPanel>
 
-                            <Label Grid.Column="0" Grid.Row="5" Content="Blur Strength" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}" />
-                            <DockPanel Grid.Column="1" Grid.Row="5" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}">
-                                <TextBox Text="{Binding ElementName=BlurStrengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource PercentConverter}}" IsEnabled="False" Width="40" />
-                                <Slider x:Name="BlurStrengthSlider" Value="{Binding Path=BlurStrength, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="1" Maximum="100" TickFrequency="1" LargeChange="10" ToolTip="How strongly the desktop behind the sidebar is blurred." />
-                            </DockPanel>
-
-                            <Label Grid.Column="0" Grid.Row="6" Content="Blur Width" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}" />
-                            <DockPanel Grid.Column="1" Grid.Row="6" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}">
-                                <TextBox Text="{Binding ElementName=BlurWidthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumberBox_PreviewTextInput" />
-                                <Slider x:Name="BlurWidthSlider" Value="{Binding Path=BlurWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="100" Maximum="600" TickFrequency="10" LargeChange="50" ToolTip="Width of the glass area in pixels. Wider than the sidebar makes the blur spill out over the desktop; combine with Edge Fade so it dissolves smoothly." />
-                            </DockPanel>
-
-                            <Label Grid.Column="0" Grid.Row="7" Content="Edge Fade" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}" />
-                            <ComboBox Grid.Column="1" Grid.Row="7" ItemsSource="{Binding Path=FeatherDirectionItems, Mode=OneWay}" SelectedValue="{Binding Path=FeatherDirection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}" ToolTip="Which side the background fades out on. Auto fades the side facing the desktop." />
-
-                            <Label Grid.Column="0" Grid.Row="8" Content="Edge Fade Size" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}" />
-                            <DockPanel Grid.Column="1" Grid.Row="8" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}">
-                                <TextBox Text="{Binding ElementName=FeatherSizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource PercentConverter}}" IsEnabled="False" Width="40" />
-                                <Slider x:Name="FeatherSizeSlider" Value="{Binding Path=FeatherSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0" Maximum="50" TickFrequency="1" LargeChange="5" ToolTip="How much of the sidebar width the fade covers." />
-                            </DockPanel>
-                        </Grid>
+                            </Grid>
 
                         <TextBlock Text="Panels" FontWeight="SemiBold" FontSize="13" Foreground="#666" Margin="2,14,0,2" />
                         <Grid Style="{StaticResource SettingGrid}">
@@ -344,15 +320,19 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="38px"></RowDefinition>
                                 <RowDefinition Height="38px"></RowDefinition>
+                                <RowDefinition Height="38px"></RowDefinition>
                             </Grid.RowDefinitions>
 
                             <Label Grid.Column="0" Grid.Row="0" Content="Card Panels" />
-                            <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding Path=UseCardStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show each monitor group as a rounded card with accent load bars, similar to gaming dashboards. The background settings above still show through between and behind the cards." />
+                            <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding Path=UseCardStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show each monitor group as a rounded card, similar to gaming dashboards. The background settings above still show through between and behind the cards." />
 
-                            <Label Grid.Column="0" Grid.Row="1" Content="Accent Color" IsEnabled="{Binding Path=UseCardStyle, Mode=OneWay}" />
-                            <DockPanel Grid.Column="1" Grid.Row="1" LastChildFill="True" IsEnabled="{Binding Path=UseCardStyle, Mode=OneWay}">
+                            <Label Grid.Column="0" Grid.Row="1" Content="Colored Bars" />
+                            <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding Path=ShowAccentBars, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show a slim colored load bar under percentage readings. Works with or without card panels." />
+
+<Label Grid.Column="0" Grid.Row="2" Content="Accent Color" />
+                            <DockPanel Grid.Column="1" Grid.Row="2" LastChildFill="True">
                                 <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=AccentColor, Mode=OneWay}" Tag="AccentColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select accent color from color picker." />
-                                <TextBox Width="Auto" Text="{Binding Path=AccentColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="Accent color used for card icons and load bars." />
+                                <TextBox Width="Auto" Text="{Binding Path=AccentColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="Accent color used for load bars (and card icons when card panels are on)." />
                             </DockPanel>
                         </Grid>
 

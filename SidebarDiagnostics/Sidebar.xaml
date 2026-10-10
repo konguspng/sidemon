@@ -18,20 +18,9 @@
         Style="{StaticResource SidebarWindow}"
         Opacity="0">
     <Grid x:Name="LayoutRoot">
-        <!-- Background layer: tint + pre-blurred desktop capture + fade mask.
-             The blur is baked into the bitmap once at capture time and the whole
-             layer is cached to a GPU texture, so it costs nothing per frame. -->
-        <Border x:Name="BackgroundBorder" CacheMode="BitmapCache">
-            <Grid>
-                <!-- Clip the blur halo away -->
-                <Grid ClipToBounds="True">
-                    <!-- Captured desktop background image, blurred once at capture -->
-                    <Image x:Name="CapturedBackgroundImage" Stretch="Fill" Margin="0" />
-                </Grid>
-                <!-- Tint overlay layer -->
-                <Border x:Name="TintOverlay" />
-            </Grid>
-        </Border>
+        <!-- Background layer: solid tint, or (glass mode) an invisible fill over the real
+             Windows acrylic blur that the window itself provides -->
+        <Border x:Name="BackgroundBorder" />
 
         <Ellipse IsEnabled="{Binding Path=Ready, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}">
             <Ellipse.RenderTransform>

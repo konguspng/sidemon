@@ -68,9 +68,6 @@ namespace SidebarDiagnostics
 
             await BindPosition();
 
-            await CaptureScreenBehind();
-            ApplyGlassStyling();
-
             Ready = true;
         }
 
@@ -201,21 +198,9 @@ namespace SidebarDiagnostics
 
             FontFamily = Framework.SidebarFonts.GetFamily(Framework.Settings.Instance.FontFamilyName);
 
-            // when the glass area is wider than the sidebar, keep the content pinned
-            // to the docked edge at the configured sidebar width
-            if (Framework.Settings.Instance.GlassBackground && Framework.Settings.Instance.BlurWidth > Framework.Settings.Instance.SidebarWidth)
-            {
-                MainContent.Width = Framework.Settings.Instance.SidebarWidth;
-                MainContent.HorizontalAlignment = Framework.Settings.Instance.DockEdge == DockEdge.Right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
-            }
-            else
-            {
-                MainContent.Width = double.NaN;
-                MainContent.HorizontalAlignment = HorizontalAlignment.Stretch;
-            }
+            MainContent.Width = double.NaN;
+            MainContent.HorizontalAlignment = HorizontalAlignment.Stretch;
 
-            ClearGlass();
-            await CaptureScreenBehind();
             ApplyGlassStyling();
             this.Opacity = 1.0;
 
@@ -532,96 +517,6 @@ namespace SidebarDiagnostics
             public static extern bool GetWindowRect(IntPtr hWnd, out WINRECT lpRect);
         }
 
-        private async Task CaptureScreenBehind()
-        {
-            if (CapturedBackgroundImage == null || !Framework.Settings.Instance.GlassBackground) return;
-
-            // Get window position
-            var left = this.Left;
-            var top = this.Top;
-            var width = this.Width;
-            var height = this.Height;
-
-            if (width <= 0 || height <= 0) return;
-
-            await Task.CompletedTask;
-
-            try
-            {
-                // exact window rectangle in physical virtual-screen pixels
-                int x, y, w, h;
-                IntPtr _hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
-                NativeMethods.WINRECT _rect;
-
-                if (_hwnd != IntPtr.Zero && NativeMethods.GetWindowRect(_hwnd, out _rect) && _rect.Right > _rect.Left && _rect.Bottom > _rect.Top)
-                {
-                    x = _rect.Left;
-                    y = _rect.Top;
-                    w = _rect.Right - _rect.Left;
-                    h = _rect.Bottom - _rect.Top;
-                }
-                else
-                {
-                    double _scaleX = 1d, _scaleY = 1d;
-                    PresentationSource _source = PresentationSource.FromVisual(this);
-
-                    if (_source?.CompositionTarget != null)
-                    {
-                        _scaleX = _source.CompositionTarget.TransformToDevice.M11;
-                        _scaleY = _source.CompositionTarget.TransformToDevice.M22;
-                    }
-
-                    x = (int)Math.Round(left * _scaleX);
-                    y = (int)Math.Round(top * _scaleY);
-                    w = (int)Math.Round(width * _scaleX);
-                    h = (int)Math.Round(height * _scaleY);
-                }
-
-                // pad the rendered region by the blur radius so the gaussian never
-                // samples past the edge, then crop the padding back off afterwards;
-                // this keeps the visible pixels perfectly aligned with the desktop
-                int _pad = (int)Math.Ceiling(Math.Max(0d, Framework.Settings.Instance.BlurStrength)) + 2;
-
-                // render the wallpaper file the way Windows lays it out, rather than
-                // photographing the screen, so open windows never leak into the glass
-                using (System.Drawing.Bitmap bmp = RenderWallpaperRegion(x - _pad, y - _pad, w + (2 * _pad), h + (2 * _pad)))
-                {
-                    if (bmp == null)
-                    {
-                        CapturedBackgroundImage.Source = null;
-                        return;
-                    }
-
-                    var handle = bmp.GetHbitmap();
-                    try
-                    {
-                        var imgSource = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
-                            handle,
-                            IntPtr.Zero,
-                            Int32Rect.Empty,
-                            BitmapSizeOptions.FromEmptyOptions());
-                        imgSource.Freeze();
-
-                        // blur once here instead of running a live shader every frame
-                        BitmapSource _blurred = BlurOnce(imgSource, Framework.Settings.Instance.BlurStrength);
-
-                        var _cropped = new CroppedBitmap(_blurred, new Int32Rect(_pad, _pad, w, h));
-                        _cropped.Freeze();
-
-                        CapturedBackgroundImage.Source = _cropped;
-                    }
-                    finally
-                    {
-                        DeleteObject(handle);
-                    }
-                }
-            }
-            catch
-            {
-                CapturedBackgroundImage.Source = null;
-            }
-        }
-
         // paints the region [x,y,w,h] (virtual-screen pixels) of the desktop wallpaper
         // as Windows composes it for the sidebar's monitor: Fill/Fit/Stretch/Center/Tile/Span
         private System.Drawing.Bitmap RenderWallpaperRegion(int x, int y, int w, int h)
@@ -739,175 +634,56 @@ namespace SidebarDiagnostics
             }
         }
 
-        private static BitmapSource BlurOnce(BitmapSource source, double radius)
-        {
-            if (radius <= 0d)
-            {
-                return source;
-            }
-
-            var img = new System.Windows.Controls.Image()
-            {
-                Source = source,
-                Effect = new System.Windows.Media.Effects.BlurEffect()
-                {
-                    Radius = radius,
-                    KernelType = System.Windows.Media.Effects.KernelType.Gaussian,
-                    RenderingBias = System.Windows.Media.Effects.RenderingBias.Quality
-                }
-            };
-
-            var size = new Size(source.PixelWidth, source.PixelHeight);
-            img.Measure(size);
-            img.Arrange(new Rect(size));
-
-            var rtb = new RenderTargetBitmap(source.PixelWidth, source.PixelHeight, 96, 96, PixelFormats.Pbgra32);
-            rtb.Render(img);
-            rtb.Freeze();
-
-            return rtb;
-        }
-
+        // Real glass: Windows' own acrylic compositor blur (the same effect as the taskbar and
+        // Start menu) is applied to this window, so it blurs whatever is really behind the
+        // sidebar, live. The tint is the configured colour; opacity is its alpha.
         private void ApplyGlassStyling()
         {
             var settings = Framework.Settings.Instance;
 
-            // Make the window itself transparent so that the BackgroundBorder handles rendering
+            // the window itself stays transparent; BackgroundBorder (or the acrylic) is the background
             this.Background = Brushes.Transparent;
 
-            // Ensure LayoutRoot has no mask so all text, metrics, and charts stay fully visible
             if (LayoutRoot != null)
             {
                 LayoutRoot.OpacityMask = null;
             }
 
-            // Get background brush (tint)
-            Brush tintBrush;
+            Color tintColor;
             try
             {
-                Color tintColor;
-                if (settings.AutoBGColor)
-                {
-                    tintColor = SystemParameters.WindowGlassColor;
-                }
-                else
-                {
-                    tintColor = (Color)ColorConverter.ConvertFromString(settings.BGColor);
-                }
-                tintBrush = new SolidColorBrush(tintColor) { Opacity = settings.BGOpacity };
+                tintColor = settings.AutoBGColor ? SystemParameters.WindowGlassColor : (Color)ColorConverter.ConvertFromString(settings.BGColor);
             }
             catch
             {
-                tintBrush = new SolidColorBrush(Colors.Black) { Opacity = settings.BGOpacity };
+                tintColor = Colors.Black;
             }
+
+            bool _acrylic = settings.GlassBackground && GlassSupported;
 
             if (BackgroundBorder != null)
             {
-                // If glass/blur is enabled, show the blurred image and configure its blur radius
-                if (settings.GlassBackground && CapturedBackgroundImage != null)
+                if (_acrylic)
                 {
-                    CapturedBackgroundImage.Visibility = Visibility.Visible;
-
-                    // Set tint overlay color
-                    if (TintOverlay != null)
-                    {
-                        TintOverlay.Background = tintBrush;
-                    }
-                    BackgroundBorder.Background = null;
+                    // near-invisible fill keeps the whole area clickable
+                    BackgroundBorder.Background = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0));
                 }
                 else
                 {
-                    if (CapturedBackgroundImage != null)
-                    {
-                        CapturedBackgroundImage.Visibility = Visibility.Collapsed;
-                    }
-                    if (TintOverlay != null)
-                    {
-                        TintOverlay.Background = null;
-                    }
-                    // Apply tint directly to the border when glass is off
-                    BackgroundBorder.Background = tintBrush;
+                    BackgroundBorder.Background = new SolidColorBrush(tintColor) { Opacity = settings.BGOpacity };
                 }
+            }
 
-                // the edge fade belongs to the glass effect only; solid and accent
-                // backgrounds must never be masked
-                string direction = settings.GlassBackground ? settings.FeatherDirection : "None";
-                if (direction == "Auto")
-                {
-                    // Opposite of docked edge. Usually, if docked on Right, we want to fade on Left.
-                    // If docked on Left, we want to fade on Right.
-                    direction = (settings.DockEdge == DockEdge.Right) ? "Left" : "Right";
-                }
-
-                if (direction == "None" || settings.FeatherSize <= 0.0d)
-                {
-                    BackgroundBorder.OpacityMask = null;
-                }
-                else
-                {
-                    double size = settings.FeatherSize / 100.0;
-                    var mask = new LinearGradientBrush();
-
-                    if (direction == "Left")
-                    {
-                        mask.StartPoint = new Point(0, 0);
-                        mask.EndPoint = new Point(1, 0);
-                        mask.GradientStops.Add(new GradientStop(Colors.Transparent, 0.0));
-                        mask.GradientStops.Add(new GradientStop(Colors.Black, size));
-                        mask.GradientStops.Add(new GradientStop(Colors.Black, 1.0));
-                    }
-                    else if (direction == "Right")
-                    {
-                        mask.StartPoint = new Point(0, 0);
-                        mask.EndPoint = new Point(1, 0);
-                        mask.GradientStops.Add(new GradientStop(Colors.Black, 0.0));
-                        mask.GradientStops.Add(new GradientStop(Colors.Black, 1.0 - size));
-                        mask.GradientStops.Add(new GradientStop(Colors.Transparent, 1.0));
-                    }
-                    else if (direction == "Top")
-                    {
-                        mask.StartPoint = new Point(0, 0);
-                        mask.EndPoint = new Point(0, 1);
-                        mask.GradientStops.Add(new GradientStop(Colors.Transparent, 0.0));
-                        mask.GradientStops.Add(new GradientStop(Colors.Black, size));
-                        mask.GradientStops.Add(new GradientStop(Colors.Black, 1.0));
-                    }
-                    else if (direction == "Bottom")
-                    {
-                        mask.StartPoint = new Point(0, 0);
-                        mask.EndPoint = new Point(0, 1);
-                        mask.GradientStops.Add(new GradientStop(Colors.Black, 0.0));
-                        mask.GradientStops.Add(new GradientStop(Colors.Black, 1.0 - size));
-                        mask.GradientStops.Add(new GradientStop(Colors.Transparent, 1.0));
-                    }
-
-                    BackgroundBorder.OpacityMask = mask;
-                }
+            if (_acrylic)
+            {
+                SetGlass(tintColor, settings.BGOpacity);
+            }
+            else
+            {
+                ClearGlass();
             }
         }
 
-        private void ClearGlassStyling()
-        {
-            if (BackgroundBorder != null)
-            {
-                BackgroundBorder.Background = null;
-                BackgroundBorder.OpacityMask = null;
-            }
-            if (TintOverlay != null)
-            {
-                TintOverlay.Background = null;
-            }
-            if (CapturedBackgroundImage != null)
-            {
-                CapturedBackgroundImage.Visibility = Visibility.Collapsed;
-                CapturedBackgroundImage.Source = null;
-            }
-            if (LayoutRoot != null)
-            {
-                LayoutRoot.OpacityMask = null;
-            }
-            // Let the XAML Style set the background brush
-            this.ClearValue(Window.BackgroundProperty);
-        }
+
     }
 }
