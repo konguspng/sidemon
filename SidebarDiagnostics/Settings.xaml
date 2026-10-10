@@ -48,7 +48,7 @@
             <TabItem Header="{x:Static frame:Resources.SettingsGeneralTab}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="0,0,10,10">
-                        <Border Style="{StaticResource SettingsSectionBorder}">
+                        <Border>
                             <StackPanel>
                                 <TextBlock Text="Basic Settings" Style="{StaticResource SettingsSectionHeader}" />
                                 <TextBlock Text="General application behavior." Style="{StaticResource SettingsSectionHelper}" />
@@ -103,7 +103,7 @@
             <TabItem Header="{x:Static frame:Resources.SettingsAdvancedTab}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="0,0,10,10">
-                        <Border Style="{StaticResource SettingsSectionBorder}">
+                        <Border>
                             <StackPanel>
                                 <TextBlock Text="Position &amp; Size" Style="{StaticResource SettingsSectionHeader}" />
                                 <TextBlock Text="Configure where and how the sidebar appears on your monitors." Style="{StaticResource SettingsSectionHelper}" />
@@ -182,7 +182,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Style="{StaticResource SettingsSectionBorder}">
+                        <Border>
                             <StackPanel>
                                 <TextBlock Text="Window Behavior" Style="{StaticResource SettingsSectionHeader}" />
                                 <TextBlock Text="How the sidebar interacts with other windows." Style="{StaticResource SettingsSectionHelper}" />
@@ -226,7 +226,7 @@
             <TabItem Header="{x:Static frame:Resources.SettingsCustomizeTab}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="0,0,10,10">
-                        <Border Style="{StaticResource SettingsSectionBorder}">
+                        <Border>
                             <StackPanel>
                                 <TextBlock Text="Background &amp; Panels" Style="{StaticResource SettingsSectionHeader}" />
                                 <TextBlock Text="Configure the visual style of the sidebar and its monitoring cards." Style="{StaticResource SettingsSectionHelper}" />
@@ -280,7 +280,7 @@
                             </StackPanel>
                         </Border>
                         
-                        <Border Style="{StaticResource SettingsSectionBorder}">
+                        <Border>
                             <StackPanel>
                                 <TextBlock Text="Text &amp; Alignment" Style="{StaticResource SettingsSectionHeader}" />
                                 <TextBlock Text="Font settings and alignment." Style="{StaticResource SettingsSectionHelper}" />
@@ -324,7 +324,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Style="{StaticResource SettingsSectionBorder}">
+                        <Border>
                             <StackPanel>
                                 <TextBlock Text="Header &amp; Alerts" Style="{StaticResource SettingsSectionHeader}" />
                                 <TextBlock Text="System information header and high-load alerts." Style="{StaticResource SettingsSectionHelper}" />
@@ -369,247 +369,278 @@
                 </ScrollViewer>
             </TabItem>
             <TabItem Header="{x:Static frame:Resources.SettingsMonitorsTab}">
-                <DockPanel LastChildFill="True" Margin="0,0,10,10">
-                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                        <TextBlock Text="Monitors Configuration" Style="{StaticResource SettingsSectionHeader}" />
-                        <TextBlock Text="{x:Static frame:Resources.SettingsMonitorsSubtitle1}" Style="{StaticResource SettingsSectionHelper}" />
-                        <TextBlock Text="{x:Static frame:Resources.SettingsMonitorsSubtitle2}" Style="{StaticResource SettingsSectionHelper}" Margin="0,0,0,10" />
-                    </StackPanel>
+                <Grid Margin="0,0,10,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="220" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
                     
-                    <DataGrid ItemsSource="{Binding Path=MonitorConfig, Mode=OneWay}" Style="{StaticResource MonitorGrid}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column" SelectionMode="Single">
-                        <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="{x:Static frame:Resources.SettingsMonitorsColumn1}" HeaderStyle="{StaticResource MonitorGridHeaderCenter}" Width="80">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate DataType="{x:Type monitor:MonitorConfig}">
-                                        <CheckBox IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{x:Static frame:Resources.SettingsMonitorEnabledTooltip}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="{x:Static frame:Resources.SettingsMonitorsColumn2}" Width="*" HeaderStyle="{StaticResource MonitorGridHeader}">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate DataType="{x:Type monitor:MonitorConfig}">
-                                        <Label Content="{Binding Path=Name}" VerticalAlignment="Center" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Width="70">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate DataType="{x:Type monitor:MonitorConfig}">
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Button Content="&#x25B2;" Width="22" Height="22" Margin="0,0,4,0" Click="MonitorUp_Click" ToolTip="Move Up" />
-                                            <Button Content="&#x25BC;" Width="22" Height="22" Click="MonitorDown_Click" ToolTip="Move Down" />
+                    <DockPanel LastChildFill="True" Grid.Column="0" Margin="0,0,10,0">
+                        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                            <TextBlock Text="Monitors" Style="{StaticResource SettingsSectionHeader}" />
+                            <TextBlock Text="{x:Static frame:Resources.SettingsMonitorsSubtitle1}" Style="{StaticResource SettingsSectionHelper}" />
+                            <TextBlock Text="{x:Static frame:Resources.SettingsMonitorsSubtitle2}" Style="{StaticResource SettingsSectionHelper}" />
+                        </StackPanel>
+                        
+                        <ListBox x:Name="MonitorsList" ItemsSource="{Binding Path=MonitorConfig}" SelectedItem="{Binding Path=SelectedMonitorConfig, Mode=TwoWay}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderThickness="1" BorderBrush="#ccc" Background="White">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="5" />
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0" IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,5,0" ToolTip="{x:Static frame:Resources.SettingsMonitorEnabledTooltip}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Path=Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="5,0,0,0">
+                                            <Button Content="&#x25B2;" Width="20" Height="20" Margin="0,0,2,0" Click="MonitorUp_Click" ToolTip="Move Up" />
+                                            <Button Content="&#x25BC;" Width="20" Height="20" Click="MonitorDown_Click" ToolTip="Move Down" />
                                         </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                        <DataGrid.RowDetailsTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource MonitorDetailsBorder}" Margin="10" Padding="10" Background="#F1F1F1" CornerRadius="4">
-                                    <StackPanel Style="{StaticResource VerticalPanel}">
-                                        <StackPanel>
-                                            <StackPanel.Style>
-                                                <Style TargetType="{x:Type StackPanel}">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Path=Type}" Value="{x:Static monitor:MonitorType.AIUsage}">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </StackPanel.Style>
-                                            <TextBlock Text="{x:Static frame:Resources.SettingsUsageNote}" TextWrapping="Wrap" Margin="0,0,0,8" />
-                                            
-                                            <ListView ItemsSource="{Binding Path=HardwareOC, Mode=OneWay}" ItemContainerStyle="{StaticResource MonitorHardwareItem}" Style="{StaticResource HardwareGrid}">
-                                                <ListView.View>
-                                                    <GridView AllowsColumnReorder="False">
-                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsHardwareColumn1}" HeaderContainerStyle="{StaticResource MonitorHardwareHeaderCenter}">
-                                                            <GridViewColumn.CellTemplate>
-                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                    <CheckBox IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsUsageEnabledTooltip}" Style="{StaticResource MonitorHardwareCheckbox}" />
-                                                                </DataTemplate>
-                                                            </GridViewColumn.CellTemplate>
-                                                        </GridViewColumn>
-                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageProviderColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="150">
-                                                            <GridViewColumn.CellTemplate>
-                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                    <TextBox Text="{Binding Path=Name, Mode=TwoWay}" Style="{StaticResource MonitorHardwareText}" ToolTip="{x:Static frame:Resources.SettingsHardwareNameTooltip}" />
-                                                                </DataTemplate>
-                                                            </GridViewColumn.CellTemplate>
-                                                        </GridViewColumn>
-                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageCustomPathColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="160">
-                                                            <GridViewColumn.CellTemplate>
-                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                    <TextBox Text="{Binding Path=CustomPath, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Style="{StaticResource MonitorHardwareText}" ToolTip="{x:Static frame:Resources.SettingsUsageCustomPathTooltip}" />
-                                                                </DataTemplate>
-                                                            </GridViewColumn.CellTemplate>
-                                                        </GridViewColumn>
-                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageShowExtraColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="80">
-                                                            <GridViewColumn.CellTemplate>
-                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                    <CheckBox IsChecked="{Binding Path=ShowExtra, TargetNullValue=True, FallbackValue=True, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                                        <CheckBox.Style>
-                                                                            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
-                                                                                <Setter Property="Visibility" Value="Hidden" />
-                                                                                <Style.Triggers>
-                                                                                    <DataTrigger Binding="{Binding ID}" Value="AIUsage_Agy">
-                                                                                        <Setter Property="Visibility" Value="Visible" />
-                                                                                    </DataTrigger>
-                                                                                </Style.Triggers>
-                                                                            </Style>
-                                                                        </CheckBox.Style>
-                                                                    </CheckBox>
-                                                                </DataTemplate>
-                                                            </GridViewColumn.CellTemplate>
-                                                        </GridViewColumn>
-                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageStatusColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="150">
-                                                            <GridViewColumn.CellTemplate>
-                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                    <TextBlock Text="{Binding Path=Status, Mode=OneWay}" VerticalAlignment="Center" Margin="5,0,0,0" TextTrimming="CharacterEllipsis" />
-                                                                </DataTemplate>
-                                                            </GridViewColumn.CellTemplate>
-                                                        </GridViewColumn>
-                                                        <GridViewColumn Width="70">
-                                                            <GridViewColumn.CellTemplate>
-                                                                <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                                        <Button Content="&#x25B2;" Width="22" Height="22" Margin="0,0,4,0" Click="HardwareUp_Click" ToolTip="Move Up" />
-                                                                        <Button Content="&#x25BC;" Width="22" Height="22" Click="HardwareDown_Click" ToolTip="Move Down" />
-                                                                    </StackPanel>
-                                                                </DataTemplate>
-                                                            </GridViewColumn.CellTemplate>
-                                                        </GridViewColumn>
-                                                    </GridView>
-                                                </ListView.View>
-                                            </ListView>
-                                        </StackPanel>
-
-                                        <ListView ItemsSource="{Binding Path=HardwareOC, Mode=OneWay}" ItemContainerStyle="{StaticResource MonitorHardwareItem}">
-                                            <ListView.Style>
-                                                <Style TargetType="{x:Type ListView}" BasedOn="{StaticResource HardwareGrid}">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Path=Type}" Value="{x:Static monitor:MonitorType.AIUsage}">
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </ListView.Style>
-                                            <ListView.View>
-                                                <GridView AllowsColumnReorder="False">
-                                                    <GridViewColumn Header="{x:Static frame:Resources.SettingsHardwareColumn1}" HeaderContainerStyle="{StaticResource MonitorHardwareHeaderCenter}">
-                                                        <GridViewColumn.CellTemplate>
-                                                            <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                <CheckBox IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsHardwareEnabledTooltip}" Style="{StaticResource MonitorHardwareCheckbox}" />
-                                                            </DataTemplate>
-                                                        </GridViewColumn.CellTemplate>
-                                                    </GridViewColumn>
-                                                    <GridViewColumn Header="{x:Static frame:Resources.SettingsHardwareColumn2}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="190">
-                                                        <GridViewColumn.CellTemplate>
-                                                            <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                <TextBox Text="{Binding Path=Name, Mode=TwoWay}" Style="{StaticResource MonitorHardwareText}" ToolTip="{x:Static frame:Resources.SettingsHardwareNameTooltip}" />
-                                                            </DataTemplate>
-                                                        </GridViewColumn.CellTemplate>
-                                                    </GridViewColumn>
-                                                    <GridViewColumn Width="70">
-                                                        <GridViewColumn.CellTemplate>
-                                                            <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                                    <Button Content="&#x25B2;" Width="22" Height="22" Margin="0,0,4,0" Click="HardwareUp_Click" ToolTip="Move Up" />
-                                                                    <Button Content="&#x25BC;" Width="22" Height="22" Click="HardwareDown_Click" ToolTip="Move Down" />
-                                                                </StackPanel>
-                                                            </DataTemplate>
-                                                        </GridViewColumn.CellTemplate>
-                                                    </GridViewColumn>
-                                                </GridView>
-                                            </ListView.View>
-                                        </ListView>
-
-                                        <DockPanel LastChildFill="True" Margin="0,15,0,0">
-                                            <Label DockPanel.Dock="Left" Content="{x:Static frame:Resources.SettingsMetrics}" Margin="0,0,10,0" VerticalAlignment="Top" />
-                                            <ItemsControl ItemsSource="{Binding Path=Metrics, Mode=OneWay}" ToolTip="{x:Static frame:Resources.SettingsMetricsTooltip}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate DataType="{x:Type monitor:MetricConfig}">
-                                                        <CheckBox Content="{Binding Path=Name, Mode=OneWay}" IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,10,2" />
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <WrapPanel Orientation="Horizontal" />
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
-                                            </ItemsControl>
-                                        </DockPanel>
-
-                                        <ItemsControl ItemsSource="{Binding Path=Params}" Margin="10">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="{x:Type monitor:ConfigParam}">
-                                                    <ContentControl>
-                                                        <ContentControl.Style>
-                                                            <Style TargetType="{x:Type ContentControl}">
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                    
+                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" DataContext="{Binding Path=SelectedMonitorConfig}">
+                        <StackPanel>
+                            <!-- Hide details entirely if nothing is selected -->
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            
+                            <!-- No Extra Options text -->
+                            <TextBlock Text="{x:Static frame:Resources.SettingsNoExtraOptions}" Margin="0,5,0,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource SettingsSectionHelper}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding Path=HardwareOC.Count}" Value="0" />
+                                                    <Condition Binding="{Binding Path=Metrics.Length}" Value="0" />
+                                                    <Condition Binding="{Binding Path=Params.Length}" Value="0" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            
+                            <!-- Providers Section (Only for AIUsage) -->
+                            <Border>
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource SettingsSectionBorder}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Path=Type}" Value="{x:Static monitor:MonitorType.AIUsage}">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <TextBlock Text="{x:Static frame:Resources.SettingsProvidersHeader}" Style="{StaticResource SettingsSectionHeader}" />
+                                    <TextBlock Text="{x:Static frame:Resources.SettingsUsageNote}" Style="{StaticResource SettingsSectionHelper}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                    
+                                    <Grid Margin="0,0,0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="25" />
+                                            <ColumnDefinition SharedSizeGroup="NameCol" Width="Auto" />
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="55" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="45" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="1" Text="{x:Static frame:Resources.SettingsUsageProviderColumn}" FontWeight="Bold" Margin="0,0,5,0" />
+                                        <TextBlock Grid.Column="2" Text="{x:Static frame:Resources.SettingsUsageCustomPathColumn}" FontWeight="Bold" Margin="0,0,5,0" TextWrapping="Wrap" />
+                                        <TextBlock Grid.Column="3" Text="{x:Static frame:Resources.SettingsUsageShowExtraColumn}" FontWeight="Bold" Margin="0,0,5,0" TextWrapping="Wrap" />
+                                        <TextBlock Grid.Column="4" Text="{x:Static frame:Resources.SettingsUsageStatusColumn}" FontWeight="Bold" Margin="0,0,5,0" />
+                                    </Grid>
+                                    
+                                    <ItemsControl ItemsSource="{Binding Path=HardwareOC}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,5">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="25" />
+                                                        <ColumnDefinition SharedSizeGroup="NameCol" Width="Auto" />
+                                                        <ColumnDefinition Width="110" />
+                                                        <ColumnDefinition Width="55" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="45" />
+                                                    </Grid.ColumnDefinitions>
+                                                    
+                                                    <CheckBox Grid.Column="0" IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsUsageEnabledTooltip}" VerticalAlignment="Center" Margin="0,0,5,0" />
+                                                    
+                                                    <TextBox Grid.Column="1" Text="{Binding Path=Name, Mode=TwoWay}" Width="100" Margin="0,0,5,0" ToolTip="{x:Static frame:Resources.SettingsHardwareNameTooltip}" />
+                                                    
+                                                    <TextBox Grid.Column="2" Text="{Binding Path=CustomPath, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Margin="0,0,5,0" ToolTip="{x:Static frame:Resources.SettingsUsageCustomPathTooltip}" />
+                                                    
+                                                    <CheckBox Grid.Column="3" IsChecked="{Binding Path=ShowExtra, TargetNullValue=True, FallbackValue=True, Mode=TwoWay}" Margin="0,0,5,0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                        <CheckBox.Style>
+                                                            <Style TargetType="CheckBox">
+                                                                <Setter Property="Visibility" Value="Hidden" />
                                                                 <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding TypeString}" Value="System.Boolean">
-                                                                        <Setter Property="Content">
-                                                                            <Setter.Value>
-                                                                                <CheckBox Content="{Binding Path=Name}" IsChecked="{Binding Path=Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{Binding Path=Tooltip, Mode=OneTime}" />
-                                                                            </Setter.Value>
-                                                                        </Setter>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding TypeString}" Value="System.Int32">
-                                                                        <Setter Property="Content">
-                                                                            <Setter.Value>
-                                                                                <StackPanel>
-                                                                                    <Label Content="{Binding Path=Name, Mode=OneTime}" />
-                                                                                    <TextBox Text="{Binding Path=Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource IntConverter}}" ToolTip="{Binding Path=Tooltip, Mode=OneTime}" />
-                                                                                </StackPanel>
-                                                                            </Setter.Value>
-                                                                        </Setter>
+                                                                    <DataTrigger Binding="{Binding ID}" Value="AIUsage_Agy">
+                                                                        <Setter Property="Visibility" Value="Visible" />
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
-                                                        </ContentControl.Style>
-                                                        <ContentControl.Resources>
-                                                            <Style TargetType="{x:Type CheckBox}">
-                                                                <Setter Property="VerticalAlignment" Value="Center" />
-                                                                <Setter Property="Margin" Value="0,5" />
-                                                            </Style>
-                                                            
-                                                            <Style TargetType="{x:Type StackPanel}">
-                                                                <Setter Property="Orientation" Value="Horizontal" />
-                                                                <Setter Property="Margin" Value="0,5" />
-                                                                <Style.Resources>
-                                                                    <Style TargetType="{x:Type Label}">
-                                                                        <Setter Property="VerticalAlignment" Value="Center" />
-                                                                        <Setter Property="Margin" Value="0,0,10,0" />
-                                                                        <Setter Property="Padding" Value="0" />
-                                                                    </Style>
-                                                                    <Style TargetType="{x:Type TextBox}">
-                                                                        <Setter Property="VerticalAlignment" Value="Center" />
-                                                                        <Setter Property="Width" Value="40" />
-                                                                        <Setter Property="MaxLines" Value="1" />
-                                                                    </Style>
-                                                                </Style.Resources>
-                                                            </Style>
-                                                        </ContentControl.Resources>
-                                                    </ContentControl>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <StackPanel Style="{StaticResource VerticalPanel}" />
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </DataGrid.RowDetailsTemplate>
-                    </DataGrid>
-                </DockPanel>
+                                                        </CheckBox.Style>
+                                                    </CheckBox>
+                                                    
+                                                    <TextBlock Grid.Column="4" Text="{Binding Path=Status, Mode=OneWay}" ToolTip="{Binding Path=Status, Mode=OneWay}" VerticalAlignment="Center" Margin="0,0,5,0" TextWrapping="Wrap" />
+                                                    
+                                                    <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Button Content="&#x25B2;" Width="20" Height="20" Margin="0,0,2,0" Click="HardwareUp_Click" ToolTip="Move Up" />
+                                                        <Button Content="&#x25BC;" Width="20" Height="20" Click="HardwareDown_Click" ToolTip="Move Down" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            
+                            <!-- Hardware Section (Not for AIUsage) -->
+                            <Border>
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource SettingsSectionBorder}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Path=HardwareOC.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Path=Type}" Value="{x:Static monitor:MonitorType.AIUsage}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <TextBlock Text="{x:Static frame:Resources.SettingsHardwareHeader}" Style="{StaticResource SettingsSectionHeader}" />
+                                    <ItemsControl ItemsSource="{Binding Path=HardwareOC}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,5">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    
+                                                    <CheckBox Grid.Column="0" IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsHardwareEnabledTooltip}" VerticalAlignment="Center" Margin="0,0,5,0" />
+                                                    
+                                                    <TextBox Grid.Column="1" Text="{Binding Path=Name, Mode=TwoWay}" Margin="0,0,5,0" ToolTip="{x:Static frame:Resources.SettingsHardwareNameTooltip}" />
+                                                    
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Button Content="&#x25B2;" Width="20" Height="20" Margin="0,0,2,0" Click="HardwareUp_Click" ToolTip="Move Up" />
+                                                        <Button Content="&#x25BC;" Width="20" Height="20" Click="HardwareDown_Click" ToolTip="Move Down" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            
+                            <!-- Metrics Section -->
+                            <Border>
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource SettingsSectionBorder}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Path=Metrics.Length}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <TextBlock Text="{x:Static frame:Resources.SettingsMetricsHeader}" Style="{StaticResource SettingsSectionHeader}" />
+                                    <ItemsControl ItemsSource="{Binding Path=Metrics, Mode=OneWay}" ToolTip="{x:Static frame:Resources.SettingsMetricsTooltip}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox Content="{Binding Path=Name, Mode=OneWay}" IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,10,5" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            
+                            <!-- Parameters Section -->
+                            <Border>
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource SettingsSectionBorder}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Path=Params.Length}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <TextBlock Text="{x:Static frame:Resources.SettingsAlertsHeader}" Style="{StaticResource SettingsSectionHeader}" />
+                                    <ItemsControl ItemsSource="{Binding Path=Params}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type monitor:ConfigParam}">
+                                                <ContentControl>
+                                                    <ContentControl.Style>
+                                                        <Style TargetType="{x:Type ContentControl}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding TypeString}" Value="System.Boolean">
+                                                                    <Setter Property="Content">
+                                                                        <Setter.Value>
+                                                                            <CheckBox Content="{Binding Path=Name}" IsChecked="{Binding Path=Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{Binding Path=Tooltip, Mode=OneTime}" Margin="0,5" />
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding TypeString}" Value="System.Int32">
+                                                                    <Setter Property="Content">
+                                                                        <Setter.Value>
+                                                                            <StackPanel Orientation="Horizontal" Margin="0,5">
+                                                                                <TextBlock Text="{Binding Path=Name, Mode=OneTime}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                                                <TextBox Text="{Binding Path=Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource IntConverter}}" ToolTip="{Binding Path=Tooltip, Mode=OneTime}" Width="50" VerticalAlignment="Center" />
+                                                                            </StackPanel>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ContentControl.Style>
+                                                </ContentControl>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
             </TabItem>
             <TabItem Header="{x:Static frame:Resources.SettingsHotkeysTab}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="0,0,10,10">
-                        <Border Style="{StaticResource SettingsSectionBorder}">
+                        <Border>
                             <StackPanel>
                                 <TextBlock Text="Keyboard Shortcuts" Style="{StaticResource SettingsSectionHeader}" />
                                 <TextBlock Text="Click the record button then press a key combination to bind an action." Style="{StaticResource SettingsSectionHelper}" />
@@ -670,7 +701,7 @@
             <TabItem Header="{x:Static frame:Resources.SettingsOverlayTab}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="0,0,10,10">
-                        <Border Style="{StaticResource SettingsSectionBorder}">
+                        <Border>
                             <StackPanel>
                                 <TextBlock Text="FPS Overlay" Style="{StaticResource SettingsSectionHeader}" />
                                 <TextBlock Text="Shows a small, click-through FPS counter at a screen corner by reading RivaTuner Statistics Server's (RTSS) live frame stats. Requires RTSS to be installed and running." Style="{StaticResource SettingsSectionHelper}" />

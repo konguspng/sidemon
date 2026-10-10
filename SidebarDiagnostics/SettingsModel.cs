@@ -147,6 +147,7 @@ namespace SidebarDiagnostics.Models
             }
 
             MonitorConfig = _config;
+            SelectedMonitorConfig = _config.FirstOrDefault(c => c.Enabled) ?? _config.FirstOrDefault();
 
             if (Framework.Settings.Instance.Hotkeys != null)
             {
@@ -1374,6 +1375,22 @@ namespace SidebarDiagnostics.Models
                 }
 
                 NotifyPropertyChanged("MonitorConfig");
+            }
+        }
+
+        private MonitorConfig _selectedMonitorConfig { get; set; }
+
+        public MonitorConfig SelectedMonitorConfig
+        {
+            get
+            {
+                return _selectedMonitorConfig;
+            }
+            set
+            {
+                _selectedMonitorConfig = value;
+
+                NotifyPropertyChanged("SelectedMonitorConfig");
             }
         }
 

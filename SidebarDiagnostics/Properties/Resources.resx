@@ -833,7 +833,7 @@
     <comment>Settings monitors subtitle line one</comment>
   </data>
   <data name="SettingsMonitorsSubtitle2" xml:space="preserve">
-    <value>Drag a row to change its order.</value>
+    <value>Use the arrows to change its order.</value>
     <comment>Settings monitors subtitle line two</comment>
   </data>
   <data name="SettingsMonitorsTab" xml:space="preserve">
@@ -1295,5 +1295,23 @@
   </data>
   <data name="UpdateCheckFailed" xml:space="preserve">
     <value>Could not reach GitHub.</value>
+  </data>
+  <data name="SettingsDisplayHeader" xml:space="preserve">
+    <value>Display</value>
+  </data>
+  <data name="SettingsHardwareHeader" xml:space="preserve">
+    <value>Hardware</value>
+  </data>
+  <data name="SettingsMetricsHeader" xml:space="preserve">
+    <value>Metrics</value>
+  </data>
+  <data name="SettingsAlertsHeader" xml:space="preserve">
+    <value>Options &amp; Alerts</value>
+  </data>
+  <data name="SettingsProvidersHeader" xml:space="preserve">
+    <value>Providers</value>
+  </data>
+  <data name="SettingsNoExtraOptions" xml:space="preserve">
+    <value>No extra options</value>
   </data>
 </root>

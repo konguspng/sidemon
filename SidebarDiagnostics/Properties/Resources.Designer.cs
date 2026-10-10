@@ -2703,5 +2703,24 @@ namespace SidebarDiagnostics.Framework {
         public static string UpdateCheckFailed {
             get { return ResourceManager.GetString("UpdateCheckFailed", resourceCulture); }
         }
+
+        public static string SettingsDisplayHeader {
+            get { return ResourceManager.GetString("SettingsDisplayHeader", resourceCulture); }
+        }
+        public static string SettingsHardwareHeader {
+            get { return ResourceManager.GetString("SettingsHardwareHeader", resourceCulture); }
+        }
+        public static string SettingsMetricsHeader {
+            get { return ResourceManager.GetString("SettingsMetricsHeader", resourceCulture); }
+        }
+        public static string SettingsAlertsHeader {
+            get { return ResourceManager.GetString("SettingsAlertsHeader", resourceCulture); }
+        }
+        public static string SettingsProvidersHeader {
+            get { return ResourceManager.GetString("SettingsProvidersHeader", resourceCulture); }
+        }
+        public static string SettingsNoExtraOptions {
+            get { return ResourceManager.GetString("SettingsNoExtraOptions", resourceCulture); }
+        }
     }
 }
