@@ -1117,33 +1117,15 @@ namespace SidebarDiagnostics.Models
 
         private bool _useCardStyle { get; set; }
 
-        public bool UseCardStyle
-        {
-            get
-            {
-                return _useCardStyle;
-            }
-            set
-            {
-                _useCardStyle = value;
-
-                NotifyPropertyChanged("UseCardStyle");
+        public bool UseCardStyle { get { return _useCardStyle; } set { _useCardStyle = value; NotifyPropertyChanged("UseCardStyle"); NotifyPropertyChanged("AccentColorEnabled");
             }
         }
 
         private bool _showAccentBars { get; set; }
 
-        public bool ShowAccentBars
-        {
-            get
-            {
-                return _showAccentBars;
-            }
-            set
-            {
-                _showAccentBars = value;
+        public bool AccentColorEnabled => ShowAccentBars || UseCardStyle;
 
-                NotifyPropertyChanged("ShowAccentBars");
+        public bool ShowAccentBars { get { return _showAccentBars; } set { _showAccentBars = value; NotifyPropertyChanged("ShowAccentBars"); NotifyPropertyChanged("AccentColorEnabled");
             }
         }
 

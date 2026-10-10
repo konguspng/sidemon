@@ -565,7 +565,7 @@
     <comment>Settings 24 hour clock tooltip</comment>
   </data>
   <data name="SettingsAdvancedTab" xml:space="preserve">
-    <value>Advanced</value>
+    <value>Layout</value>
     <comment>Title of the settings advanced tab</comment>
   </data>
   <data name="SettingsAlertFontColor" xml:space="preserve">
@@ -673,7 +673,7 @@
     <comment>Settings core loads tooltip</comment>
   </data>
   <data name="SettingsCustomizeTab" xml:space="preserve">
-    <value>Customize</value>
+    <value>Appearance</value>
     <comment>Title of the settings customize tab</comment>
   </data>
   <data name="SettingsDateFormat" xml:space="preserve">

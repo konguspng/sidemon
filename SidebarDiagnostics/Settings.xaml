@@ -17,8 +17,9 @@
         Title="{x:Static frame:Resources.SettingsTitle}"
         Icon="Sidebar.ico"
         Width="800"
-        SizeToContent="Height"
+        Height="700"
         ShowMaximize="False"
+        ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         Style="{StaticResource FlatWindowStyle}">
     <Window.Resources>
@@ -43,312 +44,341 @@
                 </Button.Style>
             </Button>
         </StackPanel>
-        <TabControl Style="{StaticResource SettingTab}">
+                <TabControl Style="{StaticResource SettingTab}" Grid.IsSharedSizeScope="True">
             <TabItem Header="{x:Static frame:Resources.SettingsGeneralTab}">
-                <Grid Style="{StaticResource SettingGrid}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"></ColumnDefinition>
-                        <ColumnDefinition Width="*"></ColumnDefinition>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                    </Grid.RowDefinitions>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,10,10">
+                        <Border Style="{StaticResource SettingsSectionBorder}">
+                            <StackPanel>
+                                <TextBlock Text="Basic Settings" Style="{StaticResource SettingsSectionHeader}" />
+                                <TextBlock Text="General application behavior." Style="{StaticResource SettingsSectionHelper}" />
+                                <Grid Style="{StaticResource SettingGrid}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition SharedSizeGroup="LabelCol" Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                    </Grid.RowDefinitions>
+                                    <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsLanguage}" />
+                                    <ComboBox Grid.Column="1" Grid.Row="0" Width="200" HorizontalAlignment="Left" ItemsSource="{Binding Path=CultureItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=Culture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsLanguageTooltip}" />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsRunAtStartup}" />
+                                    <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding Path=RunAtStartup, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsRunAtStartupTooltip}" />
 
-                    <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsDock}" />
-                    <ComboBox Grid.Column="1" Grid.Row="0" ItemsSource="{Binding Path=DockEdgeItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=DockEdge, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsDockTooltip}" />
+                                    <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.SettingsShowTrayIcon}" />
+                                    <CheckBox Grid.Column="1" Grid.Row="2" x:Name="ShowTrayIconCheckbox" Unchecked="ShowTrayIconCheckbox_Unchecked" IsChecked="{Binding Path=ShowTrayIcon, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsShowTrayIconTooltip}" />
 
-                    <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsScreen}" />
-                    <ComboBox VerticalAlignment="Center" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding Path=ScreenItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Index" SelectedValue="{Binding Path=ScreenIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsScreenTooltip}" />
-
-                    <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.SettingsLanguage}" />
-                    <ComboBox VerticalAlignment="Center" Grid.Column="1" Grid.Row="2" ItemsSource="{Binding Path=CultureItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=Culture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsLanguageTooltip}" />
-
-                    <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsReserveSpace}" />
-                    <CheckBox Grid.Column="1" Grid.Row="3" IsChecked="{Binding Path=UseAppBar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsReserveSpaceTooltip}" />
-
-                    <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsAlwaysOnTop}" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" />
-                    <CheckBox Grid.Column="1" Grid.Row="4" IsChecked="{Binding Path=AlwaysTop, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" ToolTip="Keep the sidebar above other windows. Not available with the Desktop Blur background, which blends into the wallpaper and stays behind other windows." />
-
-                    <Label Grid.Column="0" Grid.Row="5" Content="{x:Static frame:Resources.SettingsRunAtStartup}" />
-                    <CheckBox Grid.Column="1" Grid.Row="5" IsChecked="{Binding Path=RunAtStartup, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsRunAtStartupTooltip}" />
-
-                    <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="6" Margin="0,16,0,0" Orientation="Vertical"
-                                Visibility="{Binding Path=PawnIODriverInstalled, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
-                        <TextBlock TextWrapping="Wrap" Opacity="0.75" FontSize="12" Margin="0,0,0,8"
-                                   Text="CPU and GPU sensor readings (clock, temperature, voltage) need the PawnIO driver, a small signed driver from pawnio.eu. Without it those readings show &quot;No Value&quot;." />
-                        <StackPanel Orientation="Horizontal">
-                            <Button Content="Install PawnIO Driver" HorizontalAlignment="Left" Click="InstallPawnIO_Click"
-                                    IsEnabled="{Binding Path=PawnIODriverInstalling, Converter={StaticResource BoolInverseConverter}}" />
-                            <ProgressBar IsIndeterminate="True" Width="120" Height="6" Margin="10,0,0,0" VerticalAlignment="Center"
-                                         Visibility="{Binding Path=PawnIODriverInstalling, Converter={StaticResource BoolToVisibility}}" />
-                        </StackPanel>
-                    </StackPanel>
-                    <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="6" Margin="0,16,0,0" Opacity="0.75" FontStyle="Italic"
-                               Text="PawnIO driver: installed. CPU/GPU sensors are available."
-                               Visibility="{Binding Path=PawnIODriverInstalled, Converter={StaticResource BoolToVisibility}}" />
-                </Grid>
-            </TabItem>
-            <TabItem Header="{x:Static frame:Resources.SettingsAdvancedTab}">
-                <Grid Style="{StaticResource SettingGrid}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"></ColumnDefinition>
-                        <ColumnDefinition Width="*"></ColumnDefinition>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                    </Grid.RowDefinitions>
-
-                    <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsUIScale}" />
-                    <DockPanel Grid.Column="1" Grid.Row="0">
-                        <TextBox Text="{Binding ElementName=UIScaleSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" PreviewTextInput="NumberBox_PreviewTextInput" />
-                        <Slider x:Name="UIScaleSlider" Value="{Binding Path=UIScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.5" Maximum="3.0" TickFrequency="0.05" IsSnapToTickEnabled="True" LargeChange="0.5" ToolTip="{x:Static frame:Resources.SettingsUIScaleTooltip}" />
-                    </DockPanel>
-
-                    <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1" Margin="0,2,0,4">
-                        <CheckBox Content="{x:Static frame:Resources.SettingsAutoFitScale}" IsChecked="{Binding Path=AutoFitScale}" Margin="0,0,0,4" ToolTip="{x:Static frame:Resources.SettingsAutoFitScaleTooltip}" />
+                                    <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsPollingInterval}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="3" HorizontalAlignment="Left" Width="250">
+                                        <TextBlock DockPanel.Dock="Right" Text="ms" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="#888" />
+                                        <TextBox DockPanel.Dock="Right" Text="{Binding ElementName=PollingIntervalSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Width="40" Margin="5,0,0,0" PreviewTextInput="NumberBox_PreviewTextInput" />
+                                        <Slider x:Name="PollingIntervalSlider" Value="{Binding Path=PollingInterval, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="100" Maximum="5000" TickFrequency="100" LargeChange="1000" ToolTip="{x:Static frame:Resources.SettingsPollingIntervalTooltip}" />
+                                    </DockPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
                         
-                        <TextBlock TextWrapping="Wrap" FontSize="11">
-                            <TextBlock.Style>
-                                <Style TargetType="{x:Type TextBlock}">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding Path=AutoFitScale, Mode=OneWay}" Value="True" />
-                                                <Condition Binding="{Binding Path=UIScaleCapped, Mode=OneWay}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                            <TextBlock.Text>
-                                <Binding Path="MaxUIScale" Mode="OneWay" StringFormat="Auto-fit reduced the scale to {0:F2} because your monitors/drives don't fit the screen height. Untick 'Shrink automatically' to set it yourself." />
-                            </TextBlock.Text>
-                        </TextBlock>
+                        <Expander Header="Advanced Driver Options" Margin="0,0,0,16">
+                            <Border Style="{StaticResource SettingsSectionBorder}" Margin="0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Vertical" Visibility="{Binding Path=PawnIODriverInstalled, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
+                                        <TextBlock TextWrapping="Wrap" Opacity="0.75" FontSize="12" Margin="0,0,0,8" Text="CPU and GPU sensor readings (clock, temperature, voltage) need the PawnIO driver, a small signed driver from pawnio.eu. Without it those readings show &quot;No Value&quot;." />
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="Install PawnIO Driver" HorizontalAlignment="Left" Click="InstallPawnIO_Click" IsEnabled="{Binding Path=PawnIODriverInstalling, Converter={StaticResource BoolInverseConverter}}" />
+                                            <ProgressBar IsIndeterminate="True" Width="120" Height="6" Margin="10,0,0,0" VerticalAlignment="Center" Visibility="{Binding Path=PawnIODriverInstalling, Converter={StaticResource BoolToVisibility}}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <TextBlock Margin="0,8,0,0" Opacity="0.75" FontStyle="Italic" Text="PawnIO driver: installed. CPU/GPU sensors are available." Visibility="{Binding Path=PawnIODriverInstalled, Converter={StaticResource BoolToVisibility}}" />
+                                </StackPanel>
+                            </Border>
+                        </Expander>
                     </StackPanel>
-
-                    <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.SettingsHorizontalOffset}" />
-                    <DockPanel Grid.Column="1" Grid.Row="2">
-                        <TextBox Text="{Binding ElementName=XOffsetSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumberBox_PreviewTextInput" />
-                        <Slider x:Name="XOffsetSlider" Value="{Binding Path=XOffset, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="-2000" Maximum="2000" TickFrequency="1" LargeChange="1000" ValueChanged="OffsetSlider_ValueChanged" ToolTip="{x:Static frame:Resources.SettingsHorizontalOffsetTooltip}" />
-                    </DockPanel>
-
-                    <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsVerticalOffset}" />
-                    <DockPanel Grid.Column="1" Grid.Row="3">
-                        <TextBox Text="{Binding ElementName=YOffsetSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumberBox_PreviewTextInput" />
-                        <Slider x:Name="YOffsetSlider" Value="{Binding Path=YOffset, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="-2000" Maximum="2000" TickFrequency="1" LargeChange="1000" ValueChanged="OffsetSlider_ValueChanged" ToolTip="{x:Static frame:Resources.SettingsVerticalOffsetTooltip}" />
-                    </DockPanel>
-
-                    <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsPollingInterval}" />
-                    <DockPanel Grid.Column="1" Grid.Row="4">
-                        <TextBox Text="{Binding ElementName=PollingIntervalSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumberBox_PreviewTextInput" />
-                        <Slider x:Name="PollingIntervalSlider" Value="{Binding Path=PollingInterval, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="100" Maximum="5000" TickFrequency="100" LargeChange="1000" ToolTip="{x:Static frame:Resources.SettingsPollingIntervalTooltip}" />
-                    </DockPanel>
-
-                    <Label Grid.Column="0" Grid.Row="5" Content="{x:Static frame:Resources.SettingsShowTrayIcon}" />
-                    <CheckBox Grid.Column="1" Grid.Row="5" x:Name="ShowTrayIconCheckbox" Unchecked="ShowTrayIconCheckbox_Unchecked" IsChecked="{Binding Path=ShowTrayIcon, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsShowTrayIconTooltip}" />
-
-                    <Label Grid.Column="0" Grid.Row="6" Content="{x:Static frame:Resources.SettingsClickThrough}" />
-                    <CheckBox Grid.Column="1" Grid.Row="6" x:Name="ClickThroughCheckbox" Checked="ClickThroughCheckbox_Checked" IsChecked="{Binding Path=ClickThrough, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsClickThroughTooltip}" />
-
-                    <Label Grid.Column="0" Grid.Row="7" Content="{x:Static frame:Resources.SettingsInitiallyHidden}" />
-                    <CheckBox Grid.Column="1" Grid.Row="7" IsChecked="{Binding Path=InitiallyHidden, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsInitiallyHiddenTooltip}" />
-
-                    <Label Grid.Column="0" Grid.Row="8" Content="{x:Static frame:Resources.SettingsCollapseMenuBar}" />
-                    <CheckBox Grid.Column="1" Grid.Row="8" IsChecked="{Binding Path=CollapseMenuBar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsCollapseMenuBarTooltip}" />
-                </Grid>
+                </ScrollViewer>
             </TabItem>
+            
+            <TabItem Header="{x:Static frame:Resources.SettingsAdvancedTab}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,10,10">
+                        <Border Style="{StaticResource SettingsSectionBorder}">
+                            <StackPanel>
+                                <TextBlock Text="Position &amp; Size" Style="{StaticResource SettingsSectionHeader}" />
+                                <TextBlock Text="Configure where and how the sidebar appears on your monitors." Style="{StaticResource SettingsSectionHelper}" />
+                                <Grid Style="{StaticResource SettingGrid}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition SharedSizeGroup="LabelCol" Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsDock}" />
+                                    <ComboBox Grid.Column="1" Grid.Row="0" Width="200" HorizontalAlignment="Left" ItemsSource="{Binding Path=DockEdgeItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=DockEdge, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsDockTooltip}" />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsScreen}" />
+                                    <ComboBox Grid.Column="1" Grid.Row="1" Width="200" HorizontalAlignment="Left" ItemsSource="{Binding Path=ScreenItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Index" SelectedValue="{Binding Path=ScreenIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsScreenTooltip}" />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.SettingsHorizontalOffset}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="2" HorizontalAlignment="Left" Width="250">
+                                        <TextBlock DockPanel.Dock="Right" Text="px" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="#888" />
+                                        <TextBox DockPanel.Dock="Right" Text="{Binding ElementName=XOffsetSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Width="40" Margin="5,0,0,0" PreviewTextInput="NumberBox_PreviewTextInput" />
+                                        <Slider x:Name="XOffsetSlider" Value="{Binding Path=XOffset, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="-2000" Maximum="2000" TickFrequency="1" LargeChange="1000" ValueChanged="OffsetSlider_ValueChanged" ToolTip="{x:Static frame:Resources.SettingsHorizontalOffsetTooltip}" />
+                                    </DockPanel>
+
+                                    <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsVerticalOffset}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="3" HorizontalAlignment="Left" Width="250">
+                                        <TextBlock DockPanel.Dock="Right" Text="px" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="#888" />
+                                        <TextBox DockPanel.Dock="Right" Text="{Binding ElementName=YOffsetSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Width="40" Margin="5,0,0,0" PreviewTextInput="NumberBox_PreviewTextInput" />
+                                        <Slider x:Name="YOffsetSlider" Value="{Binding Path=YOffset, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="-2000" Maximum="2000" TickFrequency="1" LargeChange="1000" ValueChanged="OffsetSlider_ValueChanged" ToolTip="{x:Static frame:Resources.SettingsVerticalOffsetTooltip}" />
+                                    </DockPanel>
+
+                                    <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsSidebarWidth}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="4" HorizontalAlignment="Left" Width="250">
+                                        <TextBlock DockPanel.Dock="Right" Text="px" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="#888" />
+                                        <TextBox DockPanel.Dock="Right" Text="{Binding ElementName=SidebarWidthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Width="40" Margin="5,0,0,0" PreviewTextInput="NumberBox_PreviewTextInput" />
+                                        <Slider x:Name="SidebarWidthSlider" Value="{Binding Path=SidebarWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="100" Maximum="300" TickFrequency="5" LargeChange="100" ToolTip="{x:Static frame:Resources.SettingsSidebarWidthTooltip}" />
+                                    </DockPanel>
+                                    
+                                    <Label Grid.Column="0" Grid.Row="5" Content="{x:Static frame:Resources.SettingsUIScale}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="5" HorizontalAlignment="Left" Width="250">
+                                        <TextBlock DockPanel.Dock="Right" Text="x" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="#888" />
+                                        <TextBox DockPanel.Dock="Right" Text="{Binding ElementName=UIScaleSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F2}}" Width="40" Margin="5,0,0,0" PreviewTextInput="NumberBox_PreviewTextInput" />
+                                        <Slider x:Name="UIScaleSlider" Value="{Binding Path=UIScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.5" Maximum="3.0" TickFrequency="0.05" IsSnapToTickEnabled="True" LargeChange="0.5" ToolTip="{x:Static frame:Resources.SettingsUIScaleTooltip}" />
+                                    </DockPanel>
+                                    
+                                    <StackPanel Grid.Column="1" Grid.Row="6" Margin="0,2,0,4">
+                                        <CheckBox Content="{x:Static frame:Resources.SettingsAutoFitScale}" IsChecked="{Binding Path=AutoFitScale}" Margin="0,0,0,4" ToolTip="{x:Static frame:Resources.SettingsAutoFitScaleTooltip}" />
+                                        <TextBlock TextWrapping="Wrap" FontSize="11" Margin="25,0,0,0" Foreground="#888">
+                                            <TextBlock.Style>
+                                                <Style TargetType="{x:Type TextBlock}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding Path=AutoFitScale, Mode=OneWay}" Value="True" />
+                                                                <Condition Binding="{Binding Path=UIScaleCapped, Mode=OneWay}" Value="True" />
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                            <TextBlock.Text>
+                                                <Binding Path="MaxUIScale" Mode="OneWay" StringFormat="Auto-fit reduced the scale to {0:F2} because your monitors/drives don't fit the screen height." />
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsSectionBorder}">
+                            <StackPanel>
+                                <TextBlock Text="Window Behavior" Style="{StaticResource SettingsSectionHeader}" />
+                                <TextBlock Text="How the sidebar interacts with other windows." Style="{StaticResource SettingsSectionHelper}" />
+                                <Grid Style="{StaticResource SettingGrid}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition SharedSizeGroup="LabelCol" Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsReserveSpace}" />
+                                    <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding Path=UseAppBar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsReserveSpaceTooltip}" />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsAlwaysOnTop}" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" />
+                                    <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Vertical" VerticalAlignment="Center">
+                                        <CheckBox IsChecked="{Binding Path=AlwaysTop, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" ToolTip="Keep the sidebar above other windows. Not available with the Desktop Blur background." />
+                                        <TextBlock Text="Not available with Desktop Blur." Style="{StaticResource SettingsHint}" Margin="25,2,0,0" Visibility="{Binding Path=BGModeBlur, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                                    </StackPanel>
+
+                                    <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.SettingsClickThrough}" />
+                                    <CheckBox Grid.Column="1" Grid.Row="2" x:Name="ClickThroughCheckbox" Checked="ClickThroughCheckbox_Checked" IsChecked="{Binding Path=ClickThrough, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsClickThroughTooltip}" />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsInitiallyHidden}" />
+                                    <CheckBox Grid.Column="1" Grid.Row="3" IsChecked="{Binding Path=InitiallyHidden, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsInitiallyHiddenTooltip}" />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsCollapseMenuBar}" />
+                                    <CheckBox Grid.Column="1" Grid.Row="4" IsChecked="{Binding Path=CollapseMenuBar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsCollapseMenuBarTooltip}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <TabItem Header="{x:Static frame:Resources.SettingsCustomizeTab}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <Grid Margin="0,0,6,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"></ColumnDefinition>
-                            <ColumnDefinition Width="28"></ColumnDefinition>
-                            <ColumnDefinition Width="*"></ColumnDefinition>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Orientation="Vertical">
-                        <TextBlock Text="Layout &amp; Text" FontWeight="SemiBold" FontSize="13" Foreground="#666" Margin="2,8,0,2" />
-                        <Grid Style="{StaticResource SettingGrid}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                <ColumnDefinition Width="*"></ColumnDefinition>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                            </Grid.RowDefinitions>
+                    <StackPanel Margin="0,0,10,10">
+                        <Border Style="{StaticResource SettingsSectionBorder}">
+                            <StackPanel>
+                                <TextBlock Text="Background &amp; Panels" Style="{StaticResource SettingsSectionHeader}" />
+                                <TextBlock Text="Configure the visual style of the sidebar and its monitoring cards." Style="{StaticResource SettingsSectionHelper}" />
+                                <Grid Style="{StaticResource SettingGrid}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition SharedSizeGroup="LabelCol" Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <Label Grid.Column="0" Grid.Row="0" Content="Style" VerticalAlignment="Top" Margin="0,5,15,0" />
+                                    <StackPanel Grid.Column="1" Grid.Row="0" Margin="0,5,0,5">
+                                        <RadioButton GroupName="BGMode" Content="Solid Color" IsChecked="{Binding Path=BGModeSolid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="One flat background color of your choice." Margin="0,0,0,4" />
+                                        <RadioButton GroupName="BGMode" Content="Windows Accent Color" IsChecked="{Binding Path=BGModeAccent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Follows the accent color from your Windows personalization settings." Margin="0,0,0,4" />
+                                        <RadioButton GroupName="BGMode" Content="Desktop Blur (Acrylic)" IsChecked="{Binding Path=BGModeBlur, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Real Windows acrylic, the same live blur as the taskbar and Start menu." />
+                                        <TextBlock Text="Real Windows acrylic. Blends into wallpaper. Requires Windows 10 (1803+)." Style="{StaticResource SettingsHint}" Margin="20,2,0,4" />
+                                    </StackPanel>
+                                    
+                                    <Label Grid.Column="0" Grid.Row="1" Content="Color / Tint" IsEnabled="{Binding Path=BGModeAccent, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="1" IsEnabled="{Binding Path=BGModeAccent, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" HorizontalAlignment="Left" Width="200" LastChildFill="True">
+                                        <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=BGColor, Mode=OneWay}" Tag="BGColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select the color." />
+                                        <TextBox Width="Auto" Text="{Binding Path=BGColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="The background color. In Desktop Blur mode this is the tint." />
+                                    </DockPanel>
 
-                            <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsSidebarWidth}" />
-                            <DockPanel Grid.Column="1" Grid.Row="0">
-                                <TextBox Text="{Binding ElementName=SidebarWidthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumberBox_PreviewTextInput" />
-                                <Slider x:Name="SidebarWidthSlider" Value="{Binding Path=SidebarWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="100" Maximum="300" TickFrequency="5" LargeChange="100" ToolTip="{x:Static frame:Resources.SettingsSidebarWidthTooltip}" />
-                            </DockPanel>
+                                    <Label Grid.Column="0" Grid.Row="2" Content="Opacity" />
+                                    <DockPanel Grid.Column="1" Grid.Row="2" HorizontalAlignment="Left" Width="250">
+                                        <TextBlock DockPanel.Dock="Right" Text="(0-1)" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="#888" />
+                                        <TextBox DockPanel.Dock="Right" Text="{Binding ElementName=BGOpacitySlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F2}}" Width="40" Margin="5,0,0,0" PreviewTextInput="NumberBox_PreviewTextInput" />
+                                        <Slider x:Name="BGOpacitySlider" Value="{Binding Path=BGOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.01" Maximum="1.0" LargeChange="0.1" TickFrequency="0.01" ToolTip="How solid the background is." />
+                                    </DockPanel>
+                                    
+                                    <Label Grid.Column="0" Grid.Row="3" Content="Card Panels" />
+                                    <CheckBox Grid.Column="1" Grid.Row="3" IsChecked="{Binding Path=UseCardStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show each monitor group as a rounded card." />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="4" Content="Colored Bars" />
+                                    <CheckBox Grid.Column="1" Grid.Row="4" IsChecked="{Binding Path=ShowAccentBars, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show a slim colored load bar under percentage readings." />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="5" Content="Accent Color" IsEnabled="{Binding Path=AccentColorEnabled}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="5" IsEnabled="{Binding Path=AccentColorEnabled}" HorizontalAlignment="Left" Width="200" LastChildFill="True">
+                                        <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=AccentColor, Mode=OneWay}" Tag="AccentColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select accent color." />
+                                        <TextBox Width="Auto" Text="{Binding Path=AccentColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="Accent color used for load bars." />
+                                    </DockPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        
+                        <Border Style="{StaticResource SettingsSectionBorder}">
+                            <StackPanel>
+                                <TextBlock Text="Text &amp; Alignment" Style="{StaticResource SettingsSectionHeader}" />
+                                <TextBlock Text="Font settings and alignment." Style="{StaticResource SettingsSectionHelper}" />
+                                <Grid Style="{StaticResource SettingGrid}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition SharedSizeGroup="LabelCol" Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <Label Grid.Column="0" Grid.Row="0" Content="Vertical Align" />
+                                    <ComboBox Grid.Column="1" Grid.Row="0" Width="200" HorizontalAlignment="Left" ItemsSource="{Binding Path=ContentVerticalAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=ContentVerticalAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Where the sidebar's content sits vertically when shorter than screen." />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsTextAlign}" />
+                                    <ComboBox Grid.Column="1" Grid.Row="1" Width="200" HorizontalAlignment="Left" ItemsSource="{Binding Path=TextAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=TextAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsTextAlignTooltip}" />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="2" Content="Font" />
+                                    <ComboBox Grid.Column="1" Grid.Row="2" Width="200" HorizontalAlignment="Left" ItemsSource="{Binding Path=FontFamilyItems, Mode=OneWay}" SelectedValue="{Binding Path=FontOption, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Font used for all sidebar text.">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Path=Name, Mode=OneWay}" FontFamily="{Binding Path=Family, Mode=OneWay}" FontSize="14" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    
+                                    <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsFontSize}" />
+                                    <ComboBox Grid.Column="1" Grid.Row="3" Width="80" HorizontalAlignment="Left" ItemsSource="{Binding Path=FontSettingItems, Mode=OneWay}" DisplayMemberPath="FontSize" SelectedValue="{Binding Path=FontSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsFontSizeTooltip}" />
 
-                            <Label Grid.Column="0" Grid.Row="1" Content="Vertical Align" />
-                            <ComboBox Grid.Column="1" Grid.Row="1" ItemsSource="{Binding Path=ContentVerticalAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=ContentVerticalAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Where the sidebar's content sits vertically when it's shorter than the screen. Has no effect once content overflows; it always scrolls from the top in that case." />
+                                    <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsFontColor}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="4" HorizontalAlignment="Left" Width="200" LastChildFill="True">
+                                        <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=FontColor, Mode=OneWay}" Tag="FontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select font color." />
+                                        <TextBox Width="Auto" Text="{Binding Path=FontColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="{x:Static frame:Resources.SettingsFontColorTooltip}" />
+                                    </DockPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
 
-                            <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.SettingsTextAlign}" />
-                            <ComboBox Grid.Column="1" Grid.Row="2" ItemsSource="{Binding Path=TextAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=TextAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsTextAlignTooltip}" />
+                        <Border Style="{StaticResource SettingsSectionBorder}">
+                            <StackPanel>
+                                <TextBlock Text="Header &amp; Alerts" Style="{StaticResource SettingsSectionHeader}" />
+                                <TextBlock Text="System information header and high-load alerts." Style="{StaticResource SettingsSectionHelper}" />
+                                <Grid Style="{StaticResource SettingGrid}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition SharedSizeGroup="LabelCol" Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsShowMachineName}" />
+                                    <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding Path=ShowMachineName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsShowMachineNameTooltip}" />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsShowClock}" />
+                                    <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding Path=ShowClock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsShowClockTooltip}" />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.Settings24HourClock}" IsEnabled="{Binding Path=ShowClock, Mode=OneWay}" />
+                                    <CheckBox Grid.Column="1" Grid.Row="2" IsChecked="{Binding Path=Clock24HR, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=ShowClock, Mode=OneWay}" ToolTip="{x:Static frame:Resources.Settings24HourClockTooltip}" />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsDateFormat}" IsEnabled="{Binding Path=ShowClock, Mode=OneWay}" />
+                                    <ComboBox Grid.Column="1" Grid.Row="3" Width="200" HorizontalAlignment="Left" ItemsSource="{Binding Path=DateSettingItems}" DisplayMemberPath="Display" SelectedValue="{Binding Path=DateSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=ShowClock, Mode=OneWay}" ToolTip="{x:Static frame:Resources.SettingsDateFormatTooltip}" />
+                                    
+                                    <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsAlertFontColor}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="4" HorizontalAlignment="Left" Width="200" LastChildFill="True">
+                                        <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=AlertFontColor, Mode=OneWay}" Tag="AlertFontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select alert color." />
+                                        <TextBox Width="Auto" Text="{Binding Path=AlertFontColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="{x:Static frame:Resources.SettingsAlertFontColorTooltip}" />
+                                    </DockPanel>
 
-                            <Label Grid.Column="0" Grid.Row="3" Content="Font" />
-                            <ComboBox Grid.Column="1" Grid.Row="3" ItemsSource="{Binding Path=FontFamilyItems, Mode=OneWay}" SelectedValue="{Binding Path=FontOption, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Font used for all sidebar text. These fonts ship with the app.">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Path=Name, Mode=OneWay}" FontFamily="{Binding Path=Family, Mode=OneWay}" FontSize="14" />
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-
-                            <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsFontSize}" />
-                            <ComboBox Grid.Column="1" Grid.Row="4" ItemsSource="{Binding Path=FontSettingItems, Mode=OneWay}" DisplayMemberPath="FontSize" SelectedValue="{Binding Path=FontSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsFontSizeTooltip}" />
-
-                            <Label Grid.Column="0" Grid.Row="5" Content="{x:Static frame:Resources.SettingsFontColor}" />
-                            <DockPanel Grid.Column="1" Grid.Row="5" LastChildFill="True">
-                                <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=FontColor, Mode=OneWay}" Tag="FontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select font color from color picker." />
-                                <TextBox Width="Auto" Text="{Binding Path=FontColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="{x:Static frame:Resources.SettingsFontColorTooltip}" />
-                            </DockPanel>
-                        </Grid>
-
-                        <TextBlock Text="Alerts" FontWeight="SemiBold" FontSize="13" Foreground="#666" Margin="2,14,0,2" />
-                        <Grid Style="{StaticResource SettingGrid}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                <ColumnDefinition Width="*"></ColumnDefinition>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                            </Grid.RowDefinitions>
-
-                            <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsAlertFontColor}" />
-                            <DockPanel Grid.Column="1" Grid.Row="0" LastChildFill="True">
-                                <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=AlertFontColor, Mode=OneWay}" Tag="AlertFontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select alert font color from color picker." />
-                                <TextBox Width="Auto" Text="{Binding Path=AlertFontColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="{x:Static frame:Resources.SettingsAlertFontColorTooltip}" />
-                            </DockPanel>
-
-                            <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsAlertBlink}" />
-                            <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding Path=AlertBlink, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsAlertBlinkTooltip}" />
-                        </Grid>
-
-                        <TextBlock Text="Clock &amp; Header" FontWeight="SemiBold" FontSize="13" Foreground="#666" Margin="2,14,0,2" />
-                        <Grid Style="{StaticResource SettingGrid}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                <ColumnDefinition Width="*"></ColumnDefinition>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                            </Grid.RowDefinitions>
-
-                            <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsShowMachineName}" />
-                            <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding Path=ShowMachineName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsShowMachineNameTooltip}" />
-
-                            <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsShowClock}" />
-                            <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding Path=ShowClock, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsShowClockTooltip}" />
-
-                            <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.Settings24HourClock}" />
-                            <CheckBox Grid.Column="1" Grid.Row="2" IsChecked="{Binding Path=Clock24HR, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=ShowClock, Mode=OneWay}" ToolTip="{x:Static frame:Resources.Settings24HourClockTooltip}" />
-
-                            <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsDateFormat}" />
-                            <ComboBox Grid.Column="1" Grid.Row="3" ItemsSource="{Binding Path=DateSettingItems}" DisplayMemberPath="Display" SelectedValue="{Binding Path=DateSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Path=ShowClock, Mode=OneWay}" ToolTip="{x:Static frame:Resources.SettingsDateFormatTooltip}" />
-                        </Grid>
-
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Orientation="Vertical">
-                        <TextBlock Text="Background" FontWeight="SemiBold" FontSize="13" Foreground="#444" Margin="2,14,0,2" />
-                        <Grid Style="{StaticResource SettingGrid}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                <ColumnDefinition Width="*"></ColumnDefinition>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="32px"></RowDefinition>
-                                <RowDefinition Height="32px"></RowDefinition>
-                                <RowDefinition Height="32px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                            </Grid.RowDefinitions>
-
-                            <Label Grid.Column="0" Grid.Row="0" Content="Style" />
-                            <RadioButton Grid.Column="1" Grid.Row="0" GroupName="BGMode" Content="Solid Color" VerticalAlignment="Center" IsChecked="{Binding Path=BGModeSolid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="One flat background color of your choice." />
-                            <RadioButton Grid.Column="1" Grid.Row="1" GroupName="BGMode" Content="Windows Accent Color" VerticalAlignment="Center" IsChecked="{Binding Path=BGModeAccent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Follows the accent color from your Windows personalization settings." />
-                            <RadioButton Grid.Column="1" Grid.Row="2" GroupName="BGMode" Content="Desktop Blur (Acrylic)" VerticalAlignment="Center" IsChecked="{Binding Path=BGModeBlur, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Real Windows acrylic, the same live blur as the taskbar and Start menu: the desktop behind the sidebar is blurred in real time and tinted with the color below. Needs Windows 10 (1803) or newer." />
-
-                            <Label Grid.Column="0" Grid.Row="3" Content="Color" IsEnabled="{Binding Path=BGModeAccent, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" />
-                            <DockPanel Grid.Column="1" Grid.Row="3" IsEnabled="{Binding Path=BGModeAccent, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}" LastChildFill="True">
-                                <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=BGColor, Mode=OneWay}" Tag="BGColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select the color from a color picker." />
-                                <TextBox Width="Auto" Text="{Binding Path=BGColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="The background color. In Desktop Blur mode this is the tint over the blurred desktop." />
-                            </DockPanel>
-
-                            <Label Grid.Column="0" Grid.Row="4" Content="Opacity" />
-                            <DockPanel Grid.Column="1" Grid.Row="4">
-                                <TextBox Text="{Binding ElementName=BGOpacitySlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumberBox_PreviewTextInput" />
-                                <Slider x:Name="BGOpacitySlider" Value="{Binding Path=BGOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.01" Maximum="1.0" LargeChange="0.1" TickFrequency="0.01" ToolTip="How solid the background is. Lower values are more see-through; in Desktop Blur mode, lower shows more of the blur." />
-                            </DockPanel>
-
-                            </Grid>
-
-                        <TextBlock Text="Panels" FontWeight="SemiBold" FontSize="13" Foreground="#666" Margin="2,14,0,2" />
-                        <Grid Style="{StaticResource SettingGrid}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                <ColumnDefinition Width="*"></ColumnDefinition>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                                <RowDefinition Height="38px"></RowDefinition>
-                            </Grid.RowDefinitions>
-
-                            <Label Grid.Column="0" Grid.Row="0" Content="Card Panels" />
-                            <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding Path=UseCardStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show each monitor group as a rounded card, similar to gaming dashboards. The background settings above still show through between and behind the cards." />
-
-                            <Label Grid.Column="0" Grid.Row="1" Content="Colored Bars" />
-                            <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{Binding Path=ShowAccentBars, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show a slim colored load bar under percentage readings. Works with or without card panels." />
-
-<Label Grid.Column="0" Grid.Row="2" Content="Accent Color" />
-                            <DockPanel Grid.Column="1" Grid.Row="2" LastChildFill="True">
-                                <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=AccentColor, Mode=OneWay}" Tag="AccentColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select accent color from color picker." />
-                                <TextBox Width="Auto" Text="{Binding Path=AccentColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="Accent color used for load bars (and card icons when card panels are on)." />
-                            </DockPanel>
-                        </Grid>
-
-                        </StackPanel>
-                    </Grid>
+                                    <Label Grid.Column="0" Grid.Row="5" Content="{x:Static frame:Resources.SettingsAlertBlink}" />
+                                    <CheckBox Grid.Column="1" Grid.Row="5" IsChecked="{Binding Path=AlertBlink, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsAlertBlinkTooltip}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </ScrollViewer>
             </TabItem>
             <TabItem Header="{x:Static frame:Resources.SettingsMonitorsTab}">
-                <StackPanel Style="{StaticResource VerticalPanel}">
-                    <StackPanel Style="{StaticResource SettingTitle}">
-                        <TextBlock Text="{x:Static frame:Resources.SettingsMonitorsSubtitle1}" />
-                        <TextBlock Text="{x:Static frame:Resources.SettingsMonitorsSubtitle2}" />
+                <DockPanel LastChildFill="True" Margin="0,0,10,10">
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock Text="Monitors Configuration" Style="{StaticResource SettingsSectionHeader}" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsMonitorsSubtitle1}" Style="{StaticResource SettingsSectionHelper}" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsMonitorsSubtitle2}" Style="{StaticResource SettingsSectionHelper}" Margin="0,0,0,10" />
                     </StackPanel>
-                    <DataGrid ItemsSource="{Binding Path=MonitorConfig, Mode=OneWay}" Style="{StaticResource MonitorGrid}">
+                    
+                    <DataGrid ItemsSource="{Binding Path=MonitorConfig, Mode=OneWay}" Style="{StaticResource MonitorGrid}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column" SelectionMode="Single">
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="{x:Static frame:Resources.SettingsMonitorsColumn1}" HeaderStyle="{StaticResource MonitorGridHeaderCenter}">
+                            <DataGridTemplateColumn Header="{x:Static frame:Resources.SettingsMonitorsColumn1}" HeaderStyle="{StaticResource MonitorGridHeaderCenter}" Width="80">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="{x:Type monitor:MonitorConfig}">
                                         <CheckBox IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{x:Static frame:Resources.SettingsMonitorEnabledTooltip}" />
@@ -362,12 +392,12 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="70">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="{x:Type monitor:MonitorConfig}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Button Content="&#x25B2;" Width="22" Margin="0,0,2,0" Click="MonitorUp_Click" />
-                                            <Button Content="&#x25BC;" Width="22" Click="MonitorDown_Click" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Button Content="&#x25B2;" Width="22" Height="22" Margin="0,0,4,0" Click="MonitorUp_Click" ToolTip="Move Up" />
+                                            <Button Content="&#x25BC;" Width="22" Height="22" Click="MonitorDown_Click" ToolTip="Move Down" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -375,7 +405,7 @@
                         </DataGrid.Columns>
                         <DataGrid.RowDetailsTemplate>
                             <DataTemplate>
-                                <Border Style="{StaticResource MonitorDetailsBorder}">
+                                <Border Style="{StaticResource MonitorDetailsBorder}" Margin="10" Padding="10" Background="#F1F1F1" CornerRadius="4">
                                     <StackPanel Style="{StaticResource VerticalPanel}">
                                         <StackPanel>
                                             <StackPanel.Style>
@@ -389,6 +419,7 @@
                                                 </Style>
                                             </StackPanel.Style>
                                             <TextBlock Text="{x:Static frame:Resources.SettingsUsageNote}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                            
                                             <ListView ItemsSource="{Binding Path=HardwareOC, Mode=OneWay}" ItemContainerStyle="{StaticResource MonitorHardwareItem}" Style="{StaticResource HardwareGrid}">
                                                 <ListView.View>
                                                     <GridView AllowsColumnReorder="False">
@@ -399,21 +430,21 @@
                                                                 </DataTemplate>
                                                             </GridViewColumn.CellTemplate>
                                                         </GridViewColumn>
-                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageProviderColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="190">
+                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageProviderColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="150">
                                                             <GridViewColumn.CellTemplate>
                                                                 <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
                                                                     <TextBox Text="{Binding Path=Name, Mode=TwoWay}" Style="{StaticResource MonitorHardwareText}" ToolTip="{x:Static frame:Resources.SettingsHardwareNameTooltip}" />
                                                                 </DataTemplate>
                                                             </GridViewColumn.CellTemplate>
                                                         </GridViewColumn>
-                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageCustomPathColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="190">
+                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageCustomPathColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="160">
                                                             <GridViewColumn.CellTemplate>
                                                                 <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
                                                                     <TextBox Text="{Binding Path=CustomPath, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Style="{StaticResource MonitorHardwareText}" ToolTip="{x:Static frame:Resources.SettingsUsageCustomPathTooltip}" />
                                                                 </DataTemplate>
                                                             </GridViewColumn.CellTemplate>
                                                         </GridViewColumn>
-                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageShowExtraColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="110">
+                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageShowExtraColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="80">
                                                             <GridViewColumn.CellTemplate>
                                                                 <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
                                                                     <CheckBox IsChecked="{Binding Path=ShowExtra, TargetNullValue=True, FallbackValue=True, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -431,19 +462,19 @@
                                                                 </DataTemplate>
                                                             </GridViewColumn.CellTemplate>
                                                         </GridViewColumn>
-                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageStatusColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="170">
+                                                        <GridViewColumn Header="{x:Static frame:Resources.SettingsUsageStatusColumn}" HeaderContainerStyle="{StaticResource MonitorHardwareHeader}" Width="150">
                                                             <GridViewColumn.CellTemplate>
                                                                 <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                    <TextBlock Text="{Binding Path=Status, Mode=OneWay}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                                                                    <TextBlock Text="{Binding Path=Status, Mode=OneWay}" VerticalAlignment="Center" Margin="5,0,0,0" TextTrimming="CharacterEllipsis" />
                                                                 </DataTemplate>
                                                             </GridViewColumn.CellTemplate>
                                                         </GridViewColumn>
-                                                        <GridViewColumn>
+                                                        <GridViewColumn Width="70">
                                                             <GridViewColumn.CellTemplate>
                                                                 <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                    <StackPanel Orientation="Horizontal">
-                                                                        <Button Content="&#x25B2;" Width="22" Margin="0,0,2,0" Click="HardwareUp_Click" />
-                                                                        <Button Content="&#x25BC;" Width="22" Click="HardwareDown_Click" />
+                                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                                        <Button Content="&#x25B2;" Width="22" Height="22" Margin="0,0,4,0" Click="HardwareUp_Click" ToolTip="Move Up" />
+                                                                        <Button Content="&#x25BC;" Width="22" Height="22" Click="HardwareDown_Click" ToolTip="Move Down" />
                                                                     </StackPanel>
                                                                 </DataTemplate>
                                                             </GridViewColumn.CellTemplate>
@@ -479,12 +510,12 @@
                                                             </DataTemplate>
                                                         </GridViewColumn.CellTemplate>
                                                     </GridViewColumn>
-                                                    <GridViewColumn>
+                                                    <GridViewColumn Width="70">
                                                         <GridViewColumn.CellTemplate>
                                                             <DataTemplate DataType="{x:Type monitor:HardwareConfig}">
-                                                                <StackPanel Orientation="Horizontal">
-                                                                    <Button Content="&#x25B2;" Width="22" Margin="0,0,2,0" Click="HardwareUp_Click" />
-                                                                    <Button Content="&#x25BC;" Width="22" Click="HardwareDown_Click" />
+                                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                                    <Button Content="&#x25B2;" Width="22" Height="22" Margin="0,0,4,0" Click="HardwareUp_Click" ToolTip="Move Up" />
+                                                                    <Button Content="&#x25BC;" Width="22" Height="22" Click="HardwareDown_Click" ToolTip="Move Down" />
                                                                 </StackPanel>
                                                             </DataTemplate>
                                                         </GridViewColumn.CellTemplate>
@@ -573,88 +604,108 @@
                             </DataTemplate>
                         </DataGrid.RowDetailsTemplate>
                     </DataGrid>
-                </StackPanel>
+                </DockPanel>
             </TabItem>
             <TabItem Header="{x:Static frame:Resources.SettingsHotkeysTab}">
-                <Grid Style="{StaticResource SettingGrid}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"></ColumnDefinition>
-                        <ColumnDefinition Width="50"></ColumnDefinition>
-                        <ColumnDefinition Width="*"></ColumnDefinition>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                    </Grid.RowDefinitions>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,10,10">
+                        <Border Style="{StaticResource SettingsSectionBorder}">
+                            <StackPanel>
+                                <TextBlock Text="Keyboard Shortcuts" Style="{StaticResource SettingsSectionHeader}" />
+                                <TextBlock Text="Click the record button then press a key combination to bind an action." Style="{StaticResource SettingsSectionHelper}" />
+                                <Grid Style="{StaticResource SettingGrid}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition SharedSizeGroup="LabelCol" Width="Auto" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                    </Grid.RowDefinitions>
 
-                    <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsHotkeyToggle}" />
-                    <ToggleButton Grid.Column="1" Grid.Row="0" Click="BindToggle_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
-                    <TextBox Grid.Column="2" Grid.Row="0" Text="{Binding Path=ToggleKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" />
+                                    <Label Grid.Column="0" Grid.Row="0" Content="{x:Static frame:Resources.SettingsHotkeyToggle}" />
+                                    <ToggleButton Grid.Column="1" Grid.Row="0" Content="Record" Click="BindToggle_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
+                                    <TextBox Grid.Column="2" Grid.Row="0" Text="{Binding Path=ToggleKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" IsReadOnly="True" />
 
-                    <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsHotkeyShow}" />
-                    <ToggleButton Grid.Column="1" Grid.Row="1" Click="BindShow_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
-                    <TextBox Grid.Column="2" Grid.Row="1" Text="{Binding Path=ShowKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" />
+                                    <Label Grid.Column="0" Grid.Row="1" Content="{x:Static frame:Resources.SettingsHotkeyShow}" />
+                                    <ToggleButton Grid.Column="1" Grid.Row="1" Content="Record" Click="BindShow_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
+                                    <TextBox Grid.Column="2" Grid.Row="1" Text="{Binding Path=ShowKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" IsReadOnly="True" />
 
-                    <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.SettingsHotkeyHide}" />
-                    <ToggleButton Grid.Column="1" Grid.Row="2" Click="BindHide_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
-                    <TextBox Grid.Column="2" Grid.Row="2" Text="{Binding Path=HideKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" />
+                                    <Label Grid.Column="0" Grid.Row="2" Content="{x:Static frame:Resources.SettingsHotkeyHide}" />
+                                    <ToggleButton Grid.Column="1" Grid.Row="2" Content="Record" Click="BindHide_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
+                                    <TextBox Grid.Column="2" Grid.Row="2" Text="{Binding Path=HideKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" IsReadOnly="True" />
 
-                    <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsHotkeyCycleEdge}" />
-                    <ToggleButton Grid.Column="1" Grid.Row="3" Click="BindCycleEdge_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
-                    <TextBox Grid.Column="2" Grid.Row="3" Text="{Binding Path=CycleEdgeKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" />
+                                    <Label Grid.Column="0" Grid.Row="3" Content="{x:Static frame:Resources.SettingsHotkeyCycleEdge}" />
+                                    <ToggleButton Grid.Column="1" Grid.Row="3" Content="Record" Click="BindCycleEdge_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
+                                    <TextBox Grid.Column="2" Grid.Row="3" Text="{Binding Path=CycleEdgeKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" IsReadOnly="True" />
 
-                    <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsHotkeyCycleScreen}" />
-                    <ToggleButton Grid.Column="1" Grid.Row="4" Click="BindCycleScreen_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
-                    <TextBox Grid.Column="2" Grid.Row="4" Text="{Binding Path=CycleScreenKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" />
+                                    <Label Grid.Column="0" Grid.Row="4" Content="{x:Static frame:Resources.SettingsHotkeyCycleScreen}" />
+                                    <ToggleButton Grid.Column="1" Grid.Row="4" Content="Record" Click="BindCycleScreen_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
+                                    <TextBox Grid.Column="2" Grid.Row="4" Text="{Binding Path=CycleScreenKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" IsReadOnly="True" />
 
-                    <Label Grid.Column="0" Grid.Row="5" Content="{x:Static frame:Resources.SettingsHotkeyReserveSpace}" />
-                    <ToggleButton Grid.Column="1" Grid.Row="5" Click="BindReserveSpace_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
-                    <TextBox Grid.Column="2" Grid.Row="5" Text="{Binding Path=ReserveSpaceKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" />
+                                    <Label Grid.Column="0" Grid.Row="5" Content="{x:Static frame:Resources.SettingsHotkeyReserveSpace}" />
+                                    <ToggleButton Grid.Column="1" Grid.Row="5" Content="Record" Click="BindReserveSpace_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
+                                    <TextBox Grid.Column="2" Grid.Row="5" Text="{Binding Path=ReserveSpaceKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" IsReadOnly="True" />
 
-                    <Label Grid.Column="0" Grid.Row="6" Content="{x:Static frame:Resources.SettingsHotkeyReload}" />
-                    <ToggleButton Grid.Column="1" Grid.Row="6" Click="BindReload_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
-                    <TextBox Grid.Column="2" Grid.Row="6" Text="{Binding Path=ReloadKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" />
+                                    <Label Grid.Column="0" Grid.Row="6" Content="{x:Static frame:Resources.SettingsHotkeyReload}" />
+                                    <ToggleButton Grid.Column="1" Grid.Row="6" Content="Record" Click="BindReload_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
+                                    <TextBox Grid.Column="2" Grid.Row="6" Text="{Binding Path=ReloadKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" IsReadOnly="True" />
 
-                    <Label Grid.Column="0" Grid.Row="7" Content="{x:Static frame:Resources.SettingsHotkeyClose}" />
-                    <ToggleButton Grid.Column="1" Grid.Row="7" Click="BindClose_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
-                    <TextBox Grid.Column="2" Grid.Row="7" Text="{Binding Path=CloseKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" />
-                </Grid>
+                                    <Label Grid.Column="0" Grid.Row="7" Content="{x:Static frame:Resources.SettingsHotkeyClose}" />
+                                    <ToggleButton Grid.Column="1" Grid.Row="7" Content="Record" Click="BindClose_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource HotkeyToggle}" />
+                                    <TextBox Grid.Column="2" Grid.Row="7" Text="{Binding Path=CloseKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" Style="{StaticResource HotkeyLabel}" IsReadOnly="True" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
             <TabItem Header="{x:Static frame:Resources.SettingsOverlayTab}">
-                <Grid Style="{StaticResource SettingGrid}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"></ColumnDefinition>
-                        <ColumnDefinition Width="*"></ColumnDefinition>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="38px"></RowDefinition>
-                        <RowDefinition Height="Auto"></RowDefinition>
-                    </Grid.RowDefinitions>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,10,10">
+                        <Border Style="{StaticResource SettingsSectionBorder}">
+                            <StackPanel>
+                                <TextBlock Text="FPS Overlay" Style="{StaticResource SettingsSectionHeader}" />
+                                <TextBlock Text="Shows a small, click-through FPS counter at a screen corner by reading RivaTuner Statistics Server's (RTSS) live frame stats. Requires RTSS to be installed and running." Style="{StaticResource SettingsSectionHelper}" />
+                                <Grid Style="{StaticResource SettingGrid}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition SharedSizeGroup="LabelCol" Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
 
-                    <Label Grid.Column="0" Grid.Row="0" Content="Show FPS Overlay" />
-                    <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding Path=ShowFpsOverlay, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Shows a small, click-through FPS counter at a screen corner by reading RivaTuner Statistics Server's (RTSS) live frame stats. Requires RTSS to be installed and running - SideMon does not capture frames itself." />
+                                    <Label Grid.Column="0" Grid.Row="0" Content="Show FPS Overlay" />
+                                    <CheckBox Grid.Column="1" Grid.Row="0" IsChecked="{Binding Path=ShowFpsOverlay, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Toggle FPS overlay." />
 
-                    <Label Grid.Column="0" Grid.Row="1" Content="Overlay Corner" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}" />
-                    <ComboBox Grid.Column="1" Grid.Row="1" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}" ItemsSource="{Binding Path=OverlayCornerItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=FpsOverlayCorner, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Which screen corner the FPS overlay appears in." />
+                                    <Label Grid.Column="0" Grid.Row="1" Content="Overlay Corner" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}" />
+                                    <ComboBox Grid.Column="1" Grid.Row="1" Width="200" HorizontalAlignment="Left" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}" ItemsSource="{Binding Path=OverlayCornerItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=FpsOverlayCorner, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Which screen corner the FPS overlay appears in." />
 
-                    <Label Grid.Column="0" Grid.Row="2" Content="Overlay Opacity" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}" />
-                    <Slider Grid.Column="1" Grid.Row="2" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}" Minimum="0.2" Maximum="1.0" Value="{Binding Path=FpsOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Overlay transparency." />
+                                    <Label Grid.Column="0" Grid.Row="2" Content="Overlay Opacity" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="2" HorizontalAlignment="Left" Width="250" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}">
+                                        <TextBlock DockPanel.Dock="Right" Text="(0-1)" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="#888" />
+                                        <TextBox DockPanel.Dock="Right" Text="{Binding Path=FpsOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F2}}" Width="40" Margin="5,0,0,0" PreviewTextInput="NumberBox_PreviewTextInput" />
+                                        <Slider Value="{Binding Path=FpsOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.2" Maximum="1.0" ToolTip="Overlay transparency." />
+                                    </DockPanel>
 
-                    <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3" Margin="0,16,0,0" Opacity="0.75" FontStyle="Italic" TextWrapping="Wrap"
-                               Text="RTSS not detected. Install and run RivaTuner Statistics Server for the overlay to show live FPS; without it, the overlay shows &quot;No RTSS&quot;."
-                               Visibility="{Binding Path=RTSSDetected, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
-                    <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3" Margin="0,16,0,0" Opacity="0.75" FontStyle="Italic"
-                               Text="RTSS detected. The overlay will show live FPS for the app currently in focus."
-                               Visibility="{Binding Path=RTSSDetected, Converter={StaticResource BoolToVisibility}}" />
-                </Grid>
+                                    <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3" Margin="0,16,0,0" Style="{StaticResource SettingsHint}" TextWrapping="Wrap" Text="RTSS not detected. Install and run RivaTuner Statistics Server for the overlay to show live FPS; without it, the overlay shows &quot;No RTSS&quot;." Visibility="{Binding Path=RTSSDetected, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}" />
+                                    <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3" Margin="0,16,0,0" Style="{StaticResource SettingsHint}" Text="RTSS detected. The overlay will show live FPS for the app currently in focus." Visibility="{Binding Path=RTSSDetected, Converter={StaticResource BoolToVisibility}}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
     </DockPanel>

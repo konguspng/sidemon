@@ -245,4 +245,32 @@
             <Style TargetType="{x:Type Button}" BasedOn="{StaticResource WindowButton_SM}" />
         </Style.Resources>
     </Style>
+
+    <Style x:Key="SettingsSectionBorder" TargetType="{x:Type Border}">
+        <Setter Property="BorderBrush" Value="#E0E0E0" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="#FAFAFA" />
+        <Setter Property="Margin" Value="0,0,0,16" />
+        <Setter Property="Padding" Value="12,12,12,12" />
+    </Style>
+    <Style x:Key="SettingsSectionHeader" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="#333333" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style x:Key="SettingsSectionHelper" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="#666666" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+    <Style x:Key="SettingsHint" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="#888888" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,2,0,4" />
+        <Setter Property="FontStyle" Value="Italic" />
+    </Style>
 </ResourceDictionary>

@@ -1091,7 +1091,7 @@ namespace SidebarDiagnostics.Framework {
         /// </summary>
         public static string SettingsAdvancedTab {
             get {
-                return ResourceManager.GetString("SettingsAdvancedTab", resourceCulture);
+                return "Layout";
             }
         }
         
@@ -1334,7 +1334,7 @@ namespace SidebarDiagnostics.Framework {
         /// </summary>
         public static string SettingsCustomizeTab {
             get {
-                return ResourceManager.GetString("SettingsCustomizeTab", resourceCulture);
+                return "Appearance";
             }
         }
         
