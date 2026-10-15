@@ -21,6 +21,8 @@
          folder structure -->
     <Deterministic>true</Deterministic>
     <PathMap>$(MSBuildProjectDirectory)=SidebarDiagnostics</PathMap>
+    <PublishSelfContained>true</PublishSelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 
     <!-- the SDK also auto-embeds a source-link block (repo-relative git metadata for
          IDE debugging) that separately carries the raw local build path; this app
@@ -42,7 +44,23 @@
   <ItemGroup>
     <Resource Include="Sidebar.ico" />
     <Resource Include="Settings.ico" />
-    <Resource Include="Fonts\*.ttf" />
+    <Resource Include="Fonts\BarlowCondensed-Bold.ttf" />
+    <Resource Include="Fonts\BarlowCondensed-Regular.ttf" />
+    <Resource Include="Fonts\ChakraPetch-Bold.ttf" />
+    <Resource Include="Fonts\ChakraPetch-Regular.ttf" />
+    <Resource Include="Fonts\Exo2-Bold.ttf" />
+    <Resource Include="Fonts\Exo2-Regular.ttf" />
+    <Resource Include="Fonts\Inter-Bold.ttf" />
+    <Resource Include="Fonts\Inter-Regular.ttf" />
+    <Resource Include="Fonts\JetBrainsMono-Bold.ttf" />
+    <Resource Include="Fonts\JetBrainsMono-Regular.ttf" />
+    <Resource Include="Fonts\Oxanium-Bold.ttf" />
+    <Resource Include="Fonts\Oxanium-Regular.ttf" />
+    <Resource Include="Fonts\Rajdhani-Bold.ttf" />
+    <Resource Include="Fonts\Rajdhani-Regular.ttf" />
+    <Resource Include="Fonts\ShareTechMono-Regular.ttf" />
+    <Resource Include="Fonts\TitilliumWeb-Bold.ttf" />
+    <Resource Include="Fonts\TitilliumWeb-Regular.ttf" />
     <None Include="ChangeLog.json" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
