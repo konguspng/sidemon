@@ -239,8 +239,8 @@
                 <Setter Property="Padding" Value="0" />
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=UseCardStyle, Mode=OneWay}" Value="True">
-                        <Setter Property="Background" Value="#4C000000" />
-                        <Setter Property="BorderBrush" Value="#26FFFFFF" />
+                        <Setter Property="Background" Value="{Binding Source={x:Static frame:Settings.Instance}, Path=CardBackgroundBrush, Mode=OneWay}" />
+                        <Setter Property="BorderBrush" Value="{Binding Source={x:Static frame:Settings.Instance}, Path=CardBorderBrush, Mode=OneWay}" />
                         <Setter Property="BorderThickness" Value="1" />
                         <Setter Property="CornerRadius" Value="8" />
                         <Setter Property="Padding" Value="12,9,12,11" />

@@ -1,5 +1,20 @@
 [
   {
+    "Version": "4.5.0",
+    "Changes": [
+      "Send log to developer: Settings > General has a button that shows exactly what would be sent (error details, versions; your username, computer name and paths removed) and sends it only when you press Send. After a crash SideMon offers the same, defaulting to No. The log is never opened for you.",
+      "AI Usage: when a login expires the last known values stay on screen (dimmed, with their age). Claude has a Renew button and an optional automatic renew; every provider gets a Sign in again button on the sidebar card and in Settings that opens the CLI's own login in a terminal for you to complete.",
+      "Shrink automatically to fit now measures the usable height of the selected monitor (excluding the taskbar, full height when the taskbar auto-hides, per-monitor DPI), applies immediately, and re-fits when content grows.",
+      "Language changes apply without restarting SideMon (Settings reopens in the new language). Arabic and Turkish are now selectable.",
+      "Five more fonts: Barlow Condensed, Exo 2, Inter, JetBrains Mono and Oxanium.",
+      "Desktop Blur has a Blur Amount slider and frosted card panels.",
+      "Lighter: lower memory, no idle redraws, polling pauses while the PC is locked or asleep.",
+      "Fixed: SideMon crashed on every first run (fresh install or no saved settings) with \"Sidebar.ico is not a valid value for Boolean\". This affected 4.3.1 through 4.4.0.",
+      "Fixed: starting a second copy of SideMon crashed with an error instead of exiting quietly.",
+      "Fixed: if the hardware sensor library fails to start, SideMon now still shows RAM, drives, network and AI Usage, with a hint to run as administrator, instead of an empty sidebar."
+    ]
+  },
+  {
     "Version": "4.4.0",
     "Changes": [
       "Desktop Blur is now real Windows acrylic (live, like the taskbar) instead of a blurred screenshot. Blur Strength/Width/Edge Fade settings removed.",

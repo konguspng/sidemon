@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
+using System.Windows.Input;
 using SidebarDiagnostics.Framework;
 
 namespace SidebarDiagnostics.Monitoring
@@ -118,15 +120,42 @@ namespace SidebarDiagnostics.Monitoring
     {
         private string _originalName;
         private bool? _showExtra;
+        private HardwareConfig _hardwareConfig;
+        private bool _showSignInButton;
 
-        public UsageMonitor(IUsageProvider provider, string name, bool? showExtra, MetricConfig[] metrics, bool showName, bool roundAll, double alertValue) : base(provider.Id, name, showName)
+        public bool ShowSignInButton => _showSignInButton;
+
+        public Visibility SignInButtonVisibility
+        {
+            get
+            {
+                if (!_showSignInButton) return Visibility.Collapsed;
+                bool isSigningIn = UsageRegistry.IsSigningIn(_provider.Id);
+                var snapshot = UsageRegistry.GetSnapshot(_provider.Id);
+                bool isExpired = snapshot.Status == UsageStatus.AuthExpired || snapshot.Status == UsageStatus.NotLoggedIn;
+                return (isSigningIn || isExpired) ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        public ICommand SignInCommand { get; }
+
+        public void LaunchSignIn()
+        {
+            UsageRegistry.LaunchLogin(_provider.Id);
+            Update();
+        }
+
+        public UsageMonitor(IUsageProvider provider, HardwareConfig config, string name, bool? showExtra, MetricConfig[] metrics, bool showName, bool roundAll, double alertValue, bool showSignInButton = true) : base(provider.Id, name, showName)
         {
             _originalName = name;
+            _hardwareConfig = config;
             _provider = provider;
             _showExtra = showExtra;
             _metricConfig = metrics;
             _roundAll = roundAll;
             _alertValue = alertValue;
+            _showSignInButton = showSignInButton;
+            SignInCommand = new SidebarDiagnostics.Commands.ActionCommand(() => LaunchSignIn());
 
             Metrics = new iMetric[0];
         }
@@ -136,6 +165,7 @@ namespace SidebarDiagnostics.Monitoring
             bool _showName = parameters.GetValue<bool>(ParamKey.HardwareNames);
             bool _roundAll = parameters.GetValue<bool>(ParamKey.RoundAll);
             int _alert = parameters.GetValue<int>(ParamKey.UsageAlert);
+            bool _showSignIn = parameters.Any(p => p.Key == ParamKey.ShowSignInButton) ? parameters.GetValue<bool>(ParamKey.ShowSignInButton) : true;
 
             List<iMonitor> _list = new List<iMonitor>();
 
@@ -160,7 +190,7 @@ namespace SidebarDiagnostics.Monitoring
             {
                 string _name = string.IsNullOrEmpty(_item.c.Name) ? _item.provider.DisplayName : _item.c.Name;
 
-                _list.Add(new UsageMonitor(_item.provider, _name, _item.c.ShowExtra, metrics, _showName, _roundAll, _alert));
+                _list.Add(new UsageMonitor(_item.provider, _item.c, _name, _item.c.ShowExtra, metrics, _showName, _roundAll, _alert, _showSignIn));
             }
 
             return _list.ToArray();
@@ -242,9 +272,33 @@ namespace SidebarDiagnostics.Monitoring
                 DisposeLater(_old);
             }
 
+            if (_snapshot.Status == UsageStatus.AuthExpired && _provider.Id == "AIUsage_Claude" && _hardwareConfig != null && _hardwareConfig.AutoRenew)
+            {
+                var claude = (Providers.ClaudeProvider)_provider;
+                if (claude.AutoRenewAttempts < 3 && (DateTimeOffset.Now - claude.LastAutoRenewTime).TotalMinutes >= 30)
+                {
+                    claude.LastAutoRenewTime = DateTimeOffset.Now;
+                    claude.AutoRenewAttempts++;
+                    System.Threading.Tasks.Task.Run(async () => {
+                        await claude.RunCmdAsync("auth status", 30);
+                        UsageRegistry.SetCustomPath(claude.Id, claude.CustomPath); // trigger immediate poll logic
+                        UsageRegistry.PollIfDue(claude);
+                    });
+                }
+            }
+
+            NotifyPropertyChanged("SignInButtonVisibility");
+
             if (_statusRow)
             {
-                _currentRows[0].SetNote(_snapshot.HasAttempt ? UsageRegistry.StatusToText(_snapshot.Status) : Resources.UsageLoading);
+                if (UsageRegistry.IsSigningIn(_provider.Id))
+                {
+                    _currentRows[0].SetNote(Resources.UsageWaitingForSignIn);
+                }
+                else
+                {
+                    _currentRows[0].SetNote(_snapshot.HasAttempt ? UsageRegistry.StatusToText(_snapshot.Status) : Resources.UsageLoading);
+                }
 
                 return;
             }
@@ -268,8 +322,19 @@ namespace SidebarDiagnostics.Monitoring
                         if (_snapshot.IsStale)
                         {
                             string ageText = FormatAge(_snapshot.LastGoodAt);
-                            string staleText = string.Format(Resources.SettingsUsageStaleNote, ageText);
-                            _suffix = string.IsNullOrEmpty(_suffix) ? staleText : string.Format("{0} ({1})", _suffix, staleText);
+                            if (UsageRegistry.IsSigningIn(_provider.Id))
+                            {
+                                _suffix = Resources.UsageWaitingForSignIn;
+                            }
+                            else if (_snapshot.Status == UsageStatus.AuthExpired && _provider.Id == "AIUsage_Claude")
+                            {
+                                _suffix = string.Format(Resources.UsageClaudeExpiredStaleNote, ageText);
+                            }
+                            else
+                            {
+                                string staleText = string.Format(Resources.SettingsUsageStaleNote, ageText);
+                                _suffix = string.IsNullOrEmpty(_suffix) ? staleText : string.Format("{0} ({1})", _suffix, staleText);
+                            }
                         }
 
                         _currentRows[i].SetUsage(_window.UsedPercent.Value, _suffix);
@@ -394,9 +459,9 @@ namespace SidebarDiagnostics.Monitoring
         {
             if (!lastGoodAt.HasValue) return "unknown";
             TimeSpan _age = DateTimeOffset.Now - lastGoodAt.Value;
-            if (_age.TotalDays >= 1d) return string.Format("{0}d {1}h", (int)_age.TotalDays, _age.Hours);
-            if (_age.TotalHours >= 1d) return string.Format("{0}h {1}m", (int)_age.TotalHours, _age.Minutes);
-            if (_age.TotalMinutes >= 1d) return string.Format("{0}m", (int)_age.TotalMinutes);
+            if (_age.TotalDays >= 1d) return string.Format("{0}d {1}h ago", (int)_age.TotalDays, _age.Hours);
+            if (_age.TotalHours >= 1d) return string.Format("{0}h {1}m ago", (int)_age.TotalHours, _age.Minutes);
+            if (_age.TotalMinutes >= 1d) return string.Format("{0}m ago", (int)_age.TotalMinutes);
             return "just now";
         }
 

@@ -11,7 +11,7 @@ using SidebarDiagnostics.Monitoring;
 
 namespace SidebarDiagnostics.Monitoring.Providers
 {
-    internal static class ProviderHelper
+    public static class ProviderHelper
     {
         public static string ResolvePath(string path)
         {
@@ -39,7 +39,12 @@ namespace SidebarDiagnostics.Monitoring.Providers
 
                 if (File.Exists(path))
                 {
-                    return path;
+                    if (fileNames == null || fileNames.Length == 0) return path;
+                    string fileName = Path.GetFileName(path);
+                    foreach (var fn in fileNames)
+                    {
+                        if (string.Equals(fn, fileName, StringComparison.OrdinalIgnoreCase)) return path;
+                    }
                 }
 
                 if (Directory.Exists(path))
@@ -68,7 +73,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
             return false;
         }
 
-        public static readonly HttpClient Client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        public static HttpClient Client { get; set; } = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
     }
 
     public class ClaudeProvider : IUsageProvider
@@ -77,6 +82,69 @@ namespace SidebarDiagnostics.Monitoring.Providers
         public string DisplayName => "Claude Code";
 
         public string CustomPath { get; set; }
+
+        public string GetExePath()
+        {
+            var custom = ProviderHelper.ResolveCustomFile(CustomPath, "claude.cmd", "claude.exe", "claude");
+            if (custom != null) return custom;
+            if (ProviderHelper.IsOnPath("claude")) return "claude";
+            if (ProviderHelper.IsOnPath("claude.cmd")) return "claude.cmd";
+            return null;
+        }
+
+        public async Task<bool> RunCmdAsync(string args, int timeoutSec)
+        {
+            var exe = GetExePath();
+            if (exe == null) return false;
+
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSec));
+                var psi = new ProcessStartInfo
+                {
+                    FileName = exe,
+                    Arguments = args,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardInput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                Process process = null;
+                try {
+                    process = Process.Start(psi);
+                } catch { return false; }
+                if (process == null) return false;
+
+                try
+                {
+                    process.StandardInput.Close();
+                    // Drain output to prevent deadlock
+                    var outTask = process.StandardOutput.ReadToEndAsync();
+                    var errTask = process.StandardError.ReadToEndAsync();
+                    
+                    await process.WaitForExitAsync(cts.Token);
+                    return process.ExitCode == 0;
+                }
+                catch (OperationCanceledException)
+                {
+                    return false;
+                }
+                finally
+                {
+                    try { if (!process.HasExited) process.Kill(true); } catch { }
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        
+        public long LastSeenExpiredMs = 0;
+        public int AutoRenewAttempts = 0;
+        public DateTimeOffset LastAutoRenewTime = DateTimeOffset.MinValue;
 
         // Custom path first, then CLAUDE_CONFIG_DIR (where Claude Code keeps its state when
         // it is set), then the default %USERPROFILE%\.claude. First existing file wins.
@@ -146,6 +214,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
                         if (oauth.TryGetProperty("expiresAt", out var exp) && exp.ValueKind == JsonValueKind.Number && exp.TryGetInt64(out long expMs)
                             && DateTimeOffset.FromUnixTimeMilliseconds(expMs) <= DateTimeOffset.UtcNow.AddSeconds(30))
                         {
+                            if (expMs != LastSeenExpiredMs) { LastSeenExpiredMs = expMs; AutoRenewAttempts = 0; }
                             var stale = UsageResult.Fail(UsageStatus.AuthExpired);
                             stale.RetryIn = TimeSpan.FromSeconds(30);
                             return stale;
@@ -610,6 +679,235 @@ namespace SidebarDiagnostics.Monitoring.Providers
         public Task<UsageResult> FetchAsync(CancellationToken ct)
         {
             return Task.FromResult(UsageResult.Fail(UsageStatus.NoUsageApi));
+        }
+    }
+
+    public interface ILoginLauncher
+    {
+        ProcessStartInfo BuildProcessStartInfo(string providerId);
+        Process Launch(string providerId);
+    }
+
+    public class DefaultLoginLauncher : ILoginLauncher
+    {
+        public static Func<string, ProcessStartInfo> CustomBuilder { get; set; }
+        public static Func<ProcessStartInfo, Process> ProcessStarter { get; set; } = psi => Process.Start(psi);
+
+        public static bool IsValidExecutable(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            try
+            {
+                string resolved = ProviderHelper.ResolvePath(path.Trim().Trim('"'));
+                if (!File.Exists(resolved)) return false;
+
+                // the path ends up inside a `cmd /k` / Windows Terminal command line of an
+                // elevated process: refuse anything cmd or wt would interpret as syntax
+                if (resolved.IndexOfAny(new[] { '&', '|', '<', '>', '^', '%', '"', ';', '!', '`', '\r', '\n' }) >= 0) return false;
+
+                string ext = Path.GetExtension(resolved);
+                return string.Equals(ext, ".exe", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ext, ".cmd", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ext, ".bat", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static string ResolveExe(string customPath, string defaultExe, params string[] fileNames)
+        {
+            if (!string.IsNullOrWhiteSpace(customPath))
+            {
+                if (IsValidExecutable(customPath))
+                {
+                    return ProviderHelper.ResolvePath(customPath.Trim().Trim('"'));
+                }
+                var customFile = ProviderHelper.ResolveCustomFile(customPath, fileNames);
+                if (IsValidExecutable(customFile)) return customFile;
+            }
+
+            if (ProviderHelper.IsOnPath(defaultExe)) return defaultExe;
+            if (ProviderHelper.IsOnPath(defaultExe + ".cmd")) return defaultExe + ".cmd";
+            if (ProviderHelper.IsOnPath(defaultExe + ".exe")) return defaultExe + ".exe";
+            return defaultExe;
+        }
+
+        public ProcessStartInfo BuildProcessStartInfo(string providerId)
+        {
+            if (CustomBuilder != null)
+            {
+                var custom = CustomBuilder(providerId);
+                if (custom != null) return custom;
+            }
+
+            var provider = UsageRegistry.Find(providerId);
+            if (provider == null) return null;
+
+            string exe = null;
+            string cliArgs = null;
+            string title = null;
+            string banner = null;
+            var env = new Dictionary<string, string>();
+
+            switch (providerId)
+            {
+                case "AIUsage_Claude":
+                    {
+                        var claude = provider as ClaudeProvider;
+                        string cand = claude != null ? claude.GetExePath() : null;
+                        if (IsValidExecutable(cand))
+                        {
+                            exe = cand;
+                        }
+                        else
+                        {
+                            exe = ResolveExe(provider.CustomPath, "claude", "claude.cmd", "claude.exe");
+                        }
+                        cliArgs = "auth login";
+                        title = "SideMon - Claude sign-in";
+
+                        var claudeConfigDir = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+                        if (!string.IsNullOrWhiteSpace(claudeConfigDir))
+                        {
+                            env["CLAUDE_CONFIG_DIR"] = claudeConfigDir;
+                        }
+                    }
+                    break;
+
+                case "AIUsage_Agy":
+                    {
+                        if (IsValidExecutable(provider.CustomPath))
+                        {
+                            exe = ProviderHelper.ResolvePath(provider.CustomPath.Trim().Trim('"'));
+                        }
+                        else
+                        {
+                            var customAgy = ProviderHelper.ResolveCustomFile(provider.CustomPath, "agy.exe", "agy.cmd");
+                            if (IsValidExecutable(customAgy))
+                            {
+                                exe = customAgy;
+                            }
+                            else
+                            {
+                                string localAgy = ProviderHelper.ResolvePath(@"%LOCALAPPDATA%\agy\bin\agy.exe");
+                                if (File.Exists(localAgy)) exe = localAgy;
+                                else exe = ResolveExe(null, "agy", "agy.exe", "agy.cmd");
+                            }
+                        }
+                        cliArgs = string.Empty;
+                        title = "SideMon - agy sign-in";
+                    }
+                    break;
+
+                case "AIUsage_Gemini":
+                    {
+                        if (IsValidExecutable(provider.CustomPath))
+                        {
+                            exe = ProviderHelper.ResolvePath(provider.CustomPath.Trim().Trim('"'));
+                        }
+                        else
+                        {
+                            var customGemini = ProviderHelper.ResolveCustomFile(provider.CustomPath, "gemini.exe", "gemini.cmd");
+                            if (IsValidExecutable(customGemini))
+                            {
+                                exe = customGemini;
+                            }
+                            else
+                            {
+                                exe = ResolveExe(null, "gemini", "gemini.exe", "gemini.cmd");
+                            }
+                        }
+                        cliArgs = string.Empty;
+                        title = "SideMon - Gemini sign-in";
+                        banner = "Please choose 'Login with Google' in Gemini CLI";
+                    }
+                    break;
+
+                case "AIUsage_Codex":
+                    {
+                        if (IsValidExecutable(provider.CustomPath))
+                        {
+                            exe = ProviderHelper.ResolvePath(provider.CustomPath.Trim().Trim('"'));
+                        }
+                        else
+                        {
+                            exe = ResolveExe(null, "codex", "codex.exe", "codex.cmd");
+                        }
+                        cliArgs = "login";
+                        title = "SideMon - Codex sign-in";
+                    }
+                    break;
+
+                case "AIUsage_Copilot":
+                    {
+                        if (IsValidExecutable(provider.CustomPath))
+                        {
+                            exe = ProviderHelper.ResolvePath(provider.CustomPath.Trim().Trim('"'));
+                        }
+                        else
+                        {
+                            exe = ResolveExe(null, "gh", "gh.exe", "gh.cmd");
+                        }
+                        cliArgs = "auth login";
+                        title = "SideMon - GitHub Copilot sign-in";
+                    }
+                    break;
+
+                default:
+                    return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(exe)) return null;
+
+            string target = exe.Contains(" ") ? $"\"{exe}\"" : exe;
+            string cliFull = string.IsNullOrWhiteSpace(cliArgs) ? target : $"{target} {cliArgs}";
+            string cmdBody = string.IsNullOrEmpty(banner) ? cliFull : $"echo {banner} & echo. & {cliFull}";
+
+            string wtPath = FindWindowsTerminal();
+            var psi = new ProcessStartInfo();
+            psi.UseShellExecute = false;
+
+            foreach (var kvp in env)
+            {
+                psi.Environment[kvp.Key] = kvp.Value;
+            }
+
+            if (!string.IsNullOrEmpty(wtPath))
+            {
+                psi.FileName = wtPath;
+                psi.Arguments = $"--title \"{title}\" cmd.exe /k \"{cmdBody}\"";
+            }
+            else
+            {
+                psi.FileName = "cmd.exe";
+                psi.Arguments = $"/k \"title {title} & {cmdBody}\"";
+            }
+
+            return psi;
+        }
+
+        public Process Launch(string providerId)
+        {
+            var psi = BuildProcessStartInfo(providerId);
+            if (psi == null) return null;
+            try
+            {
+                return ProcessStarter != null ? ProcessStarter(psi) : Process.Start(psi);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string FindWindowsTerminal()
+        {
+            if (ProviderHelper.IsOnPath("wt")) return "wt.exe";
+            string wtApp = ProviderHelper.ResolvePath(@"%LOCALAPPDATA%\Microsoft\WindowsApps\wt.exe");
+            if (File.Exists(wtApp)) return wtApp;
+            return null;
         }
     }
 }

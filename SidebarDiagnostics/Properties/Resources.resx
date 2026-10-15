@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -1276,7 +1276,7 @@
     <value>Claude/GPT bars</value>
   </data>
   <data name="SettingsUsageStaleNote" xml:space="preserve">
-    <value>last known {0} ago</value>
+    <value>last known {0}</value>
   </data>
   <data name="TrayUpdateAvailable" xml:space="preserve">
     <value>Update available: v{0} - Download</value>
@@ -1313,5 +1313,41 @@
   </data>
   <data name="SettingsNoExtraOptions" xml:space="preserve">
     <value>No extra options</value>
+  </data>
+  <data name="UsageClaudeExpiredStaleNote" xml:space="preserve">
+    <value>Login expired - last updated {0}. Open Claude Code to renew.</value>
+  </data>
+  <data name="SettingsUsageClaudeRenewButton" xml:space="preserve">
+    <value>Renew</value>
+  </data>
+  <data name="SettingsUsageClaudeRenewTooltip" xml:space="preserve">
+    <value>Renew login</value>
+  </data>
+  <data name="SettingsUsageClaudeRenewed" xml:space="preserve">
+    <value>Renewed</value>
+  </data>
+  <data name="SettingsUsageClaudeStillExpired" xml:space="preserve">
+    <value>Still expired - run claude once, or use a minimal prompt</value>
+  </data>
+  <data name="SettingsUsageClaudeAutoRenew" xml:space="preserve">
+    <value>Renew Claude login automatically when it expires</value>
+  </data>
+  <data name="HardwareLimitedWarning" xml:space="preserve">
+    <value>Some hardware sensors unavailable - run SideMon as administrator</value>
+  </data>
+  <data name="SettingsUsageClaudeRenewConfirm" xml:space="preserve">
+    <value>This will send one very small request and uses a tiny amount of the Claude usage. Continue?</value>
+  </data>
+  <data name="UsageSignInTooltip" xml:space="preserve">
+    <value>Sign in again</value>
+  </data>
+  <data name="UsageWaitingForSignIn" xml:space="preserve">
+    <value>Waiting for sign-in...</value>
+  </data>
+  <data name="SettingsShowSignInButton" xml:space="preserve">
+    <value>Show sign-in button on the sidebar</value>
+  </data>
+  <data name="SettingsShowSignInButtonTooltip" xml:space="preserve">
+    <value>Show a sign-in button on the sidebar usage card when login is expired or not logged in</value>
   </data>
 </root>

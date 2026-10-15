@@ -129,6 +129,14 @@ namespace SidebarDiagnostics.Monitoring
         }
     }
 
+    public sealed class LoginSession
+    {
+        public string ProviderId { get; set; }
+        public System.Diagnostics.Process Process { get; set; }
+        public DateTime StartedUtc { get; set; }
+        public bool Active { get; set; } = true;
+    }
+
     // Owns the provider list and ALL polling state, shared by every UsageMonitor
     // instance: a Settings save rebuilds the MonitorManager (and every monitor), and
     // without this the rebuild would immediately re-hit the endpoints (Claude's returns
@@ -136,6 +144,105 @@ namespace SidebarDiagnostics.Monitoring
     // are ever asked to poll; polling never blocks the caller.
     public static class UsageRegistry
     {
+        public static Providers.ILoginLauncher LoginLauncher { get; set; } = new Providers.DefaultLoginLauncher();
+
+        private static readonly Dictionary<string, LoginSession> _loginSessions = new Dictionary<string, LoginSession>();
+
+        public static bool IsSigningIn(string id)
+        {
+            lock (_lock)
+            {
+                return _loginSessions.TryGetValue(id, out var session) && session.Active;
+            }
+        }
+
+        public static LoginSession GetLoginSession(string id)
+        {
+            lock (_lock)
+            {
+                return _loginSessions.TryGetValue(id, out var session) ? session : null;
+            }
+        }
+
+        public static void ResetLoginSessions()
+        {
+            lock (_lock)
+            {
+                _loginSessions.Clear();
+            }
+        }
+
+        public static void ForceRepoll(string id)
+        {
+            lock (_lock)
+            {
+                if (_states.TryGetValue(id, out State state))
+                {
+                    state.NextPollUtc = DateTime.MinValue;
+                    state.Failures = 0;
+                }
+            }
+        }
+
+        public static bool LaunchLogin(string id)
+        {
+            IUsageProvider provider = Find(id);
+            if (provider == null) return false;
+
+            lock (_lock)
+            {
+                if (_loginSessions.TryGetValue(id, out var existing) && existing.Active)
+                {
+                    if (existing.Process != null && !existing.Process.HasExited)
+                    {
+                        FocusProcess(existing.Process);
+                        return false;
+                    }
+                }
+            }
+
+            var launcher = LoginLauncher;
+            if (launcher == null) return false;
+
+            System.Diagnostics.Process proc = launcher.Launch(id);
+            if (proc == null) return false;
+
+            lock (_lock)
+            {
+                var session = new LoginSession
+                {
+                    ProviderId = id,
+                    Process = proc,
+                    StartedUtc = DateTime.UtcNow,
+                    Active = true
+                };
+                _loginSessions[id] = session;
+
+                if (!_states.TryGetValue(id, out State state))
+                {
+                    state = new State();
+                    _states[id] = state;
+                }
+
+                state.NextPollUtc = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+            }
+
+            return true;
+        }
+
+        private static void FocusProcess(System.Diagnostics.Process proc)
+        {
+            try
+            {
+                if (proc != null && !proc.HasExited && proc.MainWindowHandle != IntPtr.Zero)
+                {
+                    SidebarDiagnostics.Windows.NativeMethods.ShowWindow(proc.MainWindowHandle, 9);
+                    SidebarDiagnostics.Windows.NativeMethods.SetForegroundWindow(proc.MainWindowHandle);
+                }
+            }
+            catch { }
+        }
+
         // hard floor between two polls of the same provider
         public static readonly TimeSpan MinInterval = TimeSpan.FromMinutes(5);
 
@@ -234,6 +341,31 @@ namespace SidebarDiagnostics.Monitoring
                     _states[provider.Id] = _state;
                 }
 
+                if (_loginSessions.TryGetValue(provider.Id, out var session) && session.Active)
+                {
+                    if (DateTime.UtcNow - session.StartedUtc > TimeSpan.FromMinutes(10))
+                    {
+                        session.Active = false;
+                    }
+                    else if (session.Process != null)
+                    {
+                        bool exited = false;
+                        bool isWt = false;
+                        try
+                        {
+                            exited = session.Process.HasExited;
+                            isWt = string.Equals(session.Process.ProcessName, "wt", StringComparison.OrdinalIgnoreCase);
+                        }
+                        catch { }
+
+                        if (exited && !isWt)
+                        {
+                            session.Active = false;
+                            _state.NextPollUtc = DateTime.MinValue;
+                        }
+                    }
+                }
+
                 if (_state.Fetching || DateTime.UtcNow < _state.NextPollUtc)
                 {
                     return;
@@ -280,8 +412,11 @@ namespace SidebarDiagnostics.Monitoring
 
                 UsageSnapshot _previous = _state.Snapshot;
 
+                bool isSigningIn = _loginSessions.TryGetValue(provider.Id, out var session) && session.Active;
+
                 if (_result.Status == UsageStatus.Ok)
                 {
+                    if (session != null) session.Active = false;
                     _state.Failures = 0;
                     _state.NextPollUtc = DateTime.UtcNow + MinInterval;
 
@@ -296,44 +431,60 @@ namespace SidebarDiagnostics.Monitoring
                 }
                 else
                 {
-                    // 5, 10, 20, 40 minutes ... capped at one hour; honour Retry-After
-                    _state.Failures = Math.Min(_state.Failures + 1, 8);
-
-                    TimeSpan _delay = TimeSpan.FromTicks(MinInterval.Ticks << Math.Min(_state.Failures - 1, 4));
-
-                    if (_delay > MaxBackoff)
+                    if (isSigningIn)
                     {
-                        _delay = MaxBackoff;
+                        _state.NextPollUtc = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+
+                        _state.Snapshot = new UsageSnapshot()
+                        {
+                            HasAttempt = true,
+                            Status = _result.Status,
+                            Windows = _previous.Windows,
+                            Plan = _previous.Plan,
+                            LastGoodAt = _previous.LastGoodAt
+                        };
                     }
-
-                    // the server's own Retry-After wins over our cap (but not beyond a day)
-                    if (_result.RetryAfter.HasValue && _result.RetryAfter.Value > _delay)
+                    else
                     {
-                        _delay = _result.RetryAfter.Value > TimeSpan.FromHours(24) ? TimeSpan.FromHours(24) : _result.RetryAfter.Value;
+                        // 5, 10, 20, 40 minutes ... capped at one hour; honour Retry-After
+                        _state.Failures = Math.Min(_state.Failures + 1, 8);
+
+                        TimeSpan _delay = TimeSpan.FromTicks(MinInterval.Ticks << Math.Min(_state.Failures - 1, 4));
+
+                        if (_delay > MaxBackoff)
+                        {
+                            _delay = MaxBackoff;
+                        }
+
+                        // the server's own Retry-After wins over our cap (but not beyond a day)
+                        if (_result.RetryAfter.HasValue && _result.RetryAfter.Value > _delay)
+                        {
+                            _delay = _result.RetryAfter.Value > TimeSpan.FromHours(24) ? TimeSpan.FromHours(24) : _result.RetryAfter.Value;
+                        }
+
+                        // an expired login is fixed by using the CLI once, which can happen any
+                        // time: keep looking every MinInterval instead of backing off for an hour
+                        if (_result.Status == UsageStatus.AuthExpired && !_result.RetryIn.HasValue)
+                        {
+                            _delay = MinInterval;
+                        }
+
+                        if (_result.RetryIn.HasValue)
+                        {
+                            _delay = _result.RetryIn.Value < TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : _result.RetryIn.Value;
+                        }
+
+                        _state.NextPollUtc = DateTime.UtcNow + _delay;
+
+                        _state.Snapshot = new UsageSnapshot()
+                        {
+                            HasAttempt = true,
+                            Status = _result.Status,
+                            Windows = _previous.Windows,
+                            Plan = _previous.Plan,
+                            LastGoodAt = _previous.LastGoodAt
+                        };
                     }
-
-                    // an expired login is fixed by using the CLI once, which can happen any
-                    // time: keep looking every MinInterval instead of backing off for an hour
-                    if (_result.Status == UsageStatus.AuthExpired && !_result.RetryIn.HasValue)
-                    {
-                        _delay = MinInterval;
-                    }
-
-                    if (_result.RetryIn.HasValue)
-                    {
-                        _delay = _result.RetryIn.Value < TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : _result.RetryIn.Value;
-                    }
-
-                    _state.NextPollUtc = DateTime.UtcNow + _delay;
-
-                    _state.Snapshot = new UsageSnapshot()
-                    {
-                        HasAttempt = true,
-                        Status = _result.Status,
-                        Windows = _previous.Windows,
-                        Plan = _previous.Plan,
-                        LastGoodAt = _previous.LastGoodAt
-                    };
                 }
             }
         }
@@ -372,6 +523,11 @@ namespace SidebarDiagnostics.Monitoring
         // provider has been polled, the problem the last poll ran into. Local checks only.
         public static string GetStatusText(string id)
         {
+            if (IsSigningIn(id))
+            {
+                return Resources.UsageWaitingForSignIn;
+            }
+
             IUsageProvider _provider = Find(id);
 
             if (_provider == null)
@@ -412,7 +568,14 @@ namespace SidebarDiagnostics.Monitoring
 
             if (_snapshot.HasAttempt && _snapshot.Status != UsageStatus.Ok)
             {
-                _text = string.Format("{0} - {1}", _text, StatusToText(_snapshot.Status));
+                if (IsSigningIn(id))
+                {
+                    _text = string.Format("{0} - {1}", _text, Resources.UsageWaitingForSignIn);
+                }
+                else
+                {
+                    _text = string.Format("{0} - {1}", _text, StatusToText(_snapshot.Status));
+                }
             }
 
             return _text;

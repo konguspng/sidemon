@@ -25,16 +25,26 @@ namespace SidebarDiagnostics.Monitoring
         {
             try
             {
+                bool enableCpu = config.Any(c => c.Enabled && c.Type == MonitorType.CPU);
+                bool enableGpu = config.Any(c => c.Enabled && c.Type == MonitorType.GPU);
+                bool enableMotherboard = config.Any(c => c.Enabled && (
+                    c.Type == MonitorType.Motherboard ||
+                    (c.Type == MonitorType.CPU && c.Metrics.Any(m => m.Enabled && (m.Key == MetricKey.CPUFan || m.Key == MetricKey.CPUVoltage))) ||
+                    (c.Type == MonitorType.RAM && c.Metrics.Any(m => m.Enabled && m.Key == MetricKey.RAMVoltage))
+                ));
+                bool enableMemory = config.Any(c => c.Enabled && c.Type == MonitorType.RAM);
+                bool enableBattery = config.Any(c => c.Enabled && c.Type == MonitorType.Battery);
+                if (TestHookForceHardwareFail != null && TestHookForceHardwareFail()) throw new ArgumentNullException("identity");
                 _computer = new Computer()
                 {
-                    IsCpuEnabled = true,
-                    IsControllerEnabled = true,
-                    IsGpuEnabled = true,
+                    IsCpuEnabled = enableCpu,
+                    IsControllerEnabled = enableMotherboard,
+                    IsGpuEnabled = enableGpu,
                     IsStorageEnabled = false,
-                    IsMotherboardEnabled = true,
-                    IsMemoryEnabled = true,
+                    IsMotherboardEnabled = enableMotherboard,
+                    IsMemoryEnabled = enableMemory,
                     IsNetworkEnabled = false,
-                    IsBatteryEnabled = true
+                    IsBatteryEnabled = enableBattery
                 };
                 _computer.Open();
                 _board = GetHardware(HardwareType.Motherboard).FirstOrDefault();
@@ -45,16 +55,51 @@ namespace SidebarDiagnostics.Monitoring
             }
             catch (Exception e)
             {
-                // a fresh machine may not have the PawnIO driver loaded yet, or the
-                // hardware library can throw on unusual configurations; degrade to no
-                // panels rather than crashing the whole app on first run
                 Utilities.ErrorLog.Write(e);
 
-                MonitorPanels = Array.Empty<MonitorPanel>();
+                if (e is ArgumentNullException) // ArgumentNullException("identity")
+                {
+                    HardwareLimited = true;
+                    try { _computer?.Close(); } catch { }
+                    try
+                    {
+                        _computer = new Computer()
+                        {
+                            IsCpuEnabled = false,
+                            IsControllerEnabled = false,
+                            IsGpuEnabled = false,
+                            IsStorageEnabled = false,
+                            IsMotherboardEnabled = false,
+                            IsMemoryEnabled = true,
+                            IsNetworkEnabled = false,
+                            IsBatteryEnabled = true
+                        };
+                        _computer.Open();
+                        _board = null;
+                        
+                        MonitorPanels = config.Where(c => c.Enabled).OrderByDescending(c => c.Order).Select(c => NewPanel(c)).Where(p => p != null).ToArray();
+                    }
+                    catch
+                    {
+                        MonitorPanels = Array.Empty<MonitorPanel>();
+                    }
+                }
+                else
+                {
+                    MonitorPanels = Array.Empty<MonitorPanel>();
+                }
             }
         }
 
+
+
+        public bool HardwareLimited { get; private set; }
+        public static Func<bool> TestHookForceHardwareFail { get; set; }
+
+        public string HardwareLimitedReason { get { return global::SidebarDiagnostics.Framework.Resources.HardwareLimitedWarning; } }
+
         public void Dispose()
+
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -73,6 +118,12 @@ namespace SidebarDiagnostics.Monitoring
 
                     _computer?.Close();
 
+                    foreach (Computer _probe in _probes)
+                    {
+                        try { _probe.Close(); } catch { }
+                    }
+                    _probes.Clear();
+
                     _monitorPanels = null;
                     _computer = null;
                     _board = null;
@@ -87,6 +138,9 @@ namespace SidebarDiagnostics.Monitoring
             Dispose(false);
         }
 
+        private Dictionary<MonitorType, HardwareConfig[]> _cachedOfflineHardware = new Dictionary<MonitorType, HardwareConfig[]>();
+        private readonly List<Computer> _probes = new List<Computer>();
+
         public HardwareConfig[] GetHardware(MonitorType type)
         {
             switch (type)
@@ -96,7 +150,72 @@ namespace SidebarDiagnostics.Monitoring
                 case MonitorType.GPU:
                 case MonitorType.Motherboard:
                 case MonitorType.Battery:
-                    return GetHardware(type.GetHardwareTypes()).Select(h => new HardwareConfig() { ID = h.Identifier.ToString(), Name = h.Name, ActualName = h.Name }).ToArray();
+                    bool isEnabled = false;
+                    if (_computer != null)
+                    {
+                        switch (type)
+                        {
+                            case MonitorType.CPU: isEnabled = _computer.IsCpuEnabled; break;
+                            case MonitorType.RAM: isEnabled = _computer.IsMemoryEnabled; break;
+                            case MonitorType.GPU: isEnabled = _computer.IsGpuEnabled; break;
+                            case MonitorType.Motherboard: isEnabled = _computer.IsMotherboardEnabled; break;
+                            case MonitorType.Battery: isEnabled = _computer.IsBatteryEnabled; break;
+                        }
+                    }
+
+                    if (isEnabled)
+                    {
+                        return GetHardware(type.GetHardwareTypes()).Select(h => new HardwareConfig() { ID = h.Identifier.ToString(), Name = h.Name, ActualName = h.Name }).ToArray();
+                    }
+                    else
+                    {
+                        if (!_cachedOfflineHardware.TryGetValue(type, out var cached))
+                        {
+                            var probe = new Computer();
+                            bool probeOpened = false;
+                            cached = new HardwareConfig[0];
+                            try
+                            {
+                                switch (type)
+                                {
+                                    case MonitorType.CPU: probe.IsCpuEnabled = true; break;
+                                    case MonitorType.RAM: probe.IsMemoryEnabled = true; break;
+                                    case MonitorType.GPU: probe.IsGpuEnabled = true; break;
+                                    case MonitorType.Motherboard: probe.IsMotherboardEnabled = true; probe.IsControllerEnabled = true; break;
+                                    case MonitorType.Battery: probe.IsBatteryEnabled = true; break;
+                                }
+                                probe.Open();
+                                probeOpened = true;
+                                var types = type.GetHardwareTypes();
+                                cached = probe.Hardware.Where(h => types.Contains(h.HardwareType)).Select(h => new HardwareConfig() { ID = h.Identifier.ToString(), Name = h.Name, ActualName = h.Name }).ToArray();
+                            }
+                            catch (Exception _ex)
+                            {
+                                // probing is best-effort (driver / permission problems): never let it take the
+                                // Settings window or the app down, just show no devices for this monitor
+                                SidebarDiagnostics.Utilities.ErrorLog.Write(_ex);
+                            }
+                            finally
+                            {
+                                // LibreHardwareMonitor shares driver state between Computer instances:
+                                // closing a probe while the live Computer is running breaks the live
+                                // sensors (NullReferenceException in Cpu.Update every tick). Keep an
+                                // opened probe alive (one per monitor type at most) and close it in
+                                // Dispose together with the live Computer; only close a probe whose
+                                // Open() failed.
+                                if (probeOpened)
+                                {
+                                    _probes.Add(probe);
+                                }
+                                else
+                                {
+                                    try { probe.Close(); } catch { }
+                                }
+                            }
+                            _cachedOfflineHardware[type] = cached;
+                        }
+                        return cached;
+                    }
 
                 case MonitorType.HD:
                     return DriveMonitor.GetHardware().ToArray();
@@ -114,7 +233,13 @@ namespace SidebarDiagnostics.Monitoring
 
         public void Update()
         {
-            UpdateBoard();
+            if (_computer != null)
+            {
+                foreach (IHardware hw in _computer.Hardware)
+                {
+                    hw.Update();
+                }
+            }
 
             foreach (iMonitor _monitor in MonitorPanels.SelectMany(p => p.Monitors))
             {
@@ -124,16 +249,17 @@ namespace SidebarDiagnostics.Monitoring
 
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
+            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
             {
-                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
-                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => { var _h = PropertyChanged; if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName)); }));
-                }
-                else
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
+                    var _h = PropertyChanged;
+                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+                }));
+            }
+            else
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
 
@@ -309,7 +435,11 @@ namespace SidebarDiagnostics.Monitoring
             Monitors = monitors;
         }
 
+
+
+
         public void Dispose()
+
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -341,16 +471,17 @@ namespace SidebarDiagnostics.Monitoring
 
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
+            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
             {
-                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
-                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => { var _h = PropertyChanged; if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName)); }));
-                }
-                else
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
+                    var _h = PropertyChanged;
+                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+                }));
+            }
+            else
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
 
@@ -429,7 +560,11 @@ namespace SidebarDiagnostics.Monitoring
             ShowName = showName;
         }
 
+
+
+
         public void Dispose()
+
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -468,16 +603,17 @@ namespace SidebarDiagnostics.Monitoring
 
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
+            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
             {
-                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
-                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => { var _h = PropertyChanged; if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName)); }));
-                }
-                else
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
+                    var _h = PropertyChanged;
+                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+                }));
+            }
+            else
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
 
@@ -656,14 +792,12 @@ namespace SidebarDiagnostics.Monitoring
 
         public override void Update()
         {
-            UpdateHardware();
-
             base.Update();
         }
 
         private void UpdateHardware()
         {
-            _hardware.Update();
+            // Removed to avoid redundant hardware updates. Hardware is updated in MonitorManager.Update().
         }
 
         private void InitCPU(IHardware board, MetricConfig[] metrics, bool roundAll, bool allCoreClocks, bool useGHz, bool useFahrenheit, double tempAlert, bool useWatts = false, bool showFanRPM = true)
@@ -1658,7 +1792,11 @@ namespace SidebarDiagnostics.Monitoring
             nAppend = Append = converter == null ? dataType.GetAppend() : converter.TargetType.GetAppend();
         }
 
+
+
+
         public void Dispose()
+
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -1692,6 +1830,8 @@ namespace SidebarDiagnostics.Monitoring
 
         public void Update(double value)
         {
+            if (Text != null && Value == value) return;
+
             double _val = value;
 
             if (_converter == null)
@@ -1738,16 +1878,17 @@ namespace SidebarDiagnostics.Monitoring
 
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
+            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
             {
-                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
-                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => { var _h = PropertyChanged; if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName)); }));
-                }
-                else
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
+                    var _h = PropertyChanged;
+                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+                }));
+            }
+            else
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
 
@@ -2288,16 +2429,17 @@ namespace SidebarDiagnostics.Monitoring
     {
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
+            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
             {
-                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
-                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => { var _h = PropertyChanged; if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName)); }));
-                }
-                else
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
+                    var _h = PropertyChanged;
+                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+                }));
+            }
+            else
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
 
@@ -2688,11 +2830,12 @@ namespace SidebarDiagnostics.Monitoring
                             new MetricConfig(MetricKey.UsageWeekly, true),
                             new MetricConfig(MetricKey.UsageMonthly, true)
                         },
-                        Params = new ConfigParam[3]
+                        Params = new ConfigParam[4]
                         {
                             ConfigParam.Defaults.HardwareNames,
                             ConfigParam.Defaults.RoundAll,
-                            ConfigParam.Defaults.UsageAlert
+                            ConfigParam.Defaults.UsageAlert,
+                            ConfigParam.Defaults.ShowSignInButton
                         }
                     }
                 };
@@ -2704,16 +2847,17 @@ namespace SidebarDiagnostics.Monitoring
     {
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
+            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
             {
-                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
-                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => { var _h = PropertyChanged; if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName)); }));
-                }
-                else
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
+                    var _h = PropertyChanged;
+                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+                }));
+            }
+            else
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
 
@@ -2816,6 +2960,23 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
+        private bool _autoRenew { get; set; }
+
+        public bool AutoRenew
+        {
+            get { return _autoRenew; }
+            set { if (_autoRenew == value) return; _autoRenew = value; NotifyPropertyChanged("AutoRenew"); }
+        }
+
+        private string _renewStatus { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string RenewStatus
+        {
+            get { return _renewStatus; }
+            set { if (_renewStatus == value) return; _renewStatus = value; NotifyPropertyChanged("RenewStatus"); }
+        }
+
         private string _customPath { get; set; }
 
         // optional per-provider credentials path (AI CLI Usage only); null = defaults
@@ -2889,16 +3050,17 @@ namespace SidebarDiagnostics.Monitoring
 
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
+            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
             {
-                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
-                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => { var _h = PropertyChanged; if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName)); }));
-                }
-                else
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
+                    var _h = PropertyChanged;
+                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+                }));
+            }
+            else
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
 
@@ -3016,16 +3178,17 @@ namespace SidebarDiagnostics.Monitoring
     {
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
+            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
             {
-                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
-                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => { var _h = PropertyChanged; if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName)); }));
-                }
-                else
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
+                    var _h = PropertyChanged;
+                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+                }));
+            }
+            else
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
 
@@ -3160,6 +3323,9 @@ namespace SidebarDiagnostics.Monitoring
                     case ParamKey.UsageAlert:
                         return Resources.SettingsUsageAlert;
 
+                    case ParamKey.ShowSignInButton:
+                        return Resources.SettingsShowSignInButton;
+
                     default:
                         return "Unknown";
                 }
@@ -3226,6 +3392,9 @@ namespace SidebarDiagnostics.Monitoring
 
                     case ParamKey.UsageAlert:
                         return Resources.SettingsUsageAlertTooltip;
+
+                    case ParamKey.ShowSignInButton:
+                        return Resources.SettingsShowSignInButtonTooltip;
 
                     default:
                         return "Unknown";
@@ -3386,6 +3555,14 @@ namespace SidebarDiagnostics.Monitoring
                     return new ConfigParam() { Key = ParamKey.ShowFanRPM, Value = true };
                 }
             }
+
+            public static ConfigParam ShowSignInButton
+            {
+                get
+                {
+                    return new ConfigParam() { Key = ParamKey.ShowSignInButton, Value = true };
+                }
+            }
         }
     }
 
@@ -3445,7 +3622,8 @@ namespace SidebarDiagnostics.Monitoring
         UseWatts,
         ShowVRAMGB,
         ShowFanRPM,
-        UsageAlert
+        UsageAlert,
+        ShowSignInButton
     }
 
     public enum DataType : byte

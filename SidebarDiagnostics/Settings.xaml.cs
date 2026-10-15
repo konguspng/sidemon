@@ -22,9 +22,16 @@ namespace SidebarDiagnostics
     /// </summary>
     public partial class Settings : FlatWindow
     {
+        internal static int _lastSelectedTabIndex = 0;
+
         public Settings(Sidebar sidebar)
         {
             InitializeComponent();
+
+            if (_lastSelectedTabIndex >= 0 && _lastSelectedTabIndex < SettingsTabControl.Items.Count)
+            {
+                SettingsTabControl.SelectedIndex = _lastSelectedTabIndex;
+            }
 
             DataContext = Model = new SettingsModel(sidebar);
 
@@ -34,14 +41,26 @@ namespace SidebarDiagnostics
 
         private async Task Save(bool finalize)
         {
-            // glass and card/bar toggles restyle the whole window, so recreate the sidebar
+            _lastSelectedTabIndex = SettingsTabControl.SelectedIndex;
+
+            bool _cultureChanged = !string.Equals(Model.Culture, Framework.Settings.Instance.Culture, StringComparison.Ordinal);
+
+            // glass, card/bar toggles, and culture changes restyle the whole window, so recreate the sidebar
             bool _reloadNeeded =
                 Model.GlassBackground != Framework.Settings.Instance.GlassBackground ||
                 Model.UseCardStyle != Framework.Settings.Instance.UseCardStyle ||
                 Model.ShowAccentBars != Framework.Settings.Instance.ShowAccentBars ||
-                Model.GlassBackground;
+                Model.GlassBlurAmount != Framework.Settings.Instance.GlassBlurAmount ||
+                Model.GlassBackground ||
+                _cultureChanged;
 
             Model.Save();
+
+            if (_cultureChanged)
+            {
+                Utilities.Culture.SetCurrent(false);
+                App.RefreshTrayMenu();
+            }
 
             App.RefreshFpsOverlay();
 
@@ -56,9 +75,9 @@ namespace SidebarDiagnostics
 
                 if (_reloadNeeded)
                 {
-                    // glass toggles the window's layered mode, which can only be set
-                    // at creation, so the sidebar (and this dialog) must be recreated
+                    // glass and culture restyle/localize the window, so the sidebar (and this dialog) must be recreated
                     App._reloadOpenSettings = !finalize;
+                    Close();
                     _sidebar.Reload();
                     return;
                 }
@@ -117,6 +136,68 @@ namespace SidebarDiagnostics
             }
 
             return Model.MonitorConfig.Select(c => c.HardwareOC).FirstOrDefault(oc => oc != null && oc.Contains(hardware));
+        }
+
+
+        private async void HardwareClaudeRenew_Click(object sender, RoutedEventArgs e)
+        {
+            HardwareConfig _hardware = (sender as FrameworkElement).DataContext as HardwareConfig;
+            if (_hardware == null || _hardware.ID != "AIUsage_Claude") return;
+
+            var claude = UsageRegistry.Providers.OfType<SidebarDiagnostics.Monitoring.Providers.ClaudeProvider>().FirstOrDefault();
+            if (claude == null) return;
+            
+            var btn = sender as Button;
+            btn.IsEnabled = false;
+            _hardware.RenewStatus = "Renewing...";
+
+            bool step1Ok = await claude.RunCmdAsync("auth status", 30);
+            
+            UsageRegistry.SetCustomPath(claude.Id, _hardware.CustomPath);
+            await claude.FetchAsync(System.Threading.CancellationToken.None);
+            UsageRegistry.PollIfDue(claude);
+            
+            var snapshot = UsageRegistry.GetSnapshot(claude.Id);
+            if (snapshot.Status != UsageStatus.AuthExpired)
+            {
+                _hardware.RenewStatus = Framework.Resources.SettingsUsageClaudeRenewed;
+                btn.IsEnabled = true;
+                return;
+            }
+
+            _hardware.RenewStatus = Framework.Resources.SettingsUsageClaudeStillExpired;
+            var result = MessageBox.Show(this, Framework.Resources.SettingsUsageClaudeRenewConfirm, "SideMon", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
+            {
+                _hardware.RenewStatus = "Renewing (Step 2)...";
+                await claude.RunCmdAsync("-p \"ok\" --safe-mode --no-session-persistence --tools \"\"", 60);
+                await claude.FetchAsync(System.Threading.CancellationToken.None);
+                UsageRegistry.PollIfDue(claude);
+                snapshot = UsageRegistry.GetSnapshot(claude.Id);
+                if (snapshot.Status != UsageStatus.AuthExpired)
+                {
+                    _hardware.RenewStatus = Framework.Resources.SettingsUsageClaudeRenewed;
+                }
+                else
+                {
+                    _hardware.RenewStatus = Framework.Resources.SettingsUsageClaudeStillExpired;
+                }
+            }
+            btn.IsEnabled = true;
+        }
+
+        private void HardwareSignIn_Click(object sender, RoutedEventArgs e)
+        {
+            HardwareConfig _hardware = (sender as FrameworkElement)?.DataContext as HardwareConfig;
+            if (_hardware == null) return;
+
+            var provider = UsageRegistry.Find(_hardware.ID);
+            if (provider == null) return;
+
+            _hardware.RenewStatus = Framework.Resources.UsageWaitingForSignIn;
+            _hardware.Status = Framework.Resources.UsageWaitingForSignIn;
+
+            UsageRegistry.LaunchLogin(_hardware.ID);
         }
 
         private void NumberBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
@@ -390,6 +471,16 @@ namespace SidebarDiagnostics
             }
 
             Close();
+        }
+
+        private void SendLog_Click(object sender, RoutedEventArgs e)
+        {
+            string report = ReportService.BuildReport();
+            var window = new ReportPreviewWindow(report)
+            {
+                Owner = this
+            };
+            window.ShowDialog();
         }
 
         private async void InstallPawnIO_Click(object sender, RoutedEventArgs e)

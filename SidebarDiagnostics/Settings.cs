@@ -38,12 +38,13 @@ namespace SidebarDiagnostics.Framework
 
         private static Settings Load()
         {
+            Settings settings = null;
             // a corrupt or truncated settings file must never prevent startup
             try
             {
                 if (File.Exists(Paths.SettingsFile))
                 {
-                    return JsonSerializer.Deserialize<Settings>(File.ReadAllText(Paths.SettingsFile), JsonOptions) ?? new Settings();
+                    settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(Paths.SettingsFile), JsonOptions);
                 }
             }
             catch (Exception e)
@@ -56,7 +57,13 @@ namespace SidebarDiagnostics.Framework
                 catch { }
             }
 
-            return new Settings();
+            if (settings == null)
+            {
+                settings = new Settings();
+            }
+
+            settings.MonitorConfig = Monitoring.MonitorConfig.CheckConfig(settings.MonitorConfig);
+            return settings;
         }
 
         public void NotifyPropertyChanged(string propertyName)
@@ -438,6 +445,26 @@ namespace SidebarDiagnostics.Framework
                 _glassBackground = value;
 
                 NotifyPropertyChanged("GlassBackground");
+                NotifyPropertyChanged("CardBackgroundBrush");
+                NotifyPropertyChanged("CardBorderBrush");
+            }
+        }
+
+        private double _glassBlurAmount { get; set; } = 0.50d;
+
+        public double GlassBlurAmount
+        {
+            get
+            {
+                return _glassBlurAmount;
+            }
+            set
+            {
+                _glassBlurAmount = Math.Max(0d, Math.Min(1d, value));
+
+                NotifyPropertyChanged("GlassBlurAmount");
+                NotifyPropertyChanged("CardBackgroundBrush");
+                NotifyPropertyChanged("CardBorderBrush");
             }
         }
 
@@ -454,6 +481,8 @@ namespace SidebarDiagnostics.Framework
                 _bgColor = value;
 
                 NotifyPropertyChanged("BGColor");
+                NotifyPropertyChanged("CardBackgroundBrush");
+                NotifyPropertyChanged("CardBorderBrush");
             }
         }
 
@@ -470,6 +499,8 @@ namespace SidebarDiagnostics.Framework
                 _bgOpacity = value;
 
                 NotifyPropertyChanged("BGOpacity");
+                NotifyPropertyChanged("CardBackgroundBrush");
+                NotifyPropertyChanged("CardBorderBrush");
             }
         }
 
@@ -599,6 +630,96 @@ namespace SidebarDiagnostics.Framework
                 _useCardStyle = value;
 
                 NotifyPropertyChanged("UseCardStyle");
+                NotifyPropertyChanged("CardBackgroundBrush");
+                NotifyPropertyChanged("CardBorderBrush");
+            }
+        }
+
+        [JsonIgnore]
+        public System.Windows.Media.Brush CardBackgroundBrush
+        {
+            get
+            {
+                if (!UseCardStyle)
+                {
+                    return System.Windows.Media.Brushes.Transparent;
+                }
+
+                if (!GlassBackground)
+                {
+                    var brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x4C, 0, 0, 0));
+                    brush.Freeze();
+                    return brush;
+                }
+
+                // Frosted glass card fill over the blurred desktop backdrop:
+                // Slider GlassBlurAmount controls frost density from light translucent sheen to heavy frosted glass
+                double blur = _glassBlurAmount;
+                byte baseAlpha = (byte)Math.Clamp((int)Math.Round(25 + 160 * blur), 20, 220);
+                byte topAlpha = (byte)Math.Clamp((int)Math.Round(baseAlpha * 1.35 + 20), 30, 255);
+
+                System.Windows.Media.Color tint;
+                try
+                {
+                    tint = AutoBGColor ? System.Windows.SystemParameters.WindowGlassColor : (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(BGColor);
+                }
+                catch
+                {
+                    tint = System.Windows.Media.Colors.Black;
+                }
+
+                // Blend subtle specular highlight at top with base frost at bottom
+                System.Windows.Media.Color topColor = System.Windows.Media.Color.FromArgb(
+                    topAlpha,
+                    (byte)Math.Min(255, tint.R / 2 + 35),
+                    (byte)Math.Min(255, tint.G / 2 + 40),
+                    (byte)Math.Min(255, tint.B / 2 + 45));
+
+                System.Windows.Media.Color bottomColor = System.Windows.Media.Color.FromArgb(
+                    baseAlpha,
+                    (byte)(tint.R / 3),
+                    (byte)(tint.G / 3),
+                    (byte)(tint.B / 3));
+
+                var grad = new System.Windows.Media.LinearGradientBrush(
+                    topColor,
+                    bottomColor,
+                    new System.Windows.Point(0, 0),
+                    new System.Windows.Point(0, 1));
+                grad.Freeze();
+                return grad;
+            }
+        }
+
+        [JsonIgnore]
+        public System.Windows.Media.Brush CardBorderBrush
+        {
+            get
+            {
+                if (!UseCardStyle)
+                {
+                    return System.Windows.Media.Brushes.Transparent;
+                }
+
+                if (!GlassBackground)
+                {
+                    var brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF));
+                    brush.Freeze();
+                    return brush;
+                }
+
+                // Frosted glass border rim: light refraction edge catching illumination from above
+                double blur = _glassBlurAmount;
+                byte topAlpha = (byte)Math.Clamp((int)Math.Round(45 + 110 * blur), 35, 220);
+                byte bottomAlpha = (byte)Math.Clamp((int)Math.Round(18 + 45 * blur), 15, 120);
+
+                var grad = new System.Windows.Media.LinearGradientBrush(
+                    System.Windows.Media.Color.FromArgb(topAlpha, 255, 255, 255),
+                    System.Windows.Media.Color.FromArgb(bottomAlpha, 255, 255, 255),
+                    new System.Windows.Point(0, 0),
+                    new System.Windows.Point(0, 1));
+                grad.Freeze();
+                return grad;
             }
         }
 
@@ -900,18 +1021,31 @@ namespace SidebarDiagnostics.Framework
 
     public sealed class FontOption
     {
-        public FontOption(string name, System.Windows.Media.FontFamily family)
+        private System.Windows.Media.FontFamily _family;
+        private Func<System.Windows.Media.FontFamily> _familyFactory;
+
+        public FontOption(string name, Func<System.Windows.Media.FontFamily> familyFactory)
         {
             Name = name;
-            Family = family;
+            _familyFactory = familyFactory;
         }
 
         public string Name { get; private set; }
 
-        public System.Windows.Media.FontFamily Family { get; private set; }
+        public System.Windows.Media.FontFamily Family 
+        { 
+            get
+            {
+                if (_family == null && _familyFactory != null)
+                {
+                    _family = _familyFactory();
+                }
+                return _family;
+            }
+        }
     }
 
-        public static class SidebarFonts
+    public static class SidebarFonts
     {
         public const string DefaultName = "Segoe UI";
 
@@ -928,11 +1062,16 @@ namespace SidebarDiagnostics.Framework
 
                     _all = new FontOption[]
                     {
-                        new FontOption(DefaultName, new System.Windows.Media.FontFamily(DefaultName)),
-                        new FontOption("Titillium Web", _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Titillium Web") : new System.Windows.Media.FontFamily(DefaultName)),
-                        new FontOption("Rajdhani", _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Rajdhani") : new System.Windows.Media.FontFamily(DefaultName)),
-                        new FontOption("Chakra Petch", _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Chakra Petch") : new System.Windows.Media.FontFamily(DefaultName)),
-                        new FontOption("Share Tech Mono", _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Share Tech Mono") : new System.Windows.Media.FontFamily(DefaultName))
+                        new FontOption(DefaultName, () => new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Titillium Web", () => _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Titillium Web") : new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Rajdhani", () => _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Rajdhani") : new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Chakra Petch", () => _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Chakra Petch") : new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Share Tech Mono", () => _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Share Tech Mono") : new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Barlow Condensed", () => _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Barlow Condensed") : new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Exo 2", () => _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Exo 2") : new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Inter", () => _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Inter") : new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("JetBrains Mono", () => _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#JetBrains Mono") : new System.Windows.Media.FontFamily(DefaultName)),
+                        new FontOption("Oxanium", () => _packUri != null ? new System.Windows.Media.FontFamily(_packUri, "./Fonts/#Oxanium") : new System.Windows.Media.FontFamily(DefaultName))
                     };
                 }
 

@@ -12,6 +12,27 @@ using System.Runtime.InteropServices;
 
 namespace SidebarDiagnostics
 {
+    public struct WorkAreaInfo
+    {
+        public RECT Bounds;
+        public RECT WorkArea;
+        public double ScaleX;
+        public double ScaleY;
+        public bool IsAutoHide;
+
+        public double InverseScaleY => ScaleY > 0 ? 1.0 / ScaleY : 1.0;
+        public double InverseScaleX => ScaleX > 0 ? 1.0 / ScaleX : 1.0;
+
+        public double UsableHeightDips
+        {
+            get
+            {
+                RECT rect = IsAutoHide ? Bounds : WorkArea;
+                return (rect.Bottom - rect.Top) * InverseScaleY;
+            }
+        }
+    }
+
     /// <summary>
     /// Interaction logic for Sidebar.xaml
     /// </summary>
@@ -19,6 +40,8 @@ namespace SidebarDiagnostics
     {
         public Sidebar(bool openSettings, bool initiallyHidden)
         {
+            Microsoft.Win32.SystemEvents.SessionSwitch += SystemEvents_SessionSwitch;
+            Microsoft.Win32.SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
             // Always enable transparency (layered window) so that legacy blur-behind
             // composition and custom alpha-feathered gradients render correctly.
             AllowsTransparency = true;
@@ -27,6 +50,18 @@ namespace SidebarDiagnostics
 
             _openSettings = openSettings;
             _initiallyHidden = initiallyHidden;
+
+            // Content can grow after the first fit (usage rows arrive from the network,
+            // drives appear, text wraps): re-check the fit whenever the unscaled content
+            // height really changes. The window scale is a LayoutTransform, so changing
+            // it does not resize ContentStack and cannot retrigger this.
+            ContentStack.SizeChanged += (s, e) =>
+            {
+                if (e.HeightChanged && Math.Abs(e.NewSize.Height - e.PreviousSize.Height) > 1d)
+                {
+                    ScheduleAutoFit();
+                }
+            };
         }
 
         public void Reload()
@@ -69,6 +104,8 @@ namespace SidebarDiagnostics
             await BindPosition();
 
             Ready = true;
+
+            ScheduleAutoFit();
         }
 
         public void ContentReload()
@@ -85,6 +122,8 @@ namespace SidebarDiagnostics
             Ready = true;
 
             BindGraphs();
+
+            ScheduleAutoFit();
         }
 
         // While a fullscreen app (game, video) is on this screen, stop polling sensors
@@ -116,6 +155,36 @@ namespace SidebarDiagnostics
         }
 
         private bool _pausedForFullscreen = false;
+
+        private void SystemEvents_SessionSwitch(object sender, Microsoft.Win32.SessionSwitchEventArgs e)
+        {
+            if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock)
+            {
+                Model?.Pause();
+            }
+            else if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock)
+            {
+                if (Visibility == Visibility.Visible && !_pausedForFullscreen)
+                {
+                    Model?.Resume();
+                }
+            }
+        }
+
+        private void SystemEvents_PowerModeChanged(object sender, Microsoft.Win32.PowerModeChangedEventArgs e)
+        {
+            if (e.Mode == Microsoft.Win32.PowerModes.Suspend)
+            {
+                Model?.Pause();
+            }
+            else if (e.Mode == Microsoft.Win32.PowerModes.Resume)
+            {
+                if (Visibility == Visibility.Visible && !_pausedForFullscreen)
+                {
+                    Model?.Resume();
+                }
+            }
+        }
 
         public override async Task AppBarShow()
         {
@@ -316,6 +385,57 @@ namespace SidebarDiagnostics
             _autoFitSettleTimer.Start();
         }
 
+        public static Func<int, WorkAreaInfo> WorkAreaProvider { get; set; } = DefaultWorkAreaProvider;
+
+        public static WorkAreaInfo DefaultWorkAreaProvider(int screenIndex)
+        {
+            Windows.Monitor _monitor = Windows.Monitor.GetMonitorFromIndex(screenIndex);
+
+            bool _isAutoHide = false;
+            try
+            {
+                var _data = new APPBARDATA { cbSize = Marshal.SizeOf(typeof(APPBARDATA)) };
+                UIntPtr _state = Windows.NativeMethods.SHAppBarMessage(APPBARMSG.ABM_GETSTATE, ref _data);
+                if (((ulong)_state.ToUInt64() & 0x01) != 0) // ABS_AUTOHIDE
+                {
+                    _isAutoHide = true;
+                }
+            }
+            catch { }
+
+            return new WorkAreaInfo
+            {
+                Bounds = _monitor.Size,
+                WorkArea = _monitor.WorkArea,
+                ScaleX = _monitor.ScaleX,
+                ScaleY = _monitor.ScaleY,
+                IsAutoHide = _isAutoHide
+            };
+        }
+
+        public static double ComputeAutoFitScale(double totalUnscaledHeight, double userTargetScale, WorkAreaInfo info, int yOffset = 0)
+        {
+            double usableHeight = Math.Max(0d, info.UsableHeightDips - Math.Abs(yOffset));
+            if (usableHeight <= 0d || totalUnscaledHeight <= 0d)
+            {
+                return userTargetScale;
+            }
+
+            if (totalUnscaledHeight * userTargetScale <= usableHeight)
+            {
+                return userTargetScale;
+            }
+
+            double rawScale = usableHeight / totalUnscaledHeight;
+            double rounded = Math.Round(rawScale, 2);
+            if (rounded * totalUnscaledHeight > usableHeight + 1.0)
+            {
+                rounded = Math.Floor(rawScale * 100d) / 100d;
+            }
+
+            return Math.Min(userTargetScale, Math.Max(0.5d, rounded));
+        }
+
         // If the enabled monitors/drives don't fit the screen at their natural size,
         // shrink the whole sidebar just enough to fit by writing the required scale
         // into the real UI Scale setting (Advanced tab) - the same setting a user
@@ -327,25 +447,6 @@ namespace SidebarDiagnostics
                 return;
             }
 
-            Windows.Monitor _monitor = Windows.Monitor.GetMonitorFromIndex(Framework.Settings.Instance.ScreenIndex);
-
-            double _screenHeight = (_monitor.WorkArea.Bottom - _monitor.WorkArea.Top) * _monitor.InverseScaleY;
-
-            double _availableHeight = _screenHeight - WindowControls.ActualHeight - 30d;
-
-            if (_availableHeight <= 0d)
-            {
-                return;
-            }
-
-            double _availableWidth = Math.Max(0d, Framework.Settings.Instance.SidebarWidth - 30d);
-
-            ContentStack.Measure(new Size(_availableWidth, double.PositiveInfinity));
-
-            double _naturalHeight = ContentStack.DesiredSize.Height;
-
-            bool _overflowing = _naturalHeight > _availableHeight && _naturalHeight > 0d;
-
             if (!Framework.Settings.Instance.AutoFitScale)
             {
                 if (Math.Abs(Framework.Settings.Instance.MaxUIScale - 3.0d) > 0.01d)
@@ -356,22 +457,39 @@ namespace SidebarDiagnostics
                 return;
             }
 
-            bool _changed = false;
+            double _availableWidth = Math.Max(0d, Framework.Settings.Instance.SidebarWidth - 30d);
+            ContentStack.Measure(new Size(_availableWidth, double.PositiveInfinity));
+            double _naturalHeight = ContentStack.DesiredSize.Height;
+            if (_naturalHeight <= 0d)
+            {
+                return;
+            }
+
+            double _menuHeight = WindowControls.Visibility == Visibility.Collapsed ? 0d : (WindowControls.ActualHeight > 0d ? WindowControls.ActualHeight : 32d);
+            double _totalUnscaledHeight = _menuHeight + 30d + _naturalHeight;
+
+            WorkAreaInfo _info = WorkAreaProvider(Framework.Settings.Instance.ScreenIndex);
+            double _userScale = Framework.Settings.Instance.UIScale;
+            double _availableHeight = Math.Max(0d, _info.UsableHeightDips - Math.Abs(Framework.Settings.Instance.YOffset));
+
+            bool _overflowing = (_totalUnscaledHeight * _userScale) > _availableHeight;
             double _reducedScale = 3.0d;
+            bool _changed = false;
+            bool _scaleChanged = false;
 
             if (_overflowing)
             {
-                double _scale = Math.Round(Math.Max(0.5d, Math.Min(3.0d, _availableHeight / _naturalHeight)), 2);
+                double _scale = ComputeAutoFitScale(_totalUnscaledHeight, _userScale, _info, Framework.Settings.Instance.YOffset);
                 _reducedScale = _scale;
                 if (Math.Abs(Framework.Settings.Instance.UIScale - _scale) > 0.01d)
                 {
                     Framework.Settings.Instance.UIScale = _scale;
                     _changed = true;
+                    _scaleChanged = true;
                 }
             }
 
             // We use MaxUIScale to pass the reduced scale to SettingsModel so it knows when to show the warning.
-            // The slider in Settings.xaml will be hardcoded to Maximum="3.0".
             if (Math.Abs(Framework.Settings.Instance.MaxUIScale - _reducedScale) > 0.01d)
             {
                 Framework.Settings.Instance.MaxUIScale = _reducedScale;
@@ -381,6 +499,18 @@ namespace SidebarDiagnostics
             if (_changed)
             {
                 Framework.Settings.Instance.Save();
+            }
+
+            // The saved scale alone does not resize the docked window: re-dock so the
+            // new scale is applied right away (the same path Apply takes). Layout is
+            // stable afterwards, so the follow-up auto-fit finds nothing to change.
+            if (_scaleChanged)
+            {
+                Dispatcher.BeginInvoke(new Action(async () =>
+                {
+                    try { await Reposition(); }
+                    catch (Exception _ex) { Utilities.ErrorLog.Write(_ex); }
+                }));
             }
         }
 
@@ -676,7 +806,7 @@ namespace SidebarDiagnostics
 
             if (_acrylic)
             {
-                SetGlass(tintColor, settings.BGOpacity);
+                SetGlass(tintColor, settings.BGOpacity, settings.GlassBlurAmount);
             }
             else
             {

@@ -126,16 +126,17 @@ namespace SidebarDiagnostics.Models
 
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (PropertyChanged != null)
+            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
             {
-                if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
                 {
-                    System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() => { var _h = PropertyChanged; if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName)); }));
-                }
-                else
-                {
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                }
+                    var _h = PropertyChanged;
+                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+                }));
+            }
+            else
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
         }
 

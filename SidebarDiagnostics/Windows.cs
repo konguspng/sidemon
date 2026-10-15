@@ -110,6 +110,12 @@ namespace SidebarDiagnostics.Windows
         internal static extern bool SetWindowPos(IntPtr hwnd, IntPtr hwnd_after, int x, int y, int cx, int cy, uint uflags);
 
         [DllImport("user32.dll")]
+        internal static extern bool ShowWindow(IntPtr hwnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        internal static extern bool SetForegroundWindow(IntPtr hwnd);
+
+        [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
 
@@ -267,6 +273,7 @@ namespace SidebarDiagnostics.Windows
                 }
 
                 // Re-evaluate z-order based on what's visible
+                if (_watchdog != null && !_watchdog.IsEnabled) { _watchdog.Start(); }
                 _ = LiftIfDesktopShown(false);
             }
         }
@@ -328,9 +335,17 @@ namespace SidebarDiagnostics.Windows
                     return;
                 }
 
-                if (IsDesktopAboveWindow(_sidebarHwnd.Value) && !AnyNormalWindowVisible())
+                bool desktopAbove = IsDesktopAboveWindow(_sidebarHwnd.Value);
+                if (desktopAbove)
                 {
-                    _sidebar.SetTop(false);
+                    if (!AnyNormalWindowVisible())
+                    {
+                        _sidebar.SetTop(false);
+                    }
+                }
+                else
+                {
+                    _watchdog.Stop();
                 }
             }
             catch
@@ -1485,7 +1500,7 @@ namespace SidebarDiagnostics.Windows
             public IntPtr lParam;
         }
 
-        private static class APPBARMSG
+        internal static class APPBARMSG
         {
             public const int ABM_NEW = 0;
             public const int ABM_REMOVE = 1;
@@ -1634,10 +1649,14 @@ namespace SidebarDiagnostics.Windows
         {
             _canMove = false;
 
-            if (!_hookRegistered)
+            // the window can already be closing when Loaded fires (first-run setup
+            // replaces its placeholder sidebar): no window source, nothing to hook
+            HwndSource _source = HwndSource;
+
+            if (!_hookRegistered && _source != null)
             {
                 _hookRegistered = true;
-                HwndSource.AddHook(MoveHook);
+                _source.AddHook(MoveHook);
             }
         }
 
@@ -1839,11 +1858,12 @@ namespace SidebarDiagnostics.Windows
             }
         }
 
-        public void SetGlass(System.Windows.Media.Color tint, double opacity)
+        public void SetGlass(System.Windows.Media.Color tint, double opacity, double blurAmount = 0.5d)
         {
             IntPtr _hwnd = new WindowInteropHelper(this).Handle;
 
-            byte _alpha = (byte)Math.Max(1d, Math.Min(255d, Math.Round(opacity * 255d)));
+            double factor = 0.35d + 0.65d * blurAmount;
+            byte _alpha = (byte)Math.Max(1d, Math.Min(255d, Math.Round(opacity * factor * 255d)));
 
             var accent = new AccentPolicy();
             accent.AccentState = 4; // ACCENT_ENABLE_ACRYLICBLURBEHIND

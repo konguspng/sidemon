@@ -27,6 +27,8 @@
          ships no source-server support to end users, so turn the query off rather
          than let that block reintroduce the same leak PathMap just closed -->
     <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <DefineConstants Condition="Exists('ReportSecret.cs')">$(DefineConstants);HAS_REPORT_SECRET</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

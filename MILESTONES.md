@@ -2,7 +2,7 @@
 
 Ideas and planned work for SideMon. Nothing here is committed to a release until it is built, tested and listed in `CHANGELOG.md`.
 
-Current release: **4.4.0**
+Current release: **4.5.0**
 
 Status key: `[ ]` not started, `[~]` in progress, `[x]` done.
 

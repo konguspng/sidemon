@@ -7,6 +7,7 @@
         xmlns:local="clr-namespace:SidebarDiagnostics"
         xmlns:frame="clr-namespace:SidebarDiagnostics.Framework"
         xmlns:monitor="clr-namespace:SidebarDiagnostics.Monitoring"
+        xmlns:conv="clr-namespace:SidebarDiagnostics.Converters"
         xmlns:win="clr-namespace:SidebarDiagnostics.Windows"
         mc:Ignorable="d"
         Loaded="Window_Loaded"
@@ -17,42 +18,38 @@
         MouseLeave="Window_MouseLeave"
         Style="{StaticResource SidebarWindow}"
         Opacity="0">
+        <win:AppBarWindow.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <Storyboard x:Key="SkeletonStoryboard" RepeatBehavior="Forever">
+            <DoubleAnimation
+                Storyboard.TargetName="GradientStop1"
+                Storyboard.TargetProperty="Offset"
+                From="0.0" To="1.0" Duration="0:0:1.5" />
+        </Storyboard>
+    </win:AppBarWindow.Resources>
     <Grid x:Name="LayoutRoot">
         <!-- Background layer: solid tint, or (glass mode) an invisible fill over the real
              Windows acrylic blur that the window itself provides -->
         <Border x:Name="BackgroundBorder" />
 
-        <Ellipse IsEnabled="{Binding Path=Ready, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}">
-            <Ellipse.RenderTransform>
-                <RotateTransform CenterX="20" CenterY="20" />
-            </Ellipse.RenderTransform>
-            <Ellipse.Style>
-                <Style TargetType="{x:Type Ellipse}">
-                    <Setter Property="Width" Value="40" />
-                    <Setter Property="Height" Value="40" />
-                    <Setter Property="Stroke" Value="{Binding Source={x:Static frame:Settings.Instance}, Path=FontColor, Mode=OneWay}" />
-                    <Setter Property="StrokeThickness" Value="5" />
-                    <Setter Property="StrokeDashArray" Value="18" />
-                    <Setter Property="Opacity" Value="0.85" />
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding RelativeSource={x:Static RelativeSource.Self}, Path=IsEnabled, Mode=OneWay}" Value="True">
-                            <Setter Property="Visibility" Value="Visible" />
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard x:Name="SpinAnimation">
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(RotateTransform.Angle)" To="360" Duration="0:0:1" RepeatBehavior="Forever" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </DataTrigger.EnterActions>
-                            <DataTrigger.ExitActions>
-                                <RemoveStoryboard BeginStoryboardName="SpinAnimation" />
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Ellipse.Style>
-        </Ellipse>
+                <Grid Visibility="{Binding Path=Ready, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}"
+              Margin="10,10,0,0">
+            <Grid.Resources>
+            </Grid.Resources>
+            <Rectangle Width="180" Height="20" RadiusX="4" RadiusY="4">
+                <Rectangle.Fill>
+                    <LinearGradientBrush x:Name="GradientBrush" StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop x:Name="GradientStop1" Offset="0" Color="#FFFFFF" />
+                        <GradientStop Offset="0.6" Color="#FFFFFF00" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Grid.Triggers>
+                <EventTrigger RoutedEvent="Grid.Loaded">
+                    <BeginStoryboard Storyboard="{StaticResource SkeletonStoryboard}" />
+                </EventTrigger>
+            </Grid.Triggers>
+        </Grid>
         
         <DockPanel x:Name="MainContent" Style="{StaticResource MainPanel}">
             <StackPanel x:Name="WindowControls" Style="{StaticResource MenuBar}">
@@ -75,6 +72,7 @@
                  window already knows how to apply to everything, sidebar-wide. -->
             <Border Margin="5,15" VerticalAlignment="{Binding Source={x:Static frame:Settings.Instance}, Path=ContentVerticalAlign, Mode=OneWay}">
                 <StackPanel x:Name="ContentStack" Style="{StaticResource ContentPanel}">
+                    <TextBlock Text="{Binding Path=MonitorManager.HardwareLimitedReason}" Visibility="{Binding Path=MonitorManager.HardwareLimited, Converter={StaticResource BoolToVisibility}}" Opacity="0.5" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,10" Style="{StaticResource DataText}" />
                     <ContentControl>
                         <ContentControl.Style>
                             <Style TargetType="{x:Type ContentControl}">
@@ -188,7 +186,17 @@
 
                                             <DataTemplate DataType="{x:Type monitor:UsageMonitor}">
                                                 <StackPanel Style="{StaticResource MonitorPanel}">
-                                                    <TextBlock Text="{Binding Path=Name, Mode=OneWay}" Style="{StaticResource HardwareText}" />
+                                                    <DockPanel Margin="0,0,0,6" LastChildFill="True">
+                                                        <Button DockPanel.Dock="Right"
+                                                                Command="{Binding SignInCommand}"
+                                                                ToolTip="{x:Static frame:Resources.UsageSignInTooltip}"
+                                                                Visibility="{Binding SignInButtonVisibility}"
+                                                                Style="{StaticResource IconButton}"
+                                                                Width="14" Height="14" Margin="6,0,0,0" VerticalAlignment="Center">
+                                                            <Path Width="10" Height="10" Data="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3" />
+                                                        </Button>
+                                                        <TextBlock Text="{Binding Path=Name, Mode=OneWay}" Style="{StaticResource HardwareText}" Margin="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                    </DockPanel>
 
                                                     <ItemsControl ItemsSource="{Binding Path=Metrics, Mode=OneWay}">
                                                         <ItemsControl.ItemTemplate>
@@ -199,7 +207,7 @@
                                                                         <TextBlock Text="{Binding Path=Text, Mode=OneWay}" TextWrapping="NoWrap" Style="{StaticResource MetricValue}" />
                                                                     </DockPanel>
                                                                     <ProgressBar Value="{Binding Path=nValue, Mode=OneWay}" Style="{StaticResource AccentBar}" />
-                                                                    <TextBlock Text="{Binding Path=ResetText, Mode=OneWay}" TextWrapping="NoWrap" Opacity="0.6">
+                                                                    <TextBlock Text="{Binding Path=ResetText, Mode=OneWay}" TextWrapping="Wrap" Opacity="0.6">
                                                                         <TextBlock.Style>
                                                                             <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource AppText}">
                                                                                 <Setter Property="Margin" Value="0,1,0,0" />

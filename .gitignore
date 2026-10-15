@@ -213,3 +213,5 @@ ModelManifest.xml
 
 # Installer build output
 installer/*.exe
+
+SidebarDiagnostics/ReportSecret.cs

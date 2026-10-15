@@ -2722,5 +2722,42 @@ namespace SidebarDiagnostics.Framework {
         public static string SettingsNoExtraOptions {
             get { return ResourceManager.GetString("SettingsNoExtraOptions", resourceCulture); }
         }
+
+        public static string UsageClaudeExpiredStaleNote {
+            get { return ResourceManager.GetString("UsageClaudeExpiredStaleNote", resourceCulture); }
+        }
+        public static string SettingsUsageClaudeRenewButton {
+            get { return ResourceManager.GetString("SettingsUsageClaudeRenewButton", resourceCulture); }
+        }
+        public static string SettingsUsageClaudeRenewTooltip {
+            get { return ResourceManager.GetString("SettingsUsageClaudeRenewTooltip", resourceCulture); }
+        }
+        public static string SettingsUsageClaudeRenewed {
+            get { return ResourceManager.GetString("SettingsUsageClaudeRenewed", resourceCulture); }
+        }
+        public static string SettingsUsageClaudeStillExpired {
+            get { return ResourceManager.GetString("SettingsUsageClaudeStillExpired", resourceCulture); }
+        }
+        public static string SettingsUsageClaudeAutoRenew {
+            get { return ResourceManager.GetString("SettingsUsageClaudeAutoRenew", resourceCulture); }
+        }
+        public static string HardwareLimitedWarning {
+            get { return ResourceManager.GetString("HardwareLimitedWarning", resourceCulture); }
+        }
+        public static string SettingsUsageClaudeRenewConfirm {
+            get { return ResourceManager.GetString("SettingsUsageClaudeRenewConfirm", resourceCulture); }
+        }
+        public static string UsageSignInTooltip {
+            get { return ResourceManager.GetString("UsageSignInTooltip", resourceCulture); }
+        }
+        public static string UsageWaitingForSignIn {
+            get { return ResourceManager.GetString("UsageWaitingForSignIn", resourceCulture); }
+        }
+        public static string SettingsShowSignInButton {
+            get { return ResourceManager.GetString("SettingsShowSignInButton", resourceCulture); }
+        }
+        public static string SettingsShowSignInButtonTooltip {
+            get { return ResourceManager.GetString("SettingsShowSignInButtonTooltip", resourceCulture); }
+        }
     }
 }

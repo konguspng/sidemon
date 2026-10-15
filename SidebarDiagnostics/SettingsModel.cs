@@ -57,6 +57,7 @@ namespace SidebarDiagnostics.Models
             GlassBackground = Framework.Settings.Instance.GlassBackground;
             BGColor = Framework.Settings.Instance.BGColor;
             BGOpacity = Framework.Settings.Instance.BGOpacity;
+            GlassBlurAmount = Framework.Settings.Instance.GlassBlurAmount;
             BlurAmount = Framework.Settings.Instance.BlurAmount;
             BlurStrength = Framework.Settings.Instance.BlurStrength;
             BlurWidth = Framework.Settings.Instance.BlurWidth;
@@ -139,7 +140,7 @@ namespace SidebarDiagnostics.Models
                     _record.HardwareOC = new ObservableCollection<HardwareConfig>(
                         from hw in sidebar.Model.MonitorManager.GetHardware(_record.Type)
                         join config in _record.Hardware on hw.ID equals config.ID into merged
-                        from newhw in merged.DefaultIfEmpty(hw).Select(newhw => { newhw.ActualName = hw.ActualName; newhw.Status = hw.Status; if (_record.Type == MonitorType.AIUsage) { UsageRegistry.SetCustomPath(newhw.ID, newhw.CustomPath); newhw.Status = UsageRegistry.GetStatusText(newhw.ID); } if (string.IsNullOrEmpty(newhw.Name)) { newhw.Name = hw.ActualName; } return newhw; })
+                        from newhw in merged.DefaultIfEmpty(hw).Select(newhw => { newhw.ActualName = hw.ActualName; newhw.Status = hw.Status; if (_record.Type == MonitorType.AIUsage) { UsageRegistry.SetCustomPath(newhw.ID, newhw.CustomPath); newhw.Status = UsageRegistry.GetStatusText(newhw.ID); if (UsageRegistry.IsSigningIn(newhw.ID)) newhw.RenewStatus = Resources.UsageWaitingForSignIn; } if (string.IsNullOrEmpty(newhw.Name)) { newhw.Name = hw.ActualName; } return newhw; })
                         orderby newhw.Order descending, newhw.Name ascending
                         select newhw
                         );
@@ -167,10 +168,6 @@ namespace SidebarDiagnostics.Models
 
         public void Save()
         {
-            if (!string.Equals(Culture, Framework.Settings.Instance.Culture, StringComparison.Ordinal))
-            {
-                MessageBox.Show(Resources.LanguageChangedText, Resources.LanguageChangedTitle, MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK);
-            }
 
             bool _runAtStartupChanged = RunAtStartup != Framework.Settings.Instance.RunAtStartup;
 
@@ -192,6 +189,7 @@ namespace SidebarDiagnostics.Models
             Framework.Settings.Instance.GlassBackground = GlassBackground;
             Framework.Settings.Instance.BGColor = BGColor;
             Framework.Settings.Instance.BGOpacity = BGOpacity;
+            Framework.Settings.Instance.GlassBlurAmount = GlassBlurAmount;
             Framework.Settings.Instance.BlurAmount = BlurAmount;
             Framework.Settings.Instance.BlurStrength = BlurStrength;
             Framework.Settings.Instance.BlurWidth = BlurWidth;
@@ -698,6 +696,18 @@ namespace SidebarDiagnostics.Models
             set { _availableUpdateText = value; NotifyPropertyChanged("AvailableUpdateText"); }
         }
 
+        public bool IsReportFeatureAvailable
+        {
+            get
+            {
+#if HAS_REPORT_SECRET
+                return true;
+#else
+                return false;
+#endif
+            }
+        }
+
         private int _sidebarWidth { get; set; }
 
         public int SidebarWidth
@@ -852,6 +862,22 @@ namespace SidebarDiagnostics.Models
                 _bgOpacity = value;
 
                 NotifyPropertyChanged("BGOpacity");
+            }
+        }
+
+        private double _glassBlurAmount { get; set; } = 0.50d;
+
+        public double GlassBlurAmount
+        {
+            get
+            {
+                return _glassBlurAmount;
+            }
+            set
+            {
+                _glassBlurAmount = Math.Max(0d, Math.Min(1d, value));
+
+                NotifyPropertyChanged("GlassBlurAmount");
             }
         }
 
@@ -1356,11 +1382,14 @@ namespace SidebarDiagnostics.Models
                 {
                     _config.PropertyChanged += Child_PropertyChanged;
 
-                    _config.HardwareOC.CollectionChanged += Child_CollectionChanged;
-
-                    foreach (HardwareConfig _hardware in _config.HardwareOC)
+                    if (_config.HardwareOC != null)
                     {
-                        _hardware.PropertyChanged += Child_PropertyChanged;
+                        _config.HardwareOC.CollectionChanged += Child_CollectionChanged;
+
+                        foreach (HardwareConfig _hardware in _config.HardwareOC)
+                        {
+                            _hardware.PropertyChanged += Child_PropertyChanged;
+                        }
                     }
 
                     foreach (MetricConfig _metric in _config.Metrics)

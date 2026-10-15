@@ -90,7 +90,7 @@ namespace SidebarDiagnostics.Utilities
             {
                 if (_localApp == null)
                 {
-                    _localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AssemblyName);
+                    _localApp = Environment.GetEnvironmentVariable("SIDEMON_TEST_DIR") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AssemblyName);
 
                     // migrate settings saved before the app was renamed from SidebarDiagnostics
                     if (!File.Exists(Path.Combine(_localApp, SETTINGS)))
@@ -162,12 +162,12 @@ namespace SidebarDiagnostics.Utilities
                         int monitorCount = 0;
                         try { monitorCount = SidebarDiagnostics.Windows.Monitor.GetMonitors().Count(); } catch {}
                         string diag = $"[Diagnostic] OS={Environment.OSVersion} .NET={Environment.Version} Culture={System.Globalization.CultureInfo.CurrentCulture.Name} Monitors={monitorCount}";
-                        File.AppendAllText(file, string.Format("[{0:u}] {1}{2}", DateTime.Now, diag, Environment.NewLine));
+                        File.AppendAllText(file, string.Format(CultureInfo.InvariantCulture, "[{0:yyyy-MM-dd HH:mm:ss}] {1}{2}", DateTime.Now, diag, Environment.NewLine));
                     }
                     catch { }
                 }
 
-                File.AppendAllText(file, string.Format("[{0:u}] {1}{2}{2}", DateTime.Now, message, Environment.NewLine));
+                File.AppendAllText(file, string.Format(CultureInfo.InvariantCulture, "[{0:yyyy-MM-dd HH:mm:ss}] {1}{2}{2}", DateTime.Now, message, Environment.NewLine));
             }
             catch
             {
@@ -579,15 +579,24 @@ namespace SidebarDiagnostics.Utilities
             Default = Thread.CurrentThread.CurrentUICulture;
         }
 
+        private static bool _languageOverridden;
+
         public static void SetCurrent(bool init)
         {
+            _cachedName = null;
+            _cached = null;
+
             Resources.Culture = CultureInfo;
 
             Thread.CurrentThread.CurrentCulture = CultureInfo;
             Thread.CurrentThread.CurrentUICulture = CultureInfo;
 
-            if (init)
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo;
+            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo;
+
+            if (init && !_languageOverridden)
             {
+                _languageOverridden = true;
                 FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.Name)));
             }
         }
@@ -601,7 +610,7 @@ namespace SidebarDiagnostics.Utilities
         {
             get
             {
-                return new string[11] { "en", "da", "de", "fr", "ja", "nl", "zh", "it", "ru", "fi", "es" };
+                return new string[] { "en", "da", "de", "fr", "ja", "nl", "zh", "it", "ru", "fi", "es", "ar", "tr" };
             }
         }
 
@@ -617,11 +626,12 @@ namespace SidebarDiagnostics.Utilities
             {
                 string culture = Framework.Settings.Instance.Culture;
 
-                if (!string.Equals(culture, _cachedName, StringComparison.Ordinal))
+                if (!string.Equals(culture, _cachedName, StringComparison.Ordinal) || _cached == null)
                 {
                     _cachedName = culture;
+                    CultureInfo defaultCulture = Default ?? CultureInfo.InstalledUICulture ?? CultureInfo.CurrentUICulture;
                     _cached = string.Equals(culture, DEFAULT, StringComparison.Ordinal)
-                        ? Default
+                        ? defaultCulture
                         : new CultureInfo(culture);
                 }
 

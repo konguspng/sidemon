@@ -44,7 +44,7 @@
                 </Button.Style>
             </Button>
         </StackPanel>
-                <TabControl Style="{StaticResource SettingTab}" Grid.IsSharedSizeScope="True">
+                <TabControl x:Name="SettingsTabControl" Style="{StaticResource SettingTab}" Grid.IsSharedSizeScope="True">
             <TabItem Header="{x:Static frame:Resources.SettingsGeneralTab}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="0,0,10,10">
@@ -96,6 +96,17 @@
                                 </StackPanel>
                             </Border>
                         </Expander>
+
+                        <Border Visibility="{Binding Path=IsReportFeatureAvailable, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel>
+                                <TextBlock Text="Support" Style="{StaticResource SettingsSectionHeader}" />
+                                <TextBlock Text="Troubleshooting and diagnostics." Style="{StaticResource SettingsSectionHelper}" />
+                                <StackPanel Orientation="Horizontal" Margin="20,10,20,20">
+                                    <Button Content="Send log to developer..." Click="SendLog_Click" />
+                                    <TextBlock Text="Submit an anonymous diagnostic report to help fix issues." VerticalAlignment="Center" Margin="10,0,0,0" Opacity="0.75" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -242,6 +253,7 @@
                                         <RowDefinition Height="38px"/>
                                         <RowDefinition Height="38px"/>
                                         <RowDefinition Height="38px"/>
+                                        <RowDefinition Height="38px"/>
                                     </Grid.RowDefinitions>
                                     
                                     <Label Grid.Column="0" Grid.Row="0" Content="Style" VerticalAlignment="Top" Margin="0,5,15,0" />
@@ -264,15 +276,22 @@
                                         <TextBox DockPanel.Dock="Right" Text="{Binding ElementName=BGOpacitySlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F2}}" Width="40" Margin="5,0,0,0" PreviewTextInput="NumberBox_PreviewTextInput" />
                                         <Slider x:Name="BGOpacitySlider" Value="{Binding Path=BGOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.01" Maximum="1.0" LargeChange="0.1" TickFrequency="0.01" ToolTip="How solid the background is." />
                                     </DockPanel>
+
+                                    <Label Grid.Column="0" Grid.Row="3" Content="Blur Amount" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="3" HorizontalAlignment="Left" Width="250" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}">
+                                        <TextBlock DockPanel.Dock="Right" Text="(0-1)" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="#888" />
+                                        <TextBox DockPanel.Dock="Right" Text="{Binding ElementName=GlassBlurAmountSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F2}}" Width="40" Margin="5,0,0,0" PreviewTextInput="NumberBox_PreviewTextInput" />
+                                        <Slider x:Name="GlassBlurAmountSlider" Value="{Binding Path=GlassBlurAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.0" Maximum="1.0" LargeChange="0.1" TickFrequency="0.01" ToolTip="Adjust the blur and frosting intensity of the glass." />
+                                    </DockPanel>
                                     
-                                    <Label Grid.Column="0" Grid.Row="3" Content="Card Panels" />
-                                    <CheckBox Grid.Column="1" Grid.Row="3" IsChecked="{Binding Path=UseCardStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show each monitor group as a rounded card." />
+                                    <Label Grid.Column="0" Grid.Row="4" Content="Card Panels" />
+                                    <CheckBox Grid.Column="1" Grid.Row="4" IsChecked="{Binding Path=UseCardStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show each monitor group as a rounded card." />
                                     
-                                    <Label Grid.Column="0" Grid.Row="4" Content="Colored Bars" />
-                                    <CheckBox Grid.Column="1" Grid.Row="4" IsChecked="{Binding Path=ShowAccentBars, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show a slim colored load bar under percentage readings." />
+                                    <Label Grid.Column="0" Grid.Row="5" Content="Colored Bars" />
+                                    <CheckBox Grid.Column="1" Grid.Row="5" IsChecked="{Binding Path=ShowAccentBars, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Show a slim colored load bar under percentage readings." />
                                     
-                                    <Label Grid.Column="0" Grid.Row="5" Content="Accent Color" IsEnabled="{Binding Path=AccentColorEnabled}" />
-                                    <DockPanel Grid.Column="1" Grid.Row="5" IsEnabled="{Binding Path=AccentColorEnabled}" HorizontalAlignment="Left" Width="200" LastChildFill="True">
+                                    <Label Grid.Column="0" Grid.Row="6" Content="Accent Color" IsEnabled="{Binding Path=AccentColorEnabled}" />
+                                    <DockPanel Grid.Column="1" Grid.Row="6" IsEnabled="{Binding Path=AccentColorEnabled}" HorizontalAlignment="Left" Width="200" LastChildFill="True">
                                         <Border DockPanel.Dock="Right" Width="22" Height="22" Margin="5,0,0,0" BorderBrush="#888" BorderThickness="1" Background="{Binding Path=AccentColor, Mode=OneWay}" Tag="AccentColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" Cursor="Hand" ToolTip="Click to select accent color." />
                                         <TextBox Width="Auto" Text="{Binding Path=AccentColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="Accent color used for load bars." />
                                     </DockPanel>
@@ -476,6 +495,7 @@
                                     <ItemsControl ItemsSource="{Binding Path=HardwareOC}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
+                                                <StackPanel>
                                                 <Grid Margin="0,5">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="25" />
@@ -512,6 +532,47 @@
                                                         <Button Content="&#x25BC;" Width="20" Height="20" Click="HardwareDown_Click" ToolTip="Move Down" />
                                                     </StackPanel>
                                                 </Grid>
+                                                    <StackPanel Orientation="Horizontal" Margin="25,0,0,5">
+                                                        <Button Content="&#x21BB;" Width="24" Height="22" Click="HardwareClaudeRenew_Click" ToolTip="{x:Static frame:Resources.SettingsUsageClaudeRenewTooltip}">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding ID}" Value="AIUsage_Claude">
+                                                                            <Setter Property="Visibility" Value="Visible" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                        </Button>
+                                                        <Button Width="24" Height="22" Click="HardwareSignIn_Click" ToolTip="{x:Static frame:Resources.UsageSignInTooltip}">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button">
+                                                                    <Setter Property="Margin" Value="0,0,0,0" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding ID}" Value="AIUsage_Claude">
+                                                                            <Setter Property="Margin" Value="4,0,0,0" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                            <Path Width="11" Height="11" Data="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3" Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" StrokeThickness="1.5" Stretch="Uniform" />
+                                                        </Button>
+                                                        <CheckBox IsChecked="{Binding Path=AutoRenew, Mode=TwoWay}" Content="{x:Static frame:Resources.SettingsUsageClaudeAutoRenew}" VerticalAlignment="Center" Margin="10,0,0,0">
+                                                            <CheckBox.Style>
+                                                                <Style TargetType="CheckBox">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding ID}" Value="AIUsage_Claude">
+                                                                            <Setter Property="Visibility" Value="Visible" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </CheckBox.Style>
+                                                        </CheckBox>
+                                                        <TextBlock Text="{Binding Path=RenewStatus, Mode=OneWay}" VerticalAlignment="Center" Margin="10,0,0,0" Opacity="0.75" TextWrapping="Wrap" />
+                                                    </StackPanel>
+                                                </StackPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>

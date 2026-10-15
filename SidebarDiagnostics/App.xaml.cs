@@ -90,7 +90,9 @@ namespace SidebarDiagnostics
         protected override void OnExit(ExitEventArgs e)
         {
             _updateLoopRunning = false;
-            TrayIcon.Dispose();
+
+            // a second instance shuts down in OnStartup before the tray icon exists
+            TrayIcon?.Dispose();
 
             base.OnExit(e);
         }
@@ -117,6 +119,31 @@ namespace SidebarDiagnostics
         public static void RefreshIcon()
         {
             TrayIcon.Visibility = Framework.Settings.Instance.ShowTrayIcon ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public static void RefreshTrayMenu()
+        {
+            if (TrayIcon?.ContextMenu == null) return;
+
+            var menu = TrayIcon.ContextMenu;
+            if (menu.Items.Count > 0 && menu.Items[0] is MenuItem miSettings)
+                miSettings.Header = SidebarDiagnostics.Framework.Resources.ButtonSettings;
+            if (menu.Items.Count > 1 && menu.Items[1] is MenuItem miReload)
+                miReload.Header = SidebarDiagnostics.Framework.Resources.ButtonReload;
+            if (menu.Items.Count > 3 && menu.Items[3] is MenuItem miGraph)
+                miGraph.Header = SidebarDiagnostics.Framework.Resources.ButtonGraph;
+            if (menu.Items.Count > 6 && menu.Items[6] is MenuItem miVis)
+            {
+                miVis.Header = SidebarDiagnostics.Framework.Resources.ButtonVisibility;
+                if (miVis.Items.Count > 0 && miVis.Items[0] is MenuItem miShow)
+                    miShow.Header = SidebarDiagnostics.Framework.Resources.ButtonShow;
+                if (miVis.Items.Count > 1 && miVis.Items[1] is MenuItem miHide)
+                    miHide.Header = SidebarDiagnostics.Framework.Resources.ButtonHide;
+            }
+            if (menu.Items.Count > 9 && menu.Items[9] is MenuItem miGit)
+                miGit.Header = SidebarDiagnostics.Framework.Resources.ButtonGitHub;
+            if (menu.Items.Count > 10 && menu.Items[10] is MenuItem miClose)
+                miClose.Header = SidebarDiagnostics.Framework.Resources.ButtonClose;
         }
 
         // toggled independently of the sidebar - the overlay is its own small
@@ -495,9 +522,33 @@ namespace SidebarDiagnostics
 
             ErrorLog.Write(ex);
 
+#if HAS_REPORT_SECRET
+            string report = ReportService.BuildReport();
+            
+            string logTailPreview = "";
+            try
+            {
+                int logStart = report.IndexOf("\r\n\r\n");
+                if (logStart != -1)
+                {
+                    string logPart = report.Substring(logStart + 4);
+                    var lines = logPart.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    // start at the newest log entry (a line beginning with "[") so the error
+                    // message itself is shown, not just the bottom of its stack trace
+                    int entryStart = 0;
+                    for (int li = lines.Length - 1; li >= 0; li--)
+                    {
+                        if (lines[li].StartsWith("[") && !lines[li].Contains("[Diagnostic]")) { entryStart = li; break; }
+                    }
+                    logTailPreview = string.Join("\n", lines.Skip(entryStart).Take(12));
+                }
+            }
+            catch { }
+
             MessageBoxResult _result = MessageBox.Show(
-                "Something went wrong and SideMon needs to close.\n\n" +
-                "Details have been saved to the error log. Open it now?",
+                "SideMon hit an error and must close.\n\n" +
+                "Send an anonymous error report to the developer? It contains only the error details and your SideMon/Windows version; your username, computer name and file paths are removed. Reports are private.\n\n" +
+                "Preview of what will be sent:\n" + logTailPreview,
                 Framework.Resources.ErrorTitle,
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Error,
@@ -508,10 +559,32 @@ namespace SidebarDiagnostics
             {
                 try
                 {
-                    Process.Start(new ProcessStartInfo(Paths.ErrorLogFile) { UseShellExecute = true });
+                    var sendTask = System.Threading.Tasks.Task.Run(() => ReportService.Send(report));
+                    if (sendTask.Wait(15000))
+                    {
+                        var result = sendTask.Result;
+                        MessageBox.Show(result.FriendlyMessage, Framework.Resources.AppName, MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Could not reach the report server.", Framework.Resources.AppName, MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                    }
                 }
-                catch { }
+                catch
+                {
+                    MessageBox.Show("Could not reach the report server.", Framework.Resources.AppName, MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                }
             }
+#else
+            MessageBox.Show(
+                "SideMon hit an error and must close.",
+                Framework.Resources.ErrorTitle,
+                MessageBoxButton.OK,
+                MessageBoxImage.Error,
+                MessageBoxResult.OK,
+                MessageBoxOptions.DefaultDesktopOnly);
+#endif
+            Environment.Exit(1);
         }
 
         public Sidebar Sidebar
