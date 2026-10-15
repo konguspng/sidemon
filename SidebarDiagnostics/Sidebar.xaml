@@ -23,9 +23,9 @@
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
         <Storyboard x:Key="SkeletonStoryboard" RepeatBehavior="Forever">
                     <DoubleAnimation
-                        Storyboard.TargetName="SkeletonGradientStop"
+                        Storyboard.TargetName="ShimmerStop"
                         Storyboard.TargetProperty="Offset"
-                        From="-1.0" To="2.0" Duration="0:0:1.5" />
+                        From="-1.2" To="1.2" Duration="0:0:1.8" />
                 </Storyboard>
             </win:AppBarWindow.Resources>
             <Grid x:Name="LayoutRoot">
@@ -34,118 +34,66 @@
                 <Border x:Name="BackgroundBorder" />
 
                 <!-- Loading skeleton: shows only while the sidebar is initializing/reloading.
-                     Shimmering gradient bars mimic the content structure; hidden when Ready=true. -->
-                <Grid Visibility="{Binding Path=Ready, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}"
-                      Margin="10,10,0,0"
-                      Opacity="0.85">
-                    <StackPanel Style="{StaticResource ContentPanel}">
-                        <!-- Machine name / header placeholder -->
-                        <Border Style="{StaticResource GroupCard}" Margin="0,0,0,16">
-                            <StackPanel Style="{StaticResource GroupPanel}">
-                                <Rectangle Width="200" Height="24" RadiusX="4" RadiusY="4">
-                                    <Rectangle.Fill>
-                                        <LinearGradientBrush x:Name="SkeletonGradientBrush" StartPoint="-1,0" EndPoint="2,0">
-                                            <GradientStop x:Name="SkeletonGradientStop" Offset="-1" Color="#E5E5E5" />
-                                            <GradientStop Offset="-0.5" Color="#F5F5F5" />
-                                            <GradientStop Offset="0" Color="#E5E5E5" />
-                                        </LinearGradientBrush>
-                                    </Rectangle.Fill>
-                                </Rectangle>
-                                <Rectangle Width="120" Height="16" RadiusX="2" RadiusY="2" Margin="0,8,0,0">
-                                    <Rectangle.Fill>
-                                        <LinearGradientBrush StartPoint="-1,0" EndPoint="2,0">
-                                            <GradientStop Offset="-1" Color="#E5E5E5" />
-                                            <GradientStop Offset="-0.5" Color="#F5F5F5" />
-                                            <GradientStop Offset="0" Color="#E5E5E5" />
-                                        </LinearGradientBrush>
-                                    </Rectangle.Fill>
-                                </Rectangle>
-                            </StackPanel>
-                        </Border>
+                             Elegant multi-element shimmer: gray rounded rectangles mimic content structure,
+                             a subtle white shimmer sweeps across from left to right. Hidden when Ready=true. -->
+                                <Grid x:Name="SkeletonPanel"
+                                      Margin="10,10,0,0">
+                                    <StackPanel Style="{StaticResource ContentPanel}">
+                                        <!-- Header card -->
+                                        <Border Style="{StaticResource GroupCard}" Margin="0,0,0,18">
+                                            <StackPanel Style="{StaticResource GroupPanel}" Margin="16,14">
+                                                <Rectangle Width="200" Height="20" RadiusX="4" RadiusY="4" Fill="#E8E8E8" />
+                                                <Rectangle Width="120" Height="15" RadiusX="2" RadiusY="2" Margin="0,10,0,0" Fill="#E8E8E8" />
+                                            </StackPanel>
+                                        </Border>
 
-                        <!-- Time card placeholder -->
-                        <Border Style="{StaticResource GroupCard}" Margin="0,0,0,16">
-                            <StackPanel Style="{StaticResource GroupPanel}">
-                                <Rectangle Width="100" Height="20" RadiusX="4" RadiusY="4">
-                                    <Rectangle.Fill>
-                                        <LinearGradientBrush StartPoint="-1,0" EndPoint="2,0">
-                                            <GradientStop Offset="-1" Color="#E5E5E5" />
-                                            <GradientStop Offset="-0.5" Color="#F5F5F5" />
-                                            <GradientStop Offset="0" Color="#E5E5E5" />
-                                        </LinearGradientBrush>
-                                    </Rectangle.Fill>
-                                </Rectangle>
-                                <Rectangle Width="60" Height="14" RadiusX="2" RadiusY="2" Margin="0,8,0,0">
-                                    <Rectangle.Fill>
-                                        <LinearGradientBrush StartPoint="-1,0" EndPoint="2,0">
-                                            <GradientStop Offset="-1" Color="#E5E5E5" />
-                                            <GradientStop Offset="-0.5" Color="#F5F5F5" />
-                                            <GradientStop Offset="0" Color="#E5E5E5" />
-                                        </LinearGradientBrush>
-                                    </Rectangle.Fill>
-                                </Rectangle>
-                            </StackPanel>
-                        </Border>
+                                        <!-- Time card -->
+                                        <Border Style="{StaticResource GroupCard}" Margin="0,0,0,18">
+                                            <StackPanel Style="{StaticResource GroupPanel}" Margin="16,14">
+                                                <Rectangle Width="100" Height="20" RadiusX="4" RadiusY="4" Fill="#E8E8E8" />
+                                                <Rectangle Width="60" Height="14" RadiusX="2" RadiusY="2" Margin="0,10,0,0" Fill="#E8E8E8" />
+                                            </StackPanel>
+                                        </Border>
 
-                        <!-- Monitor panel placeholders (3 rows) -->
-                        <ItemsControl ItemsSource="{Binding Source={x:Static sys:Int32.MaxValue}}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Style="{StaticResource VerticalPanel}" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Style="{StaticResource GroupCard}" Margin="0,0,0,12">
-                                        <StackPanel Style="{StaticResource GroupPanel}">
-                                            <Rectangle Width="160" Height="20" RadiusX="4" RadiusY="4">
-                                                <Rectangle.Fill>
-                                                    <LinearGradientBrush StartPoint="-1,0" EndPoint="2,0">
-                                                        <GradientStop Offset="-1" Color="#E5E5E5" />
-                                                        <GradientStop Offset="-0.5" Color="#F5F5F5" />
-                                                        <GradientStop Offset="0" Color="#E5E5E5" />
-                                                    </LinearGradientBrush>
-                                                </Rectangle.Fill>
-                                            </Rectangle>
-                                            <Rectangle Width="200" Height="16" RadiusX="2" RadiusY="2" Margin="0,8,0,0">
-                                                <Rectangle.Fill>
-                                                    <LinearGradientBrush StartPoint="-1,0" EndPoint="2,0">
-                                                        <GradientStop Offset="-1" Color="#E5E5E5" />
-                                                        <GradientStop Offset="-0.5" Color="#F5F5F5" />
-                                                        <GradientStop Offset="0" Color="#E5E5E5" />
-                                                    </LinearGradientBrush>
-                                                </Rectangle.Fill>
-                                            </Rectangle>
-                                            <Rectangle Width="120" Height="14" RadiusX="2" RadiusY="2" Margin="0,6,0,0">
-                                                <Rectangle.Fill>
-                                                    <LinearGradientBrush StartPoint="-1,0" EndPoint="2,0">
-                                                        <GradientStop Offset="-1" Color="#E5E5E5" />
-                                                        <GradientStop Offset="-0.5" Color="#F5F5F5" />
-                                                        <GradientStop Offset="0" Color="#E5E5E5" />
-                                                    </LinearGradientBrush>
-                                                </Rectangle.Fill>
-                                            </Rectangle>
-                                            <Rectangle Width="90" Height="12" RadiusX="2" RadiusY="2" Margin="0,6,0,0">
-                                                <Rectangle.Fill>
-                                                    <LinearGradientBrush StartPoint="-1,0" EndPoint="2,0">
-                                                        <GradientStop Offset="-1" Color="#E5E5E5" />
-                                                        <GradientStop Offset="-0.5" Color="#F5F5F5" />
-                                                        <GradientStop Offset="0" Color="#E5E5E5" />
-                                                    </LinearGradientBrush>
-                                                </Rectangle.Fill>
-                                            </Rectangle>
-                                        </StackPanel>
+                                        <!-- Monitor panel rows -->
+                                        <ItemsControl ItemsSource="{Binding Source={x:Static sys:Int32.MaxValue}}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Style="{StaticResource VerticalPanel}" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Style="{StaticResource GroupCard}" Margin="0,0,0,14">
+                                                        <StackPanel Style="{StaticResource GroupPanel}" Margin="16,12">
+                                                            <Rectangle Width="160" Height="18" RadiusX="4" RadiusY="4" Fill="#E8E8E8" />
+                                                            <Rectangle Width="260" Height="15" RadiusX="2" RadiusY="2" Margin="0,10,0,0" Fill="#E8E8E8" />
+                                                            <Rectangle Width="180" Height="13" RadiusX="2" RadiusY="2" Margin="0,8,0,0" Fill="#E8E8E8" />
+                                                            <Rectangle Width="110" Height="11" RadiusX="2" RadiusY="2" Margin="0,8,0,0" Fill="#E8E8E8" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+
+                                    <!-- Sweeping shimmer overlay -->
+                                    <Border x:Name="ShimmerOverlay" Background="#FFFFFF" Opacity="0.45">
+                                        <Border.OpacityMask>
+                                            <LinearGradientBrush x:Name="ShimmerBrush" StartPoint="-1,0" EndPoint="2,0">
+                                                <GradientStop x:Name="ShimmerStop" Offset="-1" Color="Transparent" />
+                                                <GradientStop Offset="-0.4" Color="White" />
+                                                <GradientStop Offset="0" Color="Transparent" />
+                                            </LinearGradientBrush>
+                                        </Border.OpacityMask>
                                     </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                    <Grid.Triggers>
-                        <EventTrigger RoutedEvent="Grid.Loaded">
-                            <BeginStoryboard Storyboard="{StaticResource SkeletonStoryboard}" />
-                        </EventTrigger>
-                    </Grid.Triggers>
-                </Grid>
+
+                                    <Grid.Triggers>
+                                        <EventTrigger RoutedEvent="Grid.Loaded">
+                                            <BeginStoryboard Storyboard="{StaticResource SkeletonStoryboard}" />
+                                        </EventTrigger>
+                                    </Grid.Triggers>
+                                </Grid>
         
         <DockPanel x:Name="MainContent" Style="{StaticResource MainPanel}">
             <StackPanel x:Name="WindowControls" Style="{StaticResource MenuBar}">

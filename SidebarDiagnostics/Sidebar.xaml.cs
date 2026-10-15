@@ -610,10 +610,15 @@ namespace SidebarDiagnostics
             set
             {
                 _ready = value;
-
                 if (Model != null)
                 {
                     Model.Ready = value;
+                }
+                // Skeleton visibility is controlled directly here because Ready does not
+                // raise INotifyPropertyChanged, so a XAML binding would never re-evaluate.
+                if (SkeletonPanel != null)
+                {
+                    SkeletonPanel.Visibility = value ? Visibility.Collapsed : Visibility.Visible;
                 }
             }
         }
