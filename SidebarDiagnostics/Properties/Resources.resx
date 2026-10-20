@@ -1213,7 +1213,7 @@
     <comment>AI CLI provider detected but it has no read-only usage source</comment>
   </data>
   <data name="UsageAuthExpired" xml:space="preserve">
-    <value>Token expired - use the CLI once to refresh</value>
+    <value>Token expired - run CLI</value>
     <comment>Stored login was rejected; the app never refreshes tokens itself</comment>
   </data>
   <data name="UsageRateLimited" xml:space="preserve">
@@ -1315,7 +1315,7 @@
     <value>No extra options</value>
   </data>
   <data name="UsageClaudeExpiredStaleNote" xml:space="preserve">
-    <value>Login expired - last updated {0}. Open Claude Code to renew.</value>
+    <value>Login expired - {0}. Run CLI to renew.</value>
   </data>
   <data name="SettingsUsageClaudeRenewButton" xml:space="preserve">
     <value>Renew</value>
