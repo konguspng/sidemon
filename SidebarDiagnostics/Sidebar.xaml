@@ -232,11 +232,13 @@
                                                 <StackPanel Style="{StaticResource MonitorPanel}">
                                                     <DockPanel Margin="0,0,0,6" LastChildFill="True">
                                                         <Button DockPanel.Dock="Right"
-                                                                Command="{Binding SignInCommand}"
-                                                                ToolTip="{x:Static frame:Resources.UsageSignInTooltip}"
-                                                                Visibility="{Binding SignInButtonVisibility}"
-                                                                Style="{StaticResource IconButton}"
-                                                                Width="20" Height="20" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                                                                                        Command="{Binding SignInCommand}"
+                                                                                                                        ToolTip="{x:Static frame:Resources.UsageSignInTooltip}"
+                                                                                                                        Visibility="{Binding SignInButtonVisibility}"
+                                                                                                                        Style="{StaticResource IconButton}"
+                                                                                                                        Width="20" Height="20" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                                                                                        MouseEnter="SignInButton_MouseEnter"
+                                                                                                                        MouseLeave="SignInButton_MouseLeave">
                                                             <Path Width="12" Height="12" Data="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3" />
                                                         </Button>
                                                         <TextBlock Text="{Binding Path=Name, Mode=OneWay}" Style="{StaticResource HardwareText}" Margin="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />

@@ -314,6 +314,22 @@ namespace SidebarDiagnostics
 
         private delegate void ModelReadyHandler(SidebarModel model);
 
+        private void SignInButton_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (Framework.Settings.Instance.ClickThrough)
+            {
+                ClearClickThrough();
+            }
+        }
+
+        private void SignInButton_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (Framework.Settings.Instance.ClickThrough)
+            {
+                SetClickThrough();
+            }
+        }
+
         private void ModelReady(SidebarModel model)
         {
             DataContext = Model = model;

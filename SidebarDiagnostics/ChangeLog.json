@@ -1,5 +1,12 @@
 [
   {
+    "Version": "4.5.2",
+    "Changes": [
+      "Sign-in button now clickable even when click-through is enabled.",
+      "New network adapters default to disabled to prevent reappearance after reboot."
+    ]
+  },
+  {
     "Version": "4.5.1",
     "Changes": [
       "Shortened expired token text to fit narrow sidebar width.",

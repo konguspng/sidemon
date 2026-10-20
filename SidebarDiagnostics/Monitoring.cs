@@ -1648,7 +1648,7 @@ namespace SidebarDiagnostics.Monitoring
             return (
                 from nic in GetAdapters()
                 join c in hardwareConfig on nic.Id equals c.ID into merged
-                from n in merged.DefaultIfEmpty(new HardwareConfig() { ID = nic.Id, Name = nic.Name, ActualName = nic.Name }).Select(n => { n.ActualName = nic.Name; return n; })
+                from n in merged.DefaultIfEmpty(new HardwareConfig() { ID = nic.Id, Name = nic.Name, ActualName = nic.Name, Enabled = false }).Select(n => { n.ActualName = nic.Name; return n; })
                 where n.Enabled
                 orderby n.Order descending, n.Name ascending
                 select new NetworkMonitor(nic, n.Name ?? n.ActualName, _extIP, metrics, _showName, _roundAll, _useBytes, _bandwidthInAlert, _bandwidthOutAlert)
