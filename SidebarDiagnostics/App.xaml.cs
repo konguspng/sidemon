@@ -31,10 +31,14 @@ namespace SidebarDiagnostics
 
             base.OnStartup(e);
 
+            // BOOT HARDENING: wait for the shell/disk after a fresh boot, then pin lazy DLLs
+            Resilience.WaitForBootSettle();
+            Resilience.PreloadRuntime();
+
             // ERROR HANDLING
             #if !DEBUG
             AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(AppDomain_Error);
-            DispatcherUnhandledException += (s, ev) => { AppDomain_Error(s, new UnhandledExceptionEventArgs(ev.Exception, true)); ev.Handled = true; };
+            DispatcherUnhandledException += (s, ev) => { if (Resilience.IsAssemblyLoadFailure(ev.Exception)) { ErrorLog.Write(ev.Exception); ev.Handled = true; return; } AppDomain_Error(s, new UnhandledExceptionEventArgs(ev.Exception, true)); ev.Handled = true; };
             System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (s, ev) => { AppDomain_Error(s, new UnhandledExceptionEventArgs(ev.Exception, true)); ev.SetObserved(); };
             #endif
 
@@ -95,6 +99,9 @@ namespace SidebarDiagnostics
             TrayIcon?.Dispose();
 
             base.OnExit(e);
+
+            // skip the native module uninitializers (vcruntime140_cor3 load error on exit)
+            Resilience.FastExit(e.ApplicationExitCode);
         }
 
         public static void StartApp(bool openSettings)
@@ -584,7 +591,7 @@ namespace SidebarDiagnostics
                 MessageBoxResult.OK,
                 MessageBoxOptions.DefaultDesktopOnly);
 #endif
-            Environment.Exit(1);
+            Resilience.FastExit(1);
         }
 
         public Sidebar Sidebar
