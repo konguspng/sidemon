@@ -1725,12 +1725,87 @@ namespace SidebarDiagnostics.Windows
                     sidebar.ApplyZOrderPolicy();
                     if (msg == WM_MESSAGES.WM_DISPLAYCHANGE || msg == WM_MESSAGES.WM_SETTINGCHANGE)
                     {
-                        _ = sidebar.Reposition();
+                        ScheduleDisplayReposition(sidebar);
                     }
                 }
             }
 
             return IntPtr.Zero;
+        }
+
+        // Unplugging a monitor makes Windows fire a burst of WM_DISPLAYCHANGE /
+        // WM_SETTINGCHANGE while it is still re-detecting screens and changing DPI.
+        // Repositioning on the first one used a half-updated monitor list (or was
+        // skipped entirely when a reposition was already running), which left the
+        // sidebar at a random spot. Wait for the burst to settle, reposition, then
+        // check the result and retry if the sidebar is not on its screen.
+        private CancellationTokenSource _displayDebounce;
+
+        private void ScheduleDisplayReposition(Sidebar sidebar)
+        {
+            _displayDebounce?.Cancel();
+            CancellationTokenSource _cts = _displayDebounce = new CancellationTokenSource();
+            CancellationToken _token = _cts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(1500, _token);
+
+                    for (int attempt = 0; attempt < 4 && !_token.IsCancellationRequested; attempt++)
+                    {
+                        await Dispatcher.InvokeAsync(async () =>
+                        {
+                            // wait (bounded) for any reposition / reload already in flight
+                            for (int w = 0; w < 20 && (_settingAppBar || !sidebar.Ready); w++)
+                            {
+                                await Task.Delay(250);
+                            }
+
+                            await sidebar.Reposition();
+                        }).Task.Unwrap();
+
+                        await Task.Delay(1500, _token);
+
+                        bool _onScreen = await Dispatcher.InvokeAsync(() => IsOnConfiguredScreen());
+
+                        if (_onScreen)
+                        {
+                            break;
+                        }
+                    }
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex) { Utilities.ErrorLog.Write(ex); }
+            });
+        }
+
+        private bool IsOnConfiguredScreen()
+        {
+            try
+            {
+                if (_isHiding || Visibility != Visibility.Visible)
+                {
+                    return true;
+                }
+
+                Monitor _active = Monitor.GetMonitorFromIndex(Framework.Settings.Instance.ScreenIndex);
+
+                if (!NativeMethods.GetWindowRect(new WindowInteropHelper(this).Handle, out RECT _rect))
+                {
+                    return true;
+                }
+
+                int _cx = (_rect.Left + _rect.Right) / 2;
+                int _cy = (_rect.Top + _rect.Bottom) / 2;
+
+                return _cx >= _active.Size.Left && _cx < _active.Size.Right && _cy >= _active.Size.Top && _cy < _active.Size.Bottom;
+            }
+            catch
+            {
+                return true;
+            }
         }
 
         private static int _taskbarCreatedMsg = NativeMethods.RegisterWindowMessage("TaskbarCreated");
