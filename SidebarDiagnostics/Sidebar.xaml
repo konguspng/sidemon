@@ -21,80 +21,22 @@
         Opacity="0">
         <win:AppBarWindow.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
-        <Storyboard x:Key="SkeletonStoryboard" RepeatBehavior="Forever">
-                    <DoubleAnimation
-                        Storyboard.TargetName="ShimmerStop"
-                        Storyboard.TargetProperty="Offset"
-                        From="-1.2" To="1.2" Duration="0:0:1.8" />
-                </Storyboard>
             </win:AppBarWindow.Resources>
             <Grid x:Name="LayoutRoot">
                 <!-- Background layer: solid tint, or (glass mode) an invisible fill over the real
                      Windows acrylic blur that the window itself provides -->
                 <Border x:Name="BackgroundBorder" />
 
-                <!-- Loading skeleton: shows only while the sidebar is initializing/reloading.
-                             Elegant multi-element shimmer: gray rounded rectangles mimic content structure,
-                             a subtle white shimmer sweeps across from left to right. Hidden when Ready=true. -->
-                                <Grid x:Name="SkeletonPanel"
-                                      Margin="10,10,0,0">
-                                    <StackPanel Style="{StaticResource ContentPanel}">
-                                        <!-- Header card -->
-                                        <Border Style="{StaticResource GroupCard}" Margin="0,0,0,18">
-                                            <StackPanel Style="{StaticResource GroupPanel}" Margin="16,14">
-                                                <Rectangle Width="200" Height="20" RadiusX="4" RadiusY="4" Fill="#E8E8E8" />
-                                                <Rectangle Width="120" Height="15" RadiusX="2" RadiusY="2" Margin="0,10,0,0" Fill="#E8E8E8" />
-                                            </StackPanel>
-                                        </Border>
+                <!-- Loading indicator: shown only while the sidebar initializes/reloads. Uses the same
+                     bar as the drive-usage bars, in the user's selected font colour. -->
+                <StackPanel x:Name="SkeletonPanel" VerticalAlignment="Top" Margin="16,22,16,0">
+                    <TextBlock Text="{x:Static frame:Resources.UsageLoading}"
+                               Foreground="{Binding Source={x:Static frame:Settings.Instance}, Path=FontColor, Mode=OneWay}"
+                               Opacity="0.85" />
+                    <ProgressBar x:Name="LoadBar" Style="{StaticResource DriveProgress}"
+                                 Width="Auto" HorizontalAlignment="Stretch" Margin="0,8,0,0" Value="0" />
+                </StackPanel>
 
-                                        <!-- Time card -->
-                                        <Border Style="{StaticResource GroupCard}" Margin="0,0,0,18">
-                                            <StackPanel Style="{StaticResource GroupPanel}" Margin="16,14">
-                                                <Rectangle Width="100" Height="20" RadiusX="4" RadiusY="4" Fill="#E8E8E8" />
-                                                <Rectangle Width="60" Height="14" RadiusX="2" RadiusY="2" Margin="0,10,0,0" Fill="#E8E8E8" />
-                                            </StackPanel>
-                                        </Border>
-
-                                        <!-- Monitor panel rows -->
-                                        <ItemsControl ItemsSource="{Binding Source={x:Static sys:Int32.MaxValue}}">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <StackPanel Style="{StaticResource VerticalPanel}" />
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Border Style="{StaticResource GroupCard}" Margin="0,0,0,14">
-                                                        <StackPanel Style="{StaticResource GroupPanel}" Margin="16,12">
-                                                            <Rectangle Width="160" Height="18" RadiusX="4" RadiusY="4" Fill="#E8E8E8" />
-                                                            <Rectangle Width="260" Height="15" RadiusX="2" RadiusY="2" Margin="0,10,0,0" Fill="#E8E8E8" />
-                                                            <Rectangle Width="180" Height="13" RadiusX="2" RadiusY="2" Margin="0,8,0,0" Fill="#E8E8E8" />
-                                                            <Rectangle Width="110" Height="11" RadiusX="2" RadiusY="2" Margin="0,8,0,0" Fill="#E8E8E8" />
-                                                        </StackPanel>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-
-                                    <!-- Sweeping shimmer overlay -->
-                                    <Border x:Name="ShimmerOverlay" Background="#FFFFFF" Opacity="0.45">
-                                        <Border.OpacityMask>
-                                            <LinearGradientBrush x:Name="ShimmerBrush" StartPoint="-1,0" EndPoint="2,0">
-                                                <GradientStop x:Name="ShimmerStop" Offset="-1" Color="Transparent" />
-                                                <GradientStop Offset="-0.4" Color="White" />
-                                                <GradientStop Offset="0" Color="Transparent" />
-                                            </LinearGradientBrush>
-                                        </Border.OpacityMask>
-                                    </Border>
-
-                                    <Grid.Triggers>
-                                        <EventTrigger RoutedEvent="Grid.Loaded">
-                                            <BeginStoryboard Storyboard="{StaticResource SkeletonStoryboard}" />
-                                        </EventTrigger>
-                                    </Grid.Triggers>
-                                </Grid>
-        
         <DockPanel x:Name="MainContent" Style="{StaticResource MainPanel}">
             <StackPanel x:Name="WindowControls" Style="{StaticResource MenuBar}">
                 <Button Click="GraphButton_Click" Style="{StaticResource MenuButton}">

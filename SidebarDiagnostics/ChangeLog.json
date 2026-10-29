@@ -4,7 +4,8 @@
     "Changes": [
       "Fixed startup crash \"Could not load Accessibility\" when launching right after boot: the app now waits for the shell and pre-loads its runtime DLLs with retries.",
       "Fixed \"Unable to load vcruntime140_cor3.dll\" error on exit: the app now ends cleanly without the native unload step.",
-      "Missing framework DLLs no longer take the whole app down."
+      "Missing framework DLLs no longer take the whole app down.",
+      "New loading indicator: a progress bar styled like the drive-usage bars, in your selected colour, replaces the old skeleton."
     ]
   },
   {

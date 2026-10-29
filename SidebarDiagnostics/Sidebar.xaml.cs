@@ -632,10 +632,41 @@ namespace SidebarDiagnostics
                 }
                 // Skeleton visibility is controlled directly here because Ready does not
                 // raise INotifyPropertyChanged, so a XAML binding would never re-evaluate.
-                if (SkeletonPanel != null)
+                UpdateLoader(value);
+            }
+        }
+
+        private void UpdateLoader(bool ready)
+        {
+            if (SkeletonPanel == null || LoadBar == null)
+            {
+                return;
+            }
+
+            if (!ready)
+            {
+                SkeletonPanel.Visibility = Visibility.Visible;
+                LoadBar.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty, null);
+                LoadBar.Value = 0;
+
+                // eases toward 90% while the sensors start; the last stretch is the real "ready"
+                LoadBar.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty,
+                    new System.Windows.Media.Animation.DoubleAnimation(0, 90, TimeSpan.FromSeconds(8))
+                    {
+                        EasingFunction = new System.Windows.Media.Animation.QuadraticEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut }
+                    });
+            }
+            else
+            {
+                var finish = new System.Windows.Media.Animation.DoubleAnimation(100, TimeSpan.FromMilliseconds(180));
+                finish.Completed += (s, e) =>
                 {
-                    SkeletonPanel.Visibility = value ? Visibility.Collapsed : Visibility.Visible;
-                }
+                    if (_ready)
+                    {
+                        SkeletonPanel.Visibility = Visibility.Collapsed;
+                    }
+                };
+                LoadBar.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty, finish);
             }
         }
 
