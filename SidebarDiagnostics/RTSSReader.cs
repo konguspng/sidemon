@@ -55,14 +55,20 @@ namespace SidebarDiagnostics.Overlay
             {
                 try
                 {
-                    using (MemoryMappedFile.OpenExisting(MAPNAME, MemoryMappedFileRights.Read)) { }
-                    return true;
+                    return CheckAvailable();
                 }
                 catch (Exception)
                 {
                     return false;
                 }
             }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool CheckAvailable()
+        {
+            using (MemoryMappedFile.OpenExisting(MAPNAME, MemoryMappedFileRights.Read)) { }
+            return true;
         }
 
         // Returns null if RTSS isn't running, or if the foreground process

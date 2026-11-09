@@ -158,32 +158,40 @@ namespace SidebarDiagnostics
 
         private void SystemEvents_SessionSwitch(object sender, Microsoft.Win32.SessionSwitchEventArgs e)
         {
-            if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock)
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                Model?.Pause();
-            }
-            else if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock)
-            {
-                if (Visibility == Visibility.Visible && !_pausedForFullscreen)
+                if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock)
                 {
-                    Model?.Resume();
+                    Model?.Pause();
                 }
-            }
+                else if (e.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock)
+                {
+                    if (Visibility == Visibility.Visible && !_pausedForFullscreen)
+                    {
+                        Model?.Resume();
+                        SidebarDiagnostics.Monitoring.UsageRegistry.OnPowerResume();
+                    }
+                }
+            }));
         }
 
         private void SystemEvents_PowerModeChanged(object sender, Microsoft.Win32.PowerModeChangedEventArgs e)
         {
-            if (e.Mode == Microsoft.Win32.PowerModes.Suspend)
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                Model?.Pause();
-            }
-            else if (e.Mode == Microsoft.Win32.PowerModes.Resume)
-            {
-                if (Visibility == Visibility.Visible && !_pausedForFullscreen)
+                if (e.Mode == Microsoft.Win32.PowerModes.Suspend)
                 {
-                    Model?.Resume();
+                    Model?.Pause();
                 }
-            }
+                else if (e.Mode == Microsoft.Win32.PowerModes.Resume)
+                {
+                    if (Visibility == Visibility.Visible && !_pausedForFullscreen)
+                    {
+                        Model?.Resume();
+                        SidebarDiagnostics.Monitoring.UsageRegistry.OnPowerResume();
+                    }
+                }
+            }));
         }
 
         public override async Task AppBarShow()
@@ -196,6 +204,11 @@ namespace SidebarDiagnostics
             ApplyZOrderPolicy();
 
             Model.Resume();
+
+            // Force every AI usage provider (Claude, agy/Gemini, Codex, Copilot, Gemini)
+            // to repoll immediately so an account switch made outside SideMon is reflected
+            // without waiting up to the 5-minute normal poll interval.
+            SidebarDiagnostics.Monitoring.UsageRegistry.OnPowerResume();
         }
 
         public void ApplyZOrderPolicy()

@@ -25,6 +25,7 @@ namespace SidebarDiagnostics
             "UIAutomationTypes",
             "UIAutomationClient",
             "UIAutomationClientSideProviders",
+            "System.IO.MemoryMappedFiles",
         };
 
         private static readonly string[] NativeLibraries =
@@ -126,7 +127,8 @@ namespace SidebarDiagnostics
             {
                 if (e is FileNotFoundException f && f.FileName != null &&
                     (f.FileName.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase) ||
-                     f.FileName.StartsWith("UIAutomation", StringComparison.OrdinalIgnoreCase)))
+                     f.FileName.StartsWith("UIAutomation", StringComparison.OrdinalIgnoreCase) ||
+                     f.FileName.StartsWith("System.IO.MemoryMappedFiles", StringComparison.OrdinalIgnoreCase)))
                 {
                     return true;
                 }

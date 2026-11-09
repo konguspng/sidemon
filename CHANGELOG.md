@@ -2,6 +2,13 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.5.4 (released 2026-11-09)
+
+- **Fixed: sidebar and sensors freezing after waking the PC from sleep.** Session unlock and power-mode transitions were querying window visibility off the UI thread, causing unhandled exceptions that left the sensor update timer halted. Resuming from sleep and session transitions are now safely dispatched to the UI thread.
+- **Fixed: AI Usage monitor getting stuck on wake.** Stale in-flight fetching flags from interrupted requests before sleep are now automatically cleared upon waking, resetting next-poll deadlines so AI quota refreshes immediately on resume.
+- **Fixed: crash `Could not load System.IO.MemoryMappedFiles` when opening Settings or initializing RTSS overlay.** Preloaded `System.IO.MemoryMappedFiles` into the runtime resilience assembly cache with retries and isolated the memory-mapped file check to prevent JIT-time assembly resolution failures post-wake/boot.
+- **Fixed: AI Usage monitors not reflecting an account switch made outside SideMon.** Every time the sidebar is shown, all AI usage providers (Claude, agy/Gemini, Codex, Copilot, Gemini) now force-refresh immediately instead of waiting up to the 5-minute normal poll interval. Switch accounts in agy (or any CLI), open SideMon, and the new usage appears right away.
+
 ## 4.5.0 (released 2026-10-14)
 
 - **Send log to developer.** Settings > General > Support opens a preview of exactly what would be sent - SideMon and Windows versions plus the tail of the error log, with your Windows user name, computer name, file paths, e-mail addresses, IP addresses and anything token-like replaced - and sends it only when you press Send. After a crash SideMon offers the same report (default answer: No) and never opens the log file for you. Reports go to a private repository through a relay on pishonstudio.com.

@@ -1,5 +1,14 @@
 [
   {
+    "Version": "4.5.4",
+    "Changes": [
+      "Fixed sidebar and sensor freezing after waking the PC from sleep: session unlock and power mode changes are now safely marshalled to the UI thread.",
+      "AI Usage monitors now clear stuck in-flight polling states and refresh immediately on system wake.",
+      "Fixed crash 'Could not load System.IO.MemoryMappedFiles' when opening Settings or checking RTSS FPS overlay after wake/boot.",
+      "AI Usage monitors (Claude, agy/Gemini, Codex, Copilot, Gemini) now force-refresh immediately every time the sidebar is shown, so an account switch made outside SideMon is reflected without waiting up to the 5-minute normal poll interval."
+    ]
+  },
+  {
     "Version": "4.5.3",
     "Changes": [
       "Fixed startup crash \"Could not load Accessibility\" when launching right after boot: the app now waits for the shell and pre-loads its runtime DLLs with retries.",

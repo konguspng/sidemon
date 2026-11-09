@@ -184,6 +184,19 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
+        public static void OnPowerResume()
+        {
+            lock (_lock)
+            {
+                foreach (var state in _states.Values)
+                {
+                    state.Fetching = false;
+                    state.NextPollUtc = DateTime.MinValue;
+                    state.Failures = 0;
+                }
+            }
+        }
+
         public static bool LaunchLogin(string id)
         {
             IUsageProvider provider = Find(id);
