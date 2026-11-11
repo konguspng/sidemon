@@ -5,6 +5,7 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 ## 4.5.5 (released 2026-11-11)
 
 - **Fixed: crash on Apply in Settings.** Opening Settings while the sidebar was still loading or reloading left the hardware list empty, and Apply then failed with `ArgumentNullException: Value cannot be null (Parameter 'source')` in `SettingsModel.Save`. Settings now falls back to the saved hardware list. Found through a report sent with Send log to developer.
+- **New: one-click update.** Clicking the update notification (or the tray menu item, or the Settings button) downloads the installer from the GitHub release, checks its size and SHA-256 against the values GitHub reports, runs the setup in progress-only mode and restarts SideMon when it finishes. If the installer cannot be found or verified, the release page opens instead. Only builds that contain this feature can use it, so 4.5.5 itself must still be installed by hand once.
 
 ## 4.5.4 (released 2026-11-09)
 

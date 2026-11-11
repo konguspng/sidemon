@@ -465,6 +465,7 @@ namespace SidebarDiagnostics
                 {
                     AvailableUpdateVersion = _update.Version;
                     AvailableUpdateURL = _update.URL;
+                    AvailableUpdate = _update;
                     
                     if (Current.Windows.OfType<Settings>().FirstOrDefault() is Settings settingsWindow)
                     {
@@ -481,14 +482,14 @@ namespace SidebarDiagnostics
                         
                         if (Framework.Settings.Instance.ShowTrayIcon)
                         {
-                            TrayIcon.ShowBalloonTip(Framework.Resources.AppName, string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version), BalloonIcon.Info);
+                            TrayIcon.ShowBalloonTip(Framework.Resources.AppName, string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version) + (UpdateInstaller.CanInstall(_update) ? " - click to install" : ""), BalloonIcon.Info);
                         }
                         else
                         {
-                            // no tray icon to click: ask once per version, with a Download button
-                            if (MessageBox.Show(string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version) + "\n\nOpen the download page now?", Framework.Resources.AppName, MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
+                            // no tray icon to click: ask once per version
+                            if (MessageBox.Show(string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version) + (UpdateInstaller.CanInstall(_update) ? "\n\nDownload and install it now?" : "\n\nOpen the download page now?"), Framework.Resources.AppName, MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
                             {
-                                OpenURL(AvailableUpdateURL);
+                                InstallUpdate();
                             }
                         }
                     }
@@ -512,9 +513,72 @@ namespace SidebarDiagnostics
 
         private static void TrayIcon_BalloonClicked(object sender, RoutedEventArgs e)
         {
-            if (AvailableUpdateURL != null)
+            InstallUpdate();
+        }
+
+        public static UpdateInfo AvailableUpdate = null;
+        private static bool _updateInstalling = false;
+
+        private static void UpdateNotice(string text)
+        {
+            try
             {
-                OpenURL(AvailableUpdateURL);
+                if (Framework.Settings.Instance.ShowTrayIcon && TrayIcon != null)
+                {
+                    TrayIcon.ShowBalloonTip(Framework.Resources.AppName, text, BalloonIcon.Info);
+                }
+            }
+            catch { }
+        }
+
+        // Click on the update notice / tray item / Settings link: download the installer, verify it
+        // and start the setup; SideMon closes itself so the setup can replace the files and relaunches
+        // it afterwards. Anything that cannot be verified falls back to the release page.
+        public static async void InstallUpdate()
+        {
+            UpdateInfo _update = AvailableUpdate;
+
+            if (_update == null || _updateInstalling)
+            {
+                return;
+            }
+
+            if (!UpdateInstaller.CanInstall(_update))
+            {
+                if (AvailableUpdateURL != null)
+                {
+                    OpenURL(AvailableUpdateURL);
+                }
+
+                return;
+            }
+
+            _updateInstalling = true;
+
+            try
+            {
+                UpdateNotice(string.Format("Downloading SideMon {0}...", _update.Version));
+
+                string _path = await System.Threading.Tasks.Task.Run(() => UpdateInstaller.DownloadAsync(_update, null));
+
+                UpdateNotice(string.Format("Installing SideMon {0}...", _update.Version));
+
+                UpdateInstaller.Launch(_path);
+
+                await System.Threading.Tasks.Task.Delay(1500);
+
+                Current.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                _updateInstalling = false;
+
+                ErrorLog.Write(new Exception("Auto update failed: " + ex.GetType().Name + " - " + ex.Message));
+
+                if (MessageBox.Show("The update could not be downloaded or verified automatically.\n\nOpen the download page instead?", Framework.Resources.AppName, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes && AvailableUpdateURL != null)
+                {
+                    OpenURL(AvailableUpdateURL);
+                }
             }
         }
 

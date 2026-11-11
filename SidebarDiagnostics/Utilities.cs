@@ -342,6 +342,137 @@ namespace SidebarDiagnostics.Utilities
         public string Version { get; set; }
 
         public string URL { get; set; }
+
+        // installer asset of the release (null when the API did not list one, e.g. rate-limit fallback)
+        public string AssetUrl { get; set; }
+
+        public long AssetSize { get; set; }
+
+        public string AssetSha256 { get; set; }
+    }
+
+    // Downloads the release installer and starts it, so a click on the update notification
+    // ends in the setup running without the user having to find and open the file.
+    public static class UpdateInstaller
+    {
+        private const string ALLOWEDPREFIX = "https://github.com/konguspng/sidemon/releases/download/";
+
+        private static readonly HttpClient _download = CreateClient();
+
+        private static HttpClient CreateClient()
+        {
+            // default handler follows the github.com -> objects.githubusercontent.com redirect
+            HttpClient c = new HttpClient() { Timeout = TimeSpan.FromMinutes(10) };
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("SideMon/" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
+            return c;
+        }
+
+        public static bool CanInstall(UpdateInfo update)
+        {
+            return update != null
+                && !string.IsNullOrEmpty(update.AssetUrl)
+                && update.AssetUrl.StartsWith(ALLOWEDPREFIX, StringComparison.Ordinal)
+                && update.AssetSize > 0
+                && !string.IsNullOrEmpty(update.AssetSha256);
+        }
+
+        // Returns the path of the verified installer, or throws. progress receives 0..100.
+        public static async System.Threading.Tasks.Task<string> DownloadAsync(UpdateInfo update, IProgress<int> progress)
+        {
+            if (!CanInstall(update))
+            {
+                throw new InvalidOperationException("No verifiable installer asset");
+            }
+
+            string dir = Path.Combine(Path.GetTempPath(), "SideMonUpdate");
+            Directory.CreateDirectory(dir);
+
+            string name = Path.GetFileName(new Uri(update.AssetUrl).LocalPath);
+            if (string.IsNullOrEmpty(name) || !name.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Unexpected asset name");
+            }
+
+            string finalPath = Path.Combine(dir, name);
+            string partPath = finalPath + ".part";
+
+            try
+            {
+                using (var response = await _download.GetAsync(update.AssetUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
+                {
+                    response.EnsureSuccessStatusCode();
+
+                    using (var input = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    using (var output = new FileStream(partPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        byte[] buffer = new byte[81920];
+                        long total = 0;
+                        int last = -1;
+                        int read;
+
+                        while ((read = await input.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
+                        {
+                            await output.WriteAsync(buffer, 0, read).ConfigureAwait(false);
+                            total += read;
+
+                            int pct = (int)(total * 100 / update.AssetSize);
+                            if (pct != last && progress != null)
+                            {
+                                last = pct;
+                                progress.Report(Math.Min(pct, 100));
+                            }
+                        }
+                    }
+                }
+
+                FileInfo info = new FileInfo(partPath);
+                if (info.Length != update.AssetSize)
+                {
+                    throw new InvalidDataException("Size mismatch");
+                }
+
+                string hash;
+                using (var sha = System.Security.Cryptography.SHA256.Create())
+                using (var fs = File.OpenRead(partPath))
+                {
+                    hash = BitConverter.ToString(sha.ComputeHash(fs)).Replace("-", "");
+                }
+
+                if (!string.Equals(hash, update.AssetSha256, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException("Checksum mismatch");
+                }
+
+                if (File.Exists(finalPath))
+                {
+                    File.Delete(finalPath);
+                }
+
+                File.Move(partPath, finalPath);
+
+                return finalPath;
+            }
+            catch
+            {
+                try { if (File.Exists(partPath)) File.Delete(partPath); } catch { }
+                throw;
+            }
+        }
+
+        // Starts the setup in progress-only silent mode (no wizard pages, no prompts) and tells it
+        // to relaunch SideMon when done (the normal "Launch SideMon" checkbox is skipped when silent).
+        public static void Launch(string installerPath)
+        {
+            ProcessStartInfo psi = new ProcessStartInfo()
+            {
+                FileName = installerPath,
+                Arguments = "/SILENT /SUPPRESSMSGBOXES /NORESTART /SP- /AUTOUPDATE=1",
+                UseShellExecute = true,
+                WorkingDirectory = Path.GetDirectoryName(installerPath)
+            };
+
+            Process.Start(psi);
+        }
     }
 
     public static class UpdateCheck
@@ -387,6 +518,9 @@ namespace SidebarDiagnostics.Utilities
             {
                 string tag = null;
                 string url = DOWNLOADPAGE;
+                string assetUrl = null;
+                long assetSize = 0;
+                string assetSha = null;
 
                 using (var request = new HttpRequestMessage(HttpMethod.Get, API))
                 using (var response = await _client.SendAsync(request).ConfigureAwait(false))
@@ -400,6 +534,24 @@ namespace SidebarDiagnostics.Utilities
                             if (doc.RootElement.TryGetProperty("html_url", out var urlElement))
                             {
                                 url = urlElement.GetString();
+                            }
+
+                            if (doc.RootElement.TryGetProperty("assets", out var assets) && assets.ValueKind == System.Text.Json.JsonValueKind.Array)
+                            {
+                                foreach (var asset in assets.EnumerateArray())
+                                {
+                                    string aname = asset.TryGetProperty("name", out var n) ? n.GetString() : null;
+                                    if (aname == null || !aname.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase)) continue;
+
+                                    assetUrl = asset.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null;
+                                    assetSize = asset.TryGetProperty("size", out var s) && s.ValueKind == System.Text.Json.JsonValueKind.Number ? s.GetInt64() : 0;
+                                    string digest = asset.TryGetProperty("digest", out var d) && d.ValueKind == System.Text.Json.JsonValueKind.String ? d.GetString() : null;
+                                    if (digest != null && digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        assetSha = digest.Substring(7);
+                                    }
+                                    break;
+                                }
                             }
                         }
                     }
@@ -431,7 +583,10 @@ namespace SidebarDiagnostics.Utilities
                     return new UpdateInfo()
                     {
                         Version = parsedTag.ToString(),
-                        URL = url
+                        URL = url,
+                        AssetUrl = assetUrl,
+                        AssetSize = assetSize,
+                        AssetSha256 = assetSha
                     };
                 }
             }

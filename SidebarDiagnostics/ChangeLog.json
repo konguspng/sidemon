@@ -2,7 +2,8 @@
   {
     "Version": "4.5.5",
     "Changes": [
-      "Fixed crash when pressing Apply in Settings while the sidebar was still loading (Value cannot be null, parameter 'source'). Found through a user-submitted report."
+      "Fixed crash when pressing Apply in Settings while the sidebar was still loading (Value cannot be null, parameter 'source'). Found through a user-submitted report.",
+      "Update notification now installs the update: click it (or the tray item / Settings button) and SideMon downloads the installer from GitHub, verifies its size and SHA-256, runs the setup and restarts itself. Falls back to the download page if the file cannot be verified."
     ]
   },
   {

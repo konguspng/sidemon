@@ -49,12 +49,20 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 ; Without it, launching the freshly installed app immediately fails with error 740
 ; (ERROR_ELEVATION_REQUIRED), even though Setup itself is already running elevated.
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent shellexec
+; in-app update (SideMon started this setup with /AUTOUPDATE=1 and /SILENT, which skips the entry above):
+; bring SideMon back after the files are replaced
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait shellexec; Check: IsAutoUpdate
 
 [UninstallRun]
 Filename: "taskkill.exe"; Parameters: "/f /im {#MyAppExeName}"; Flags: runhidden; RunOnceId: "KillApp"
 Filename: "schtasks.exe"; Parameters: "/delete /f /tn ""SideMonStartup"""; Flags: runhidden; RunOnceId: "DelStartupTask"
 
 [Code]
+function IsAutoUpdate: Boolean;
+begin
+  Result := ExpandConstant('{param:AUTOUPDATE|0}') = '1';
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;

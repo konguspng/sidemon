@@ -610,10 +610,7 @@ namespace SidebarDiagnostics
         
         private void DownloadUpdate_Click(object sender, RoutedEventArgs e)
         {
-            if (App.AvailableUpdateURL != null)
-            {
-                App.OpenURL(App.AvailableUpdateURL);
-            }
+            App.InstallUpdate();
         }
 
         private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
