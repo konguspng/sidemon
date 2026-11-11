@@ -146,6 +146,18 @@ namespace SidebarDiagnostics.Models
                         );
                 }
             }
+            else
+            {
+                // sidebar still loading: show the saved hardware list so Apply keeps it
+                foreach (MonitorConfig _record in _config)
+                {
+                    if (_record.HardwareOC == null)
+                    {
+                        _record.HardwareOC = new ObservableCollection<HardwareConfig>(
+                            (_record.Hardware ?? new HardwareConfig[0]).Select(h => { if (string.IsNullOrEmpty(h.Name)) { h.Name = h.ActualName; } return h; }).OrderByDescending(h => h.Order));
+                    }
+                }
+            }
 
             MonitorConfig = _config;
             SelectedMonitorConfig = _config.FirstOrDefault(c => c.Enabled) ?? _config.FirstOrDefault();
@@ -219,7 +231,12 @@ namespace SidebarDiagnostics.Models
 
             for (int i = 0; i < _config.Length; i++)
             {
-                HardwareConfig[] _hardware = _config[i].HardwareOC.ToArray();
+                // HardwareOC is null when Settings was opened while the sidebar was still
+                // loading/reloading (sidebar.Ready == false): keep the saved hardware list
+                // instead of crashing on Apply (ArgumentNullException 'source').
+                HardwareConfig[] _hardware = _config[i].HardwareOC != null
+                    ? _config[i].HardwareOC.ToArray()
+                    : (_config[i].Hardware ?? new HardwareConfig[0]);
 
                 for (int v = 0; v < _hardware.Length; v++)
                 {

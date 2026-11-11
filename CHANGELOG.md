@@ -2,6 +2,10 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.5.5 (released 2026-11-11)
+
+- **Fixed: crash on Apply in Settings.** Opening Settings while the sidebar was still loading or reloading left the hardware list empty, and Apply then failed with `ArgumentNullException: Value cannot be null (Parameter 'source')` in `SettingsModel.Save`. Settings now falls back to the saved hardware list. Found through a report sent with Send log to developer.
+
 ## 4.5.4 (released 2026-11-09)
 
 - **Fixed: sidebar and sensors freezing after waking the PC from sleep.** Session unlock and power-mode transitions were querying window visibility off the UI thread, causing unhandled exceptions that left the sensor update timer halted. Resuming from sleep and session transitions are now safely dispatched to the UI thread.

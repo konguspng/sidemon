@@ -1,5 +1,11 @@
 [
   {
+    "Version": "4.5.5",
+    "Changes": [
+      "Fixed crash when pressing Apply in Settings while the sidebar was still loading (Value cannot be null, parameter 'source'). Found through a user-submitted report."
+    ]
+  },
+  {
     "Version": "4.5.4",
     "Changes": [
       "Fixed sidebar and sensor freezing after waking the PC from sleep: session unlock and power mode changes are now safely marshalled to the UI thread.",
