@@ -10,7 +10,8 @@
       "Fixed network adapters appearing on the sidebar by themselves after a reload: adapters that were never ticked (VPN, Hyper-V, Wi-Fi Direct...) are now off by default in Settings too, so pressing Apply no longer switches them on.",
       "Per-model AI usage bars: Claude Code's separate weekly limit for a model (e.g. Fable) and agy's per-model limits (e.g. Gemini 4 Argon) now show as their own bars.",
       "Codex / ChatGPT: separately metered models or features (the usage endpoint's additional_rate_limits, e.g. a model with its own cap) now show as their own bars.",
-      "Every AI usage bar can be switched on or off individually: Settings > Monitors > AI CLI Usage lists each provider's bars as checkboxes under the provider."
+      "Every AI usage bar can be switched on or off individually: Settings > Monitors > AI CLI Usage lists each provider's bars as checkboxes under the provider.",
+      "Redesigned Settings window in the Windows 11 style: left navigation, setting cards with descriptions, toggle switches, a reorganised Layout page (Position / Size / Behavior) and a master-detail Monitors page with per-provider cards. New About page with version and Check for updates."
     ]
   },
   {
