@@ -1,5 +1,12 @@
 [
   {
+    "Version": "4.5.7",
+    "Changes": [
+      "Per-model AI usage bars: Claude Code's separate weekly limit for a model (e.g. Fable) and agy's per-model limits (e.g. Gemini 4 Argon) now show as their own bars.",
+      "Every AI usage bar can be switched on or off individually: Settings > Monitors > AI CLI Usage lists each provider's bars as checkboxes under the provider."
+    ]
+  },
+  {
     "Version": "4.5.6",
     "Changes": [
       "AI usage logins stay alive: when Claude's token expires SideMon now lets the Claude CLI renew it in the background (claude auth status, then one minimal claude -p only if still expired; max 3 tries per token, 10 min apart). On by default ('Renew Claude login automatically').",

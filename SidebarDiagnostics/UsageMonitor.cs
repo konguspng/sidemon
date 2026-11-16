@@ -238,6 +238,12 @@ namespace SidebarDiagnostics.Monitoring
                 _rawWindows = _rawWindows.Where(w => !IsGroup(w.Slot, "Claude") && !IsGroup(w.Slot, "GPT"));
             }
 
+            string[] _hidden = _hardwareConfig?.HiddenBars;
+            if (_hidden != null && _hidden.Length > 0)
+            {
+                _rawWindows = _rawWindows.Where(w => Array.IndexOf(_hidden, BarKey(w)) < 0);
+            }
+
             List<UsageWindow> _windows = _rawWindows
                 .Where(w => IsKindEnabled(w.Kind))
                 .OrderBy(w => SlotOrder(w.Slot))
@@ -393,6 +399,18 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
+        // stable id of one bar of a provider, used for the per-bar on/off list in Settings
+        public static string BarKey(UsageWindow w)
+        {
+            return w.Kind + "|" + (w.Slot ?? string.Empty);
+        }
+
+        public static string BarLabel(UsageWindow w)
+        {
+            string _label = GetLabel(w, true);
+            return string.IsNullOrEmpty(_label) ? w.Kind.ToString() : _label;
+        }
+
         private static int SlotOrder(string slot)
         {
             switch (slot)
@@ -408,6 +426,9 @@ namespace SidebarDiagnostics.Monitoring
 
                 case "completions":
                     return 3;
+
+                case string _s when _s.StartsWith("model:", StringComparison.Ordinal):
+                    return 20;
 
                 default:
                     // agy quota groups: Gemini first, then Claude/GPT, then anything else
@@ -446,6 +467,12 @@ namespace SidebarDiagnostics.Monitoring
 
                 case "credits":
                     return "Credits";
+
+                case string _s when _s.StartsWith("model:", StringComparison.Ordinal):
+                    string _model = _s.Substring(6);
+                    string _kindLabel = KindToKey(window.Kind).GetLabel();
+                    // agy already puts the window in the name ("... Weekly"): don't repeat it
+                    return _model.IndexOf(_kindLabel, StringComparison.OrdinalIgnoreCase) >= 0 ? _model : _model + " " + _kindLabel;
 
                 default:
                     if (window.Slot != null && window.Slot.StartsWith("grp:", StringComparison.Ordinal))

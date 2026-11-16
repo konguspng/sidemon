@@ -371,6 +371,32 @@ namespace SidebarDiagnostics.Monitoring
 
         // Providers as settings "hardware" rows. Disabled by default: nothing is polled
         // until the user ticks a provider.
+        // Settings: one toggle per bar the provider showed in its last successful poll, plus any
+        // bar that is hidden right now (so it can be switched back on while the provider is offline)
+        public static System.Collections.ObjectModel.ObservableCollection<UsageBarToggle> GetBarToggles(HardwareConfig config)
+        {
+            var _bars = new System.Collections.ObjectModel.ObservableCollection<UsageBarToggle>();
+            var _seen = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (UsageWindow _w in GetSnapshot(config.ID).Windows)
+            {
+                string _key = UsageMonitor.BarKey(_w);
+                if (_seen.Add(_key)) _bars.Add(new UsageBarToggle(config, _key, UsageMonitor.BarLabel(_w)));
+            }
+
+            foreach (string _key in config.HiddenBars ?? new string[0])
+            {
+                if (_seen.Add(_key))
+                {
+                    int _bar = _key.IndexOf('|');
+                    string _slot = _bar >= 0 ? _key.Substring(_bar + 1) : string.Empty;
+                    _bars.Add(new UsageBarToggle(config, _key, _slot.StartsWith("model:") ? _slot.Substring(6) : _key.Replace("|", " ")));
+                }
+            }
+
+            return _bars;
+        }
+
         public static HardwareConfig[] GetHardware()
         {
             return Providers.Select(p => new HardwareConfig() { ID = p.Id, Name = p.DisplayName, ActualName = p.DisplayName, Enabled = false, CustomPath = p.CustomPath, Status = GetStatusText(p.Id) }).ToArray();

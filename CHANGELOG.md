@@ -2,6 +2,11 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.5.7 (released 2026-11-16)
+
+- **Per-model AI usage bars.** Claude Code reports some models with their own weekly cap (for example **Fable**), and agy reports per-model limits (for example **Gemini 4 Argon**). Both were ignored before; each now gets its own bar, labelled with the model name. agy's per-model line gives a remaining percentage like the other agy lines; this is read the same way.
+- **Turn individual AI usage bars on or off.** In Settings > Monitors > AI CLI Usage, each provider now lists the bars it reported (5-hour, Weekly, Fable Weekly, Gemini 4 Argon Weekly, ...) as checkboxes. Untick a bar to hide it from the sidebar. The list fills in after the provider has been refreshed once.
+
 ## 4.5.6 (released 2026-11-16)
 
 - **AI usage logins stay alive.** When Claude's access token (about 8 h) expires, SideMon lets the Claude CLI renew it in the background, the same way other usage monitors do: first `claude auth status` (no model call), and only if the token is still expired one minimal `claude -p .` from a neutral folder. At most 3 tries per expired token, 10 minutes apart; SideMon still never reads out, stores or writes the token. On by default; turn off with "Renew Claude login automatically".

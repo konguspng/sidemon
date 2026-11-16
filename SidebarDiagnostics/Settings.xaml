@@ -538,6 +538,18 @@
                                                         <Button Content="&#x25BC;" Width="20" Height="20" Click="HardwareDown_Click" ToolTip="Move Down" />
                                                     </StackPanel>
                                                 </Grid>
+                                                    <ItemsControl ItemsSource="{Binding Path=Bars}" Margin="25,0,0,4" ToolTip="Untick a bar to hide it on the sidebar. Bars appear here after the provider has been refreshed once.">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <CheckBox Content="{Binding Path=Label, Mode=OneWay}" IsChecked="{Binding Path=IsOn, Mode=TwoWay}" Margin="0,2,14,2" />
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
                                                     <StackPanel Orientation="Horizontal" Margin="25,0,0,5">
                                                         <Button Content="&#x21BB;" Width="24" Height="22" Click="HardwareClaudeRenew_Click" ToolTip="{x:Static frame:Resources.SettingsUsageClaudeRenewTooltip}">
                                                             <Button.Style>

@@ -2844,6 +2844,40 @@ namespace SidebarDiagnostics.Monitoring
         }
     }
 
+    public class UsageBarToggle : INotifyPropertyChanged
+    {
+        private readonly HardwareConfig _owner;
+
+        public UsageBarToggle(HardwareConfig owner, string key, string label)
+        {
+            _owner = owner;
+            Key = key;
+            Label = label;
+        }
+
+        public string Key { get; }
+
+        public string Label { get; }
+
+        public bool IsOn
+        {
+            get
+            {
+                return _owner.HiddenBars == null || Array.IndexOf(_owner.HiddenBars, Key) < 0;
+            }
+            set
+            {
+                if (IsOn == value) return;
+                var _list = new List<string>(_owner.HiddenBars ?? new string[0]);
+                if (value) _list.Remove(Key); else _list.Add(Key);
+                _owner.HiddenBars = _list.Count == 0 ? null : _list.ToArray();
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("IsOn"));
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+    }
+
     public class HardwareConfig : INotifyPropertyChanged, ICloneable
     {
         public void NotifyPropertyChanged(string propertyName)
@@ -3002,6 +3036,27 @@ namespace SidebarDiagnostics.Monitoring
                 NotifyPropertyChanged("CustomPath");
             }
         }
+
+        private string[] _hiddenBars { get; set; } = null;
+
+        // AI CLI Usage only: bars of this provider the user switched off (UsageMonitor.BarKey)
+        public string[] HiddenBars
+        {
+            get
+            {
+                return _hiddenBars;
+            }
+            set
+            {
+                _hiddenBars = value;
+
+                NotifyPropertyChanged("HiddenBars");
+            }
+        }
+
+        // Settings only: one checkbox per bar the provider reported in its last poll
+        [JsonIgnore]
+        public System.Collections.ObjectModel.ObservableCollection<UsageBarToggle> Bars { get; set; }
 
         private bool? _showExtra { get; set; } = null;
 

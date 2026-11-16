@@ -36,6 +36,36 @@ namespace SidebarDiagnostics.Monitoring
                 AddClaudeWindow(_list, _root, "five_hour", UsageKind.FiveHour);
                 AddClaudeWindow(_list, _root, "seven_day", UsageKind.Weekly);
 
+                // per-model limits (e.g. a separate weekly cap for "Fable"): limits[] entries with
+                // kind "*_scoped" and scope.model.display_name; shown as their own bar
+                if (_root.TryGetProperty("limits", out JsonElement _scoped) && _scoped.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (JsonElement _limit in _scoped.EnumerateArray())
+                    {
+                        if (_limit.ValueKind != JsonValueKind.Object) continue;
+
+                        string _kind = GetString(_limit, "kind") ?? string.Empty;
+                        if (!_kind.EndsWith("_scoped", StringComparison.OrdinalIgnoreCase)) continue;
+
+                        string _model = null;
+                        if (_limit.TryGetProperty("scope", out JsonElement _scope) && _scope.ValueKind == JsonValueKind.Object
+                            && _scope.TryGetProperty("model", out JsonElement _m) && _m.ValueKind == JsonValueKind.Object)
+                        {
+                            _model = GetString(_m, "display_name") ?? GetString(_m, "id");
+                        }
+                        if (string.IsNullOrWhiteSpace(_model) || !TryGetNumber(_limit, "percent", out double _p)) continue;
+
+                        UsageKind _k = _kind.StartsWith("session", StringComparison.OrdinalIgnoreCase) ? UsageKind.FiveHour
+                            : _kind.StartsWith("month", StringComparison.OrdinalIgnoreCase) ? UsageKind.Monthly : UsageKind.Weekly;
+                        string _slot = "model:" + _model.Trim();
+
+                        if (!_list.Any(w => w.Kind == _k && w.Slot == _slot))
+                        {
+                            _list.Add(new UsageWindow() { Kind = _k, Slot = _slot, UsedPercent = Clamp(_p), ResetsAt = ParseDate(GetString(_limit, "resets_at")) });
+                        }
+                    }
+                }
+
                 // newer payloads also carry a flat "limits" array; only use it if the
                 // named windows were absent
                 if (_list.Count == 0 && _root.TryGetProperty("limits", out JsonElement _limits) && _limits.ValueKind == JsonValueKind.Array)
@@ -121,7 +151,9 @@ namespace SidebarDiagnostics.Monitoring
             {
                 string _line = _rawLine.Trim();
 
-                if (_line.IndexOf("Limit Remaining", StringComparison.OrdinalIgnoreCase) < 0)
+                // "Gemini Models<TAB>Weekly Limit Remaining<TAB>39%..." and per-model lines such as
+                // "Gemini 4 Argon<TAB>Gemini 4 Argon Weekly Limit<TAB>100%..." (also a remaining %)
+                if (_line.IndexOf("Limit", StringComparison.OrdinalIgnoreCase) < 0)
                 {
                     continue;
                 }
@@ -172,12 +204,15 @@ namespace SidebarDiagnostics.Monitoring
                 _found.Add(new KeyValuePair<string, UsageWindow>(_group, _window));
             }
 
-            bool _multiGroup = _found.Select(f => f.Key).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1;
+            // quota pools end in "models" ("Gemini Models", "Claude and GPT models"); anything else
+            // is a single model with its own limit and gets its own bar
+            Func<string, bool> _isPool = g => g.EndsWith("models", StringComparison.OrdinalIgnoreCase);
+            bool _multiGroup = _found.Where(f => _isPool(f.Key)).Select(f => f.Key).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1;
 
             // one row per (group, kind): a repeated line for the same window is ignored
             foreach (var _item in _found)
             {
-                string _slot = _multiGroup ? "grp:" + _item.Key : null;
+                string _slot = !_isPool(_item.Key) ? "model:" + _item.Key : (_multiGroup ? "grp:" + _item.Key : null);
 
                 if (!_list.Any(w => w.Kind == _item.Value.Kind && string.Equals(w.Slot, _slot, StringComparison.Ordinal)))
                 {
