@@ -253,12 +253,32 @@ namespace SidebarDiagnostics.Monitoring
 
                 AddCodexWindow(list, _rate, "primary_window", UsageKind.FiveHour, now);
                 AddCodexWindow(list, _rate, "secondary_window", UsageKind.Weekly, now);
+
+                // separately metered models/features (official Codex client: additional_rate_limits
+                // [{ limit_name, metered_feature, rate_limit: { primary_window, secondary_window } }]);
+                // each gets its own bar named after limit_name
+                if (_root.TryGetProperty("additional_rate_limits", out JsonElement _extra) && _extra.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (JsonElement _item in _extra.EnumerateArray())
+                    {
+                        if (_item.ValueKind != JsonValueKind.Object) continue;
+                        if (!_item.TryGetProperty("rate_limit", out JsonElement _r) || _r.ValueKind != JsonValueKind.Object) continue;
+
+                        string _name = GetString(_item, "limit_name") ?? GetString(_item, "metered_feature");
+                        if (string.IsNullOrWhiteSpace(_name)) continue;
+                        _name = _name.Trim().Replace('_', ' ');
+                        _name = char.ToUpper(_name[0]) + _name.Substring(1);
+
+                        AddCodexWindow(list, _r, "primary_window", UsageKind.FiveHour, now, "model:" + _name);
+                        AddCodexWindow(list, _r, "secondary_window", UsageKind.Weekly, now, "model:" + _name);
+                    }
+                }
             }
 
             list = list.OrderBy(w => w.Kind).ToList();
         }
 
-        private static void AddCodexWindow(List<UsageWindow> list, JsonElement rate, string name, UsageKind fallbackKind, DateTimeOffset now)
+        private static void AddCodexWindow(List<UsageWindow> list, JsonElement rate, string name, UsageKind fallbackKind, DateTimeOffset now, string slot = null)
         {
             if (!rate.TryGetProperty(name, out JsonElement _window) || _window.ValueKind != JsonValueKind.Object)
             {
@@ -278,7 +298,7 @@ namespace SidebarDiagnostics.Monitoring
                 _kind = ClassifySeconds(_seconds);
             }
 
-            if (!_kind.HasValue || list.Any(w => w.Kind == _kind.Value))
+            if (!_kind.HasValue || list.Any(w => w.Kind == _kind.Value && w.Slot == slot))
             {
                 return;
             }
@@ -298,6 +318,7 @@ namespace SidebarDiagnostics.Monitoring
             list.Add(new UsageWindow()
             {
                 Kind = _kind.Value,
+                Slot = slot,
                 UsedPercent = Clamp(_used),
                 ResetsAt = _resets
             });

@@ -3,6 +3,7 @@
     "Version": "4.5.7",
     "Changes": [
       "Per-model AI usage bars: Claude Code's separate weekly limit for a model (e.g. Fable) and agy's per-model limits (e.g. Gemini 4 Argon) now show as their own bars.",
+      "Codex / ChatGPT: separately metered models or features (the usage endpoint's additional_rate_limits, e.g. a model with its own cap) now show as their own bars.",
       "Every AI usage bar can be switched on or off individually: Settings > Monitors > AI CLI Usage lists each provider's bars as checkboxes under the provider."
     ]
   },

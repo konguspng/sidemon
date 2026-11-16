@@ -5,6 +5,7 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 ## 4.5.7 (released 2026-11-16)
 
 - **Per-model AI usage bars.** Claude Code reports some models with their own weekly cap (for example **Fable**), and agy reports per-model limits (for example **Gemini 4 Argon**). Both were ignored before; each now gets its own bar, labelled with the model name. agy's per-model line gives a remaining percentage like the other agy lines; this is read the same way.
+- **Codex / ChatGPT per-model limits.** OpenAI's usage endpoint lists separately metered models or features under `additional_rate_limits` (documented in the official Codex client). SideMon now shows each as its own bar named after the limit, for example a model on its own cap such as ChatGPT Astra. Checked against the official client's test data only; the exact name a given model reports is not known until a subscriber's account returns it.
 - **Turn individual AI usage bars on or off.** In Settings > Monitors > AI CLI Usage, each provider now lists the bars it reported (5-hour, Weekly, Fable Weekly, Gemini 4 Argon Weekly, ...) as checkboxes. Untick a bar to hide it from the sidebar. The list fills in after the provider has been refreshed once.
 
 ## 4.5.6 (released 2026-11-16)
