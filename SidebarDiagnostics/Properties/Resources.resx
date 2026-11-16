@@ -1344,6 +1344,12 @@
   <data name="UsageWaitingForSignIn" xml:space="preserve">
     <value>Waiting for sign-in...</value>
   </data>
+  <data name="SettingsShowProviderIcon" xml:space="preserve">
+    <value>Show provider icons</value>
+  </data>
+  <data name="SettingsShowProviderIconTooltip" xml:space="preserve">
+    <value>Show each AI provider's logo next to its name in the sidebar.</value>
+  </data>
   <data name="SettingsShowSignInButton" xml:space="preserve">
     <value>Show sign-in button on the sidebar</value>
   </data>

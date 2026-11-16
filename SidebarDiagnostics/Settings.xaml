@@ -168,7 +168,13 @@
                                     </DockPanel>
                                     
                                     <StackPanel Grid.Column="1" Grid.Row="6" Margin="0,2,0,4">
-                                        <CheckBox Content="{x:Static frame:Resources.SettingsAutoFitScale}" IsChecked="{Binding Path=AutoFitScale}" Margin="0,0,0,4" ToolTip="{x:Static frame:Resources.SettingsAutoFitScaleTooltip}" />
+                                        <DockPanel Margin="0,0,0,4" LastChildFill="True">
+                                            <Button DockPanel.Dock="Right" Click="FitToScreen_Click" Width="28" Height="24" Margin="8,0,0,0" Padding="0"
+                                                    ToolTip="Fit to screen now: resize the sidebar so its monitors fill the screen height">
+                                                <TextBlock Text="&#xE740;" FontFamily="Segoe MDL2 Assets" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Button>
+                                            <CheckBox Content="{x:Static frame:Resources.SettingsAutoFitScale}" IsChecked="{Binding Path=AutoFitScale}" VerticalAlignment="Center" ToolTip="{x:Static frame:Resources.SettingsAutoFitScaleTooltip}" />
+                                        </DockPanel>
                                         <TextBlock TextWrapping="Wrap" FontSize="11" Margin="25,0,0,0" Foreground="#888">
                                             <TextBlock.Style>
                                                 <Style TargetType="{x:Type TextBlock}">

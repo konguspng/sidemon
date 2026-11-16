@@ -608,6 +608,26 @@ namespace SidebarDiagnostics
         }
 
         
+        private void FitToScreen_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Sidebar _sidebar = App.Current.Sidebar;
+                if (_sidebar == null || !_sidebar.Ready)
+                {
+                    return;
+                }
+
+                // applies immediately; the slider shows the new scale so Apply keeps it
+                Model.UIScale = _sidebar.FitToScreenNow();
+                Model.MaxUIScale = 3d;
+            }
+            catch (Exception _ex)
+            {
+                Utilities.ErrorLog.Write(_ex);
+            }
+        }
+
         private void DownloadUpdate_Click(object sender, RoutedEventArgs e)
         {
             App.InstallUpdate();

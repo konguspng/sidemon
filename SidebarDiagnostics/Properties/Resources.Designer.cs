@@ -2753,6 +2753,12 @@ namespace SidebarDiagnostics.Framework {
         public static string UsageWaitingForSignIn {
             get { return ResourceManager.GetString("UsageWaitingForSignIn", resourceCulture); }
         }
+        public static string SettingsShowProviderIcon {
+            get { return ResourceManager.GetString("SettingsShowProviderIcon", resourceCulture); }
+        }
+        public static string SettingsShowProviderIconTooltip {
+            get { return ResourceManager.GetString("SettingsShowProviderIconTooltip", resourceCulture); }
+        }
         public static string SettingsShowSignInButton {
             get { return ResourceManager.GetString("SettingsShowSignInButton", resourceCulture); }
         }

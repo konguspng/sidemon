@@ -125,6 +125,14 @@ namespace SidebarDiagnostics.Monitoring
 
         public bool ShowSignInButton => _showSignInButton;
 
+        private bool _showProviderIcon = true;
+
+        public System.Windows.Media.Geometry IconGeometry => _showProviderIcon ? ProviderIcons.GetGeometry(_provider.Id) : null;
+
+        public System.Windows.Media.Brush IconBrush => ProviderIcons.GetBrush(_provider.Id);
+
+        public Visibility IconVisibility => IconGeometry != null ? Visibility.Visible : Visibility.Collapsed;
+
         public Visibility SignInButtonVisibility
         {
             get
@@ -166,6 +174,7 @@ namespace SidebarDiagnostics.Monitoring
             bool _roundAll = parameters.GetValue<bool>(ParamKey.RoundAll);
             int _alert = parameters.GetValue<int>(ParamKey.UsageAlert);
             bool _showSignIn = parameters.Any(p => p.Key == ParamKey.ShowSignInButton) ? parameters.GetValue<bool>(ParamKey.ShowSignInButton) : true;
+            bool _showIcon = parameters.Any(p => p.Key == ParamKey.ShowProviderIcon) ? parameters.GetValue<bool>(ParamKey.ShowProviderIcon) : true;
 
             List<iMonitor> _list = new List<iMonitor>();
 
@@ -190,7 +199,12 @@ namespace SidebarDiagnostics.Monitoring
             {
                 string _name = string.IsNullOrEmpty(_item.c.Name) ? _item.provider.DisplayName : _item.c.Name;
 
-                _list.Add(new UsageMonitor(_item.provider, _item.c, _name, _item.c.ShowExtra, metrics, _showName, _roundAll, _alert, _showSignIn));
+                if (_item.provider is Providers.ClaudeProvider _claude)
+                {
+                    _claude.AutoRefresh = _item.c.AutoRenew;
+                }
+
+                _list.Add(new UsageMonitor(_item.provider, _item.c, _name, _item.c.ShowExtra, metrics, _showName, _roundAll, _alert, _showSignIn) { _showProviderIcon = _showIcon });
             }
 
             return _list.ToArray();
@@ -270,21 +284,6 @@ namespace SidebarDiagnostics.Monitoring
                 // WPF may still be unbinding from the old rows: release them on the UI
                 // thread once it is idle instead of from this polling thread
                 DisposeLater(_old);
-            }
-
-            if (_snapshot.Status == UsageStatus.AuthExpired && _provider.Id == "AIUsage_Claude" && _hardwareConfig != null && _hardwareConfig.AutoRenew)
-            {
-                var claude = (Providers.ClaudeProvider)_provider;
-                if (claude.AutoRenewAttempts < 3 && (DateTimeOffset.Now - claude.LastAutoRenewTime).TotalMinutes >= 30)
-                {
-                    claude.LastAutoRenewTime = DateTimeOffset.Now;
-                    claude.AutoRenewAttempts++;
-                    System.Threading.Tasks.Task.Run(async () => {
-                        await claude.RunCmdAsync("auth status", 30);
-                        UsageRegistry.SetCustomPath(claude.Id, claude.CustomPath); // trigger immediate poll logic
-                        UsageRegistry.PollIfDue(claude);
-                    });
-                }
             }
 
             NotifyPropertyChanged("SignInButtonVisibility");

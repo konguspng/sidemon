@@ -469,21 +469,12 @@ namespace SidebarDiagnostics
         // shrink the whole sidebar just enough to fit by writing the required scale
         // into the real UI Scale setting (Advanced tab) - the same setting a user
         // would drag manually, so it renders and persists exactly the same way.
-        private void AutoFitUIScale()
+        // Unscaled height the sidebar needs for its current content (menu bar + margins + monitors).
+        private double MeasureUnscaledHeight()
         {
             if (ContentStack == null || WindowControls == null)
             {
-                return;
-            }
-
-            if (!Framework.Settings.Instance.AutoFitScale)
-            {
-                if (Math.Abs(Framework.Settings.Instance.MaxUIScale - 3.0d) > 0.01d)
-                {
-                    Framework.Settings.Instance.MaxUIScale = 3.0d;
-                    Framework.Settings.Instance.Save();
-                }
-                return;
+                return 0d;
             }
 
             double _availableWidth = Math.Max(0d, Framework.Settings.Instance.SidebarWidth - 30d);
@@ -491,37 +482,36 @@ namespace SidebarDiagnostics
             double _naturalHeight = ContentStack.DesiredSize.Height;
             if (_naturalHeight <= 0d)
             {
-                return;
+                return 0d;
             }
 
             double _menuHeight = WindowControls.Visibility == Visibility.Collapsed ? 0d : (WindowControls.ActualHeight > 0d ? WindowControls.ActualHeight : 32d);
-            double _totalUnscaledHeight = _menuHeight + 30d + _naturalHeight;
+            return _menuHeight + 30d + _naturalHeight;
+        }
 
-            WorkAreaInfo _info = WorkAreaProvider(Framework.Settings.Instance.ScreenIndex);
-            double _userScale = Framework.Settings.Instance.UIScale;
-            double _availableHeight = Math.Max(0d, _info.UsableHeightDips - Math.Abs(Framework.Settings.Instance.YOffset));
-
-            bool _overflowing = (_totalUnscaledHeight * _userScale) > _availableHeight;
-            double _reducedScale = 3.0d;
-            bool _changed = false;
-            bool _scaleChanged = false;
-
-            if (_overflowing)
+        private double PreferredScale
+        {
+            get
             {
-                double _scale = ComputeAutoFitScale(_totalUnscaledHeight, _userScale, _info, Framework.Settings.Instance.YOffset);
-                _reducedScale = _scale;
-                if (Math.Abs(Framework.Settings.Instance.UIScale - _scale) > 0.01d)
-                {
-                    Framework.Settings.Instance.UIScale = _scale;
-                    _changed = true;
-                    _scaleChanged = true;
-                }
+                double _p = Framework.Settings.Instance.PreferredUIScale;
+                return _p > 0d ? _p : Framework.Settings.Instance.UIScale;
+            }
+        }
+
+        private void ApplyScale(double scale, double reducedScale)
+        {
+            bool _scaleChanged = Math.Abs(Framework.Settings.Instance.UIScale - scale) > 0.01d;
+            bool _changed = _scaleChanged;
+
+            if (_scaleChanged)
+            {
+                Framework.Settings.Instance.UIScale = scale;
             }
 
-            // We use MaxUIScale to pass the reduced scale to SettingsModel so it knows when to show the warning.
-            if (Math.Abs(Framework.Settings.Instance.MaxUIScale - _reducedScale) > 0.01d)
+            // MaxUIScale tells SettingsModel whether to show the "auto-fit reduced the scale" note
+            if (Math.Abs(Framework.Settings.Instance.MaxUIScale - reducedScale) > 0.01d)
             {
-                Framework.Settings.Instance.MaxUIScale = _reducedScale;
+                Framework.Settings.Instance.MaxUIScale = reducedScale;
                 _changed = true;
             }
 
@@ -530,9 +520,7 @@ namespace SidebarDiagnostics
                 Framework.Settings.Instance.Save();
             }
 
-            // The saved scale alone does not resize the docked window: re-dock so the
-            // new scale is applied right away (the same path Apply takes). Layout is
-            // stable afterwards, so the follow-up auto-fit finds nothing to change.
+            // the saved scale alone does not resize the docked window: re-dock right away
             if (_scaleChanged)
             {
                 Dispatcher.BeginInvoke(new Action(async () =>
@@ -541,6 +529,50 @@ namespace SidebarDiagnostics
                     catch (Exception _ex) { Utilities.ErrorLog.Write(_ex); }
                 }));
             }
+        }
+
+        // Auto-fit (when ticked): keep the sidebar at the user's preferred scale, but shrink it
+        // just enough when the monitors no longer fit the screen, and grow it back (never above
+        // the preferred scale) when monitors are removed. Runs after every reload/content change.
+        private void AutoFitUIScale()
+        {
+            if (!Framework.Settings.Instance.AutoFitScale)
+            {
+                // auto-fit off: return to the user's own scale if an earlier fit lowered it
+                ApplyScale(PreferredScale, 3.0d);
+                return;
+            }
+
+            double _total = MeasureUnscaledHeight();
+            if (_total <= 0d)
+            {
+                return;
+            }
+
+            WorkAreaInfo _info = WorkAreaProvider(Framework.Settings.Instance.ScreenIndex);
+            double _preferred = PreferredScale;
+            double _scale = ComputeAutoFitScale(_total, _preferred, _info, Framework.Settings.Instance.YOffset);
+
+            ApplyScale(_scale, _scale < _preferred - 0.005d ? _scale : 3.0d);
+        }
+
+        // "Fit to screen now" in Settings: size the sidebar so its content fills the screen
+        // height exactly (bigger or smaller), and make that the preferred scale.
+        public double FitToScreenNow()
+        {
+            double _total = MeasureUnscaledHeight();
+            if (_total <= 0d)
+            {
+                return Framework.Settings.Instance.UIScale;
+            }
+
+            WorkAreaInfo _info = WorkAreaProvider(Framework.Settings.Instance.ScreenIndex);
+            double _scale = ComputeAutoFitScale(_total, 3.0d, _info, Framework.Settings.Instance.YOffset);
+
+            Framework.Settings.Instance.PreferredUIScale = _scale;
+            ApplyScale(_scale, 3.0d);
+
+            return _scale;
         }
 
         private void BindGraphs()

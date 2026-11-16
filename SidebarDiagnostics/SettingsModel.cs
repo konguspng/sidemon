@@ -41,7 +41,7 @@ namespace SidebarDiagnostics.Models
             Culture = Framework.Settings.Instance.Culture;
 
             AutoFitScale = Framework.Settings.Instance.AutoFitScale;
-            UIScale = Framework.Settings.Instance.UIScale;
+            UIScale = Framework.Settings.Instance.PreferredUIScale > 0d ? Framework.Settings.Instance.PreferredUIScale : Framework.Settings.Instance.UIScale;
             MaxUIScale = Framework.Settings.Instance.MaxUIScale;
             XOffset = Framework.Settings.Instance.XOffset;
             YOffset = Framework.Settings.Instance.YOffset;
@@ -188,6 +188,7 @@ namespace SidebarDiagnostics.Models
             Framework.Settings.Instance.Culture = Culture;
             Framework.Settings.Instance.AutoFitScale = AutoFitScale;
             Framework.Settings.Instance.UIScale = Math.Round(UIScale, 2);
+            Framework.Settings.Instance.PreferredUIScale = Math.Round(UIScale, 2);
             Framework.Settings.Instance.XOffset = XOffset;
             Framework.Settings.Instance.YOffset = YOffset;
             Framework.Settings.Instance.PollingInterval = PollingInterval;

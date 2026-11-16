@@ -105,6 +105,15 @@ namespace SidebarDiagnostics.Monitoring
         Task<UsageResult> FetchAsync(CancellationToken ct);
     }
 
+    // Optional: a cheap local fingerprint of the provider's stored login (file time/size or a
+    // hash of the credential blob). When it changes - the CLI refreshed its token, the user
+    // signed in again or switched accounts - the registry re-polls at once instead of showing
+    // an expired/old-account state until the next 5-minute poll. Never returns the secret.
+    public interface ICredentialWatch
+    {
+        string CredentialSignature();
+    }
+
     // Immutable view of what the registry currently knows about one provider.
     public sealed class UsageSnapshot
     {
@@ -270,6 +279,35 @@ namespace SidebarDiagnostics.Monitoring
             public DateTime NextPollUtc = DateTime.MinValue;
             public bool Fetching;
             public int Failures;
+            public string CredentialSig;
+            public DateTime NextWatchUtc = DateTime.MinValue;
+            public bool RepollAfterFetch;
+        }
+
+        private static readonly TimeSpan WatchInterval = TimeSpan.FromSeconds(5);
+
+        // called under _lock
+        private static void CheckCredentials(IUsageProvider provider, State state)
+        {
+            if (!(provider is ICredentialWatch _watch) || DateTime.UtcNow < state.NextWatchUtc)
+            {
+                return;
+            }
+
+            state.NextWatchUtc = DateTime.UtcNow + WatchInterval;
+
+            string _sig;
+            try { _sig = _watch.CredentialSignature(); }
+            catch { _sig = null; }
+
+            if (state.CredentialSig != null && !string.Equals(state.CredentialSig, _sig, StringComparison.Ordinal))
+            {
+                state.Failures = 0;
+                state.NextPollUtc = DateTime.MinValue;
+                if (state.Fetching) state.RepollAfterFetch = true;
+            }
+
+            state.CredentialSig = _sig;
         }
 
         private static readonly object _lock = new object();
@@ -379,6 +417,8 @@ namespace SidebarDiagnostics.Monitoring
                     }
                 }
 
+                CheckCredentials(provider, _state);
+
                 if (_state.Fetching || DateTime.UtcNow < _state.NextPollUtc)
                 {
                     return;
@@ -423,6 +463,9 @@ namespace SidebarDiagnostics.Monitoring
 
                 _state.Fetching = false;
 
+                bool _repollNow = _state.RepollAfterFetch;
+                _state.RepollAfterFetch = false;
+
                 UsageSnapshot _previous = _state.Snapshot;
 
                 bool isSigningIn = _loginSessions.TryGetValue(provider.Id, out var session) && session.Active;
@@ -431,7 +474,7 @@ namespace SidebarDiagnostics.Monitoring
                 {
                     if (session != null) session.Active = false;
                     _state.Failures = 0;
-                    _state.NextPollUtc = DateTime.UtcNow + MinInterval;
+                    _state.NextPollUtc = _repollNow ? DateTime.MinValue : DateTime.UtcNow + MinInterval;
 
                     _state.Snapshot = new UsageSnapshot()
                     {
@@ -487,7 +530,7 @@ namespace SidebarDiagnostics.Monitoring
                             _delay = _result.RetryIn.Value < TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : _result.RetryIn.Value;
                         }
 
-                        _state.NextPollUtc = DateTime.UtcNow + _delay;
+                        _state.NextPollUtc = _repollNow ? DateTime.MinValue : DateTime.UtcNow + _delay;
 
                         _state.Snapshot = new UsageSnapshot()
                         {

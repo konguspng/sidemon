@@ -2,6 +2,14 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.5.6 (released 2026-11-16)
+
+- **AI usage logins stay alive.** When Claude's access token (about 8 h) expires, SideMon lets the Claude CLI renew it in the background, the same way other usage monitors do: first `claude auth status` (no model call), and only if the token is still expired one minimal `claude -p .` from a neutral folder. At most 3 tries per expired token, 10 minutes apart; SideMon still never reads out, stores or writes the token. On by default; turn off with "Renew Claude login automatically".
+- **Login changes show up within about 5 seconds.** SideMon fingerprints each provider's stored login (Claude, Codex and Gemini CLI credential files; agy's Windows Credential Manager entry) and re-polls as soon as it changes, so a CLI token refresh, a new sign-in or an account switch replaces the 'expired' or old-account values right away. The secret is only hashed in memory.
+- **Provider logos** next to each AI usage name (Claude, agy, Gemini, Codex, Copilot; icons from Lobe Icons, MIT). Toggle: Settings > Monitors > AI CLI Usage > Show provider icons.
+- **Smarter fit to screen.** Auto-fit now keeps your chosen scale as the target: it shrinks when monitors are added and grows back when they are removed. The new "Fit to screen now" button next to the checkbox resizes the sidebar so its monitors fill the screen height (larger or smaller) and keeps that as your scale.
+- **Fixed: network monitors appearing by themselves after a reload.** Adapters SideMon had never seen (VPN, Hyper-V vEthernet, Wi-Fi Direct, ...) were listed as ticked in Settings, so the next Apply saved them as enabled. New adapters are now unticked everywhere. Adapters already saved as enabled stay that way; untick unwanted ones once in Settings > Monitors > Network.
+
 ## 4.5.5 (released 2026-11-11)
 
 - **Fixed: crash on Apply in Settings.** Opening Settings while the sidebar was still loading or reloading left the hardware list empty, and Apply then failed with `ArgumentNullException: Value cannot be null (Parameter 'source')` in `SettingsModel.Save`. Settings now falls back to the saved hardware list. Found through a report sent with Send log to developer.

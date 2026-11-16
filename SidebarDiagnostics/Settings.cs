@@ -240,6 +240,25 @@ namespace SidebarDiagnostics.Framework
 
         private bool _autoFitScale { get; set; } = true;
 
+        // the scale the user chose (slider or "Fit to screen now"); auto-fit may lower the
+        // effective UIScale below it when content grows and raises it back when content
+        // shrinks, but never above it. 0 = not set yet (older settings file): use UIScale.
+        private double _preferredUIScale { get; set; } = 0d;
+
+        public double PreferredUIScale
+        {
+            get
+            {
+                return _preferredUIScale;
+            }
+            set
+            {
+                _preferredUIScale = value;
+
+                NotifyPropertyChanged("PreferredUIScale");
+            }
+        }
+
         public bool AutoFitScale
         {
             get

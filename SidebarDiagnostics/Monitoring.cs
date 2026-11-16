@@ -1618,7 +1618,7 @@ namespace SidebarDiagnostics.Monitoring
         {
             return GetAdapters()
                 .OrderBy(n => n.Name)
-                .Select(n => new HardwareConfig() { ID = n.Id, Name = n.Name, ActualName = n.Name });
+                .Select(n => new HardwareConfig() { ID = n.Id, Name = n.Name, ActualName = n.Name, Enabled = false });
         }
 
         private static IEnumerable<NetworkInterface> GetAdapters()
@@ -2830,12 +2830,13 @@ namespace SidebarDiagnostics.Monitoring
                             new MetricConfig(MetricKey.UsageWeekly, true),
                             new MetricConfig(MetricKey.UsageMonthly, true)
                         },
-                        Params = new ConfigParam[4]
+                        Params = new ConfigParam[5]
                         {
                             ConfigParam.Defaults.HardwareNames,
                             ConfigParam.Defaults.RoundAll,
                             ConfigParam.Defaults.UsageAlert,
-                            ConfigParam.Defaults.ShowSignInButton
+                            ConfigParam.Defaults.ShowSignInButton,
+                            ConfigParam.Defaults.ShowProviderIcon
                         }
                     }
                 };
@@ -2960,8 +2961,11 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
-        private bool _autoRenew { get; set; }
+        // default ON: SideMon keeps the Claude login fresh by letting the Claude CLI renew it
+        // (stored under a new name so the old opt-in "false" from 4.5.x does not carry over)
+        private bool _autoRenew { get; set; } = true;
 
+        [JsonPropertyName("AutoRefreshLogin")]
         public bool AutoRenew
         {
             get { return _autoRenew; }
@@ -3326,6 +3330,9 @@ namespace SidebarDiagnostics.Monitoring
                     case ParamKey.ShowSignInButton:
                         return Resources.SettingsShowSignInButton;
 
+                    case ParamKey.ShowProviderIcon:
+                        return Resources.SettingsShowProviderIcon;
+
                     default:
                         return "Unknown";
                 }
@@ -3395,6 +3402,9 @@ namespace SidebarDiagnostics.Monitoring
 
                     case ParamKey.ShowSignInButton:
                         return Resources.SettingsShowSignInButtonTooltip;
+
+                    case ParamKey.ShowProviderIcon:
+                        return Resources.SettingsShowProviderIconTooltip;
 
                     default:
                         return "Unknown";
@@ -3563,6 +3573,14 @@ namespace SidebarDiagnostics.Monitoring
                     return new ConfigParam() { Key = ParamKey.ShowSignInButton, Value = true };
                 }
             }
+
+            public static ConfigParam ShowProviderIcon
+            {
+                get
+                {
+                    return new ConfigParam() { Key = ParamKey.ShowProviderIcon, Value = true };
+                }
+            }
         }
     }
 
@@ -3623,7 +3641,8 @@ namespace SidebarDiagnostics.Monitoring
         ShowVRAMGB,
         ShowFanRPM,
         UsageAlert,
-        ShowSignInButton
+        ShowSignInButton,
+        ShowProviderIcon
     }
 
     public enum DataType : byte

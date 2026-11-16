@@ -74,9 +74,77 @@ namespace SidebarDiagnostics.Monitoring.Providers
         }
 
         public static HttpClient Client { get; set; } = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+
+        // "time|size" of a file, or "missing"; used as a credential fingerprint
+        public static string FileSignature(string path)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(path)) return "missing";
+                FileInfo _info = new FileInfo(path);
+                return _info.Exists ? _info.LastWriteTimeUtc.Ticks + "|" + _info.Length : "missing";
+            }
+            catch
+            {
+                return "error";
+            }
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private struct CREDENTIAL
+        {
+            public int Flags;
+            public int Type;
+            public IntPtr TargetName;
+            public IntPtr Comment;
+            public System.Runtime.InteropServices.ComTypes.FILETIME LastWritten;
+            public int CredentialBlobSize;
+            public IntPtr CredentialBlob;
+            public int Persist;
+            public int AttributeCount;
+            public IntPtr Attributes;
+            public IntPtr TargetAlias;
+            public IntPtr UserName;
+        }
+
+        [System.Runtime.InteropServices.DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+        private static extern bool CredRead(string target, int type, int flags, out IntPtr credential);
+
+        [System.Runtime.InteropServices.DllImport("advapi32.dll")]
+        private static extern void CredFree(IntPtr buffer);
+
+        // Fingerprint (write time + size + hash) of a Windows Credential Manager generic entry.
+        // The secret itself is hashed in memory and never kept, logged or returned.
+        public static string CredentialManagerSignature(string target)
+        {
+            IntPtr _ptr = IntPtr.Zero;
+            try
+            {
+                if (!CredRead(target, 1, 0, out _ptr) || _ptr == IntPtr.Zero) return "missing";
+                CREDENTIAL _cred = System.Runtime.InteropServices.Marshal.PtrToStructure<CREDENTIAL>(_ptr);
+                long _written = ((long)_cred.LastWritten.dwHighDateTime << 32) | (uint)_cred.LastWritten.dwLowDateTime;
+                string _hash = "0";
+                if (_cred.CredentialBlobSize > 0 && _cred.CredentialBlob != IntPtr.Zero)
+                {
+                    byte[] _blob = new byte[_cred.CredentialBlobSize];
+                    System.Runtime.InteropServices.Marshal.Copy(_cred.CredentialBlob, _blob, 0, _blob.Length);
+                    _hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(_blob), 0, 8);
+                    Array.Clear(_blob, 0, _blob.Length);
+                }
+                return _written + "|" + _cred.CredentialBlobSize + "|" + _hash;
+            }
+            catch
+            {
+                return "error";
+            }
+            finally
+            {
+                if (_ptr != IntPtr.Zero) CredFree(_ptr);
+            }
+        }
     }
 
-    public class ClaudeProvider : IUsageProvider
+    public class ClaudeProvider : IUsageProvider, ICredentialWatch
     {
         public string Id => "AIUsage_Claude";
         public string DisplayName => "Claude Code";
@@ -108,8 +176,12 @@ namespace SidebarDiagnostics.Monitoring.Providers
                     RedirectStandardOutput = true,
                     RedirectStandardInput = true,
                     RedirectStandardError = true,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    // neutral folder: never let the CLI pick up a project in SideMon's directory
+                    WorkingDirectory = Path.GetTempPath()
                 };
+                psi.Environment.Remove("CLAUDECODE");
+                psi.Environment.Remove("CLAUDE_CODE_ENTRYPOINT");
 
                 Process process = null;
                 try {
@@ -192,6 +264,81 @@ namespace SidebarDiagnostics.Monitoring.Providers
             return UsageDetection.NotLoggedIn;
         }
 
+        public string CredentialSignature()
+        {
+            return ProviderHelper.FileSignature(FindTokenPath());
+        }
+
+        // when on, an expired token is renewed by running the Claude CLI hidden (it refreshes
+        // its own OAuth token and rewrites .credentials.json); SideMon never writes the file
+        public bool AutoRefresh { get; set; } = true;
+
+        private static readonly SemaphoreSlim _refreshGate = new SemaphoreSlim(1, 1);
+
+        // reads the access token; expMs = expiresAt (ms) or null. Returns null when absent.
+        private string ReadToken(string tokenPath, out long? expMs)
+        {
+            expMs = null;
+            var json = File.ReadAllText(tokenPath);
+            using (var doc = JsonDocument.Parse(json))
+            {
+                if (!doc.RootElement.TryGetProperty("claudeAiOauth", out var oauth) || !oauth.TryGetProperty("accessToken", out var at))
+                {
+                    return null;
+                }
+
+                if (oauth.TryGetProperty("expiresAt", out var exp) && exp.ValueKind == JsonValueKind.Number && exp.TryGetInt64(out long _ms))
+                {
+                    expMs = _ms;
+                }
+
+                return at.GetString();
+            }
+        }
+
+        private static bool IsExpired(long? expMs)
+        {
+            return expMs.HasValue && DateTimeOffset.FromUnixTimeMilliseconds(expMs.Value) <= DateTimeOffset.UtcNow.AddSeconds(30);
+        }
+
+        // Same approach as other usage monitors: let the CLI renew its token. First the
+        // no-model `claude auth status`; only if the token is still stale a minimal `claude -p .`
+        // (one tiny request). Limited to 3 attempts per expired token, 10 minutes apart.
+        private async Task<bool> TryCliRefreshAsync(string tokenPath)
+        {
+            if (!AutoRefresh || AutoRenewAttempts >= 3 || DateTimeOffset.Now - LastAutoRenewTime < TimeSpan.FromMinutes(10))
+            {
+                return false;
+            }
+
+            if (!await _refreshGate.WaitAsync(0).ConfigureAwait(false))
+            {
+                return false;
+            }
+
+            try
+            {
+                LastAutoRenewTime = DateTimeOffset.Now;
+                AutoRenewAttempts++;
+
+                await RunCmdAsync("auth status", 30).ConfigureAwait(false);
+                ReadToken(tokenPath, out long? _exp1);
+                if (!IsExpired(_exp1)) return true;
+
+                await RunCmdAsync("-p \".\" --no-session-persistence", 90).ConfigureAwait(false);
+                ReadToken(tokenPath, out long? _exp2);
+                return !IsExpired(_exp2);
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                _refreshGate.Release();
+            }
+        }
+
         public async Task<UsageResult> FetchAsync(CancellationToken ct)
         {
             var tokenPath = FindTokenPath();
@@ -200,29 +347,24 @@ namespace SidebarDiagnostics.Monitoring.Providers
             string token;
             try
             {
-                var json = File.ReadAllText(tokenPath);
-                using (var doc = JsonDocument.Parse(json))
-                {
-                    if (doc.RootElement.TryGetProperty("claudeAiOauth", out var oauth) && oauth.TryGetProperty("accessToken", out var at))
-                    {
-                        token = at.GetString();
+                token = ReadToken(tokenPath, out long? expMs);
+                if (token == null) return UsageResult.Fail(UsageStatus.NotLoggedIn);
 
-                        // The access token lives only ~8 hours and only the Claude CLI itself
-                        // renews it (SideMon never touches credentials). While it is stale,
-                        // skip the doomed request and look at the file again shortly: using
-                        // Claude Code once rewrites it and the next check picks it up.
-                        if (oauth.TryGetProperty("expiresAt", out var exp) && exp.ValueKind == JsonValueKind.Number && exp.TryGetInt64(out long expMs)
-                            && DateTimeOffset.FromUnixTimeMilliseconds(expMs) <= DateTimeOffset.UtcNow.AddSeconds(30))
-                        {
-                            if (expMs != LastSeenExpiredMs) { LastSeenExpiredMs = expMs; AutoRenewAttempts = 0; }
-                            var stale = UsageResult.Fail(UsageStatus.AuthExpired);
-                            stale.RetryIn = TimeSpan.FromSeconds(30);
-                            return stale;
-                        }
-                    }
-                    else
+                if (IsExpired(expMs))
+                {
+                    if (expMs.Value != LastSeenExpiredMs) { LastSeenExpiredMs = expMs.Value; AutoRenewAttempts = 0; }
+
+                    if (await TryCliRefreshAsync(tokenPath).ConfigureAwait(false))
                     {
-                        return UsageResult.Fail(UsageStatus.NotLoggedIn);
+                        token = ReadToken(tokenPath, out expMs);
+                    }
+
+                    if (token == null || IsExpired(expMs))
+                    {
+                        // keep the last values (dimmed) and look at the file again shortly
+                        var stale = UsageResult.Fail(UsageStatus.AuthExpired);
+                        stale.RetryIn = TimeSpan.FromSeconds(30);
+                        return stale;
                     }
                 }
             }
@@ -248,7 +390,10 @@ namespace SidebarDiagnostics.Monitoring.Providers
                 }
                 if (res.StatusCode == System.Net.HttpStatusCode.Unauthorized || res.StatusCode == System.Net.HttpStatusCode.Forbidden)
                 {
-                    return UsageResult.Fail(UsageStatus.AuthExpired);
+                    // rejected before its expiry (revoked/rotated): let the CLI renew it, then retry soon
+                    var _rejected = UsageResult.Fail(UsageStatus.AuthExpired);
+                    if (await TryCliRefreshAsync(tokenPath).ConfigureAwait(false)) _rejected.RetryIn = TimeSpan.FromSeconds(5);
+                    return _rejected;
                 }
                 res.EnsureSuccessStatusCode();
 
@@ -287,9 +432,15 @@ namespace SidebarDiagnostics.Monitoring.Providers
         }
     }
 
-    public class AgyProvider : IUsageProvider
+    public class AgyProvider : IUsageProvider, ICredentialWatch
     {
         public string Id => "AIUsage_Agy";
+
+        // agy (Antigravity) keeps its login in Windows Credential Manager
+        public string CredentialSignature()
+        {
+            return ProviderHelper.CredentialManagerSignature("gemini:antigravity");
+        }
         public string DisplayName => "Gemini (agy)";
 
         public string CustomPath { get; set; }
@@ -375,7 +526,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
         }
     }
 
-    public class CodexProvider : IUsageProvider
+    public class CodexProvider : IUsageProvider, ICredentialWatch
     {
         public string Id => "AIUsage_Codex";
         public string DisplayName => "Codex CLI";
@@ -414,6 +565,12 @@ namespace SidebarDiagnostics.Monitoring.Providers
                 }
             }
             return (null, null);
+        }
+
+        public string CredentialSignature()
+        {
+            foreach (var path in AuthPaths()) if (File.Exists(path)) return ProviderHelper.FileSignature(path);
+            return "missing";
         }
 
         private bool CredsFileExists()
@@ -657,12 +814,18 @@ namespace SidebarDiagnostics.Monitoring.Providers
             }
         }
     }
-    public class GeminiProvider : IUsageProvider
+    public class GeminiProvider : IUsageProvider, ICredentialWatch
     {
         public string Id => "AIUsage_Gemini";
         public string DisplayName => "Gemini CLI";
 
         public string CustomPath { get; set; }
+
+        public string CredentialSignature()
+        {
+            string _path = ProviderHelper.ResolveCustomFile(CustomPath, "oauth_creds.json") ?? ProviderHelper.ResolvePath(@"%USERPROFILE%\.gemini\oauth_creds.json");
+            return ProviderHelper.FileSignature(_path);
+        }
 
         public bool IsInstalled()
         {
