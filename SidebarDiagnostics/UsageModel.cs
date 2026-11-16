@@ -320,7 +320,10 @@ namespace SidebarDiagnostics.Monitoring
             new Providers.AgyProvider(),
             new Providers.CodexProvider(),
             new Providers.CopilotProvider(),
-            new Providers.GeminiProvider()
+            new Providers.GeminiProvider(),
+            new Providers.CursorProvider(),
+            new Providers.GrokProvider(),
+            new Providers.OpenCodeGoProvider()
         };
 
         public static IUsageProvider Find(string id)

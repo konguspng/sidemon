@@ -8,6 +8,12 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 - **Login changes show up within about 5 seconds.** SideMon fingerprints each provider's stored login (Claude, Codex and Gemini CLI credential files; agy's Windows Credential Manager entry) and re-polls as soon as it changes, so a CLI token refresh, a new sign-in or an account switch replaces the 'expired' or old-account values right away. The secret is only hashed in memory.
 - **Provider logos** next to each AI usage name (Claude, agy, Gemini, Codex, Copilot; icons from Lobe Icons, MIT). Toggle: Settings > Monitors > AI CLI Usage > Show provider icons.
 - **Smarter fit to screen.** Auto-fit now keeps your chosen scale as the target: it shrinks when monitors are added and grows back when they are removed. The new "Fit to screen now" button next to the checkbox resizes the sidebar so its monitors fill the screen height (larger or smaller) and keeps that as your scale.
+- **New AI usage providers** (off until ticked in Settings > Monitors > AI CLI Usage; request shapes follow rozsazoltan/quota-usage-monitor):
+  - **Cursor**: uses the Cursor app's own sign-in (read-only from its local state database), or `CURSOR_SESSION_TOKEN`. Shows Auto + Composer and API usage for the billing cycle.
+  - **Grok Build**: sign in with `grok login`; reads `%USERPROFILE%\.grok\auth.json` (`GROK_HOME` overrides). An expired session is renewed by the CLI itself. Shows the credit pool.
+  - **OpenCode Go**: set `OPENCODE_GO_WORKSPACE_ID` + `OPENCODE_GO_AUTH_COOKIE`, or create `%APPDATA%\opencode-go\config.json` with `workspaceId` and `authCookie` (the `__Host-console_session` cookie from opencode.ai); opencode's own login is also picked up. Shows 5-hour, weekly and monthly usage. Treat that config file as a password.
+  - **GitHub Copilot** additionally finds the Copilot CLI login (Windows Credential Manager) and `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN`.
+  - These were checked against sample responses only; no Cursor, Grok or OpenCode Go account was available for a live test.
 - **Fixed: network monitors appearing by themselves after a reload.** Adapters SideMon had never seen (VPN, Hyper-V vEthernet, Wi-Fi Direct, ...) were listed as ticked in Settings, so the next Apply saved them as enabled. New adapters are now unticked everywhere. Adapters already saved as enabled stay that way; untick unwanted ones once in Settings > Monitors > Network.
 
 ## 4.5.5 (released 2026-11-11)

@@ -438,6 +438,15 @@ namespace SidebarDiagnostics.Monitoring
                 case "completions":
                     return Resources.UsageSlotCompletions;
 
+                case "auto":
+                    return "Auto + Composer";
+
+                case "api":
+                    return "API models";
+
+                case "credits":
+                    return "Credits";
+
                 default:
                     if (window.Slot != null && window.Slot.StartsWith("grp:", StringComparison.Ordinal))
                     {

@@ -113,6 +113,41 @@ namespace SidebarDiagnostics.Monitoring.Providers
         [System.Runtime.InteropServices.DllImport("advapi32.dll")]
         private static extern void CredFree(IntPtr buffer);
 
+        [System.Runtime.InteropServices.DllImport("advapi32.dll", EntryPoint = "CredEnumerateW", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+        private static extern bool CredEnumerate(string filter, int flags, out int count, out IntPtr credentials);
+
+        // Generic Credential Manager entries whose target matches filter (e.g. "gh:github.com:*"),
+        // newest first. Secrets stay in memory for the caller only.
+        public static List<(string Target, string Secret, long Written)> CredentialManagerEntries(string filter)
+        {
+            var _list = new List<(string, string, long)>();
+            IntPtr _ptr = IntPtr.Zero;
+            try
+            {
+                if (!CredEnumerate(filter, 0, out int _count, out _ptr) || _ptr == IntPtr.Zero) return _list;
+                for (int i = 0; i < _count; i++)
+                {
+                    IntPtr _item = System.Runtime.InteropServices.Marshal.ReadIntPtr(_ptr, i * IntPtr.Size);
+                    CREDENTIAL _c = System.Runtime.InteropServices.Marshal.PtrToStructure<CREDENTIAL>(_item);
+                    if (_c.Type != 1 || _c.CredentialBlobSize <= 0 || _c.CredentialBlob == IntPtr.Zero) continue;
+                    byte[] _blob = new byte[_c.CredentialBlobSize];
+                    System.Runtime.InteropServices.Marshal.Copy(_c.CredentialBlob, _blob, 0, _blob.Length);
+                    // gh/copilot store UTF-8; older tools UTF-16
+                    string _s = _blob.Length >= 2 && _blob[1] == 0 ? System.Text.Encoding.Unicode.GetString(_blob) : System.Text.Encoding.UTF8.GetString(_blob);
+                    Array.Clear(_blob, 0, _blob.Length);
+                    long _w = ((long)_c.LastWritten.dwHighDateTime << 32) | (uint)_c.LastWritten.dwLowDateTime;
+                    _list.Add((System.Runtime.InteropServices.Marshal.PtrToStringUni(_c.TargetName), _s.Trim(), _w));
+                }
+                _list.Sort((a, b) => b.Item3.CompareTo(a.Item3));
+            }
+            catch { }
+            finally
+            {
+                if (_ptr != IntPtr.Zero) CredFree(_ptr);
+            }
+            return _list;
+        }
+
         // Fingerprint (write time + size + hash) of a Windows Credential Manager generic entry.
         // The secret itself is hashed in memory and never kept, logged or returned.
         public static string CredentialManagerSignature(string target)
@@ -631,7 +666,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
         }
     }
 
-    public class CopilotProvider : IUsageProvider
+    public class CopilotProvider : IUsageProvider, ICredentialWatch
     {
         public string Id => "AIUsage_Copilot";
         public string DisplayName => "GitHub Copilot";
@@ -736,9 +771,39 @@ namespace SidebarDiagnostics.Monitoring.Providers
         }
 
         // never blocks longer than GhTimeout (+ a moment to drain the pipe)
+        private static readonly string[] TokenEnv = { "COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN" };
+
+        // Copilot CLI ("copilot" login) keeps its GitHub token in Windows Credential Manager
+        private static string ReadCopilotCliToken()
+        {
+            foreach (string _filter in new[] { "https://github.com:*.copilot-cli", "copilot-cli/https://github.com:*" })
+            {
+                foreach (var _e in ProviderHelper.CredentialManagerEntries(_filter))
+                {
+                    if (!string.IsNullOrEmpty(_e.Secret) && _e.Secret.IndexOf('\n') < 0) return _e.Secret;
+                }
+            }
+            return null;
+        }
+
+        public string CredentialSignature()
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var _e in ProviderHelper.CredentialManagerEntries("https://github.com:*.copilot-cli")) sb.Append(_e.Target).Append(_e.Written).Append(';');
+            foreach (var _e in ProviderHelper.CredentialManagerEntries("gh:github.com*")) sb.Append(_e.Target).Append(_e.Written).Append(';');
+            return sb.ToString();
+        }
+
         private string ReadToken()
         {
+            foreach (string _name in TokenEnv)
+            {
+                string _env = Environment.GetEnvironmentVariable(_name);
+                if (!string.IsNullOrWhiteSpace(_env)) return _env.Trim();
+            }
             var token = ReadFileToken();
+            if (!string.IsNullOrEmpty(token)) return token;
+            token = ReadCopilotCliToken();
             if (!string.IsNullOrEmpty(token)) return token;
             if (ProviderHelper.IsOnPath("gh")) return RunGhAuthToken();
             return null;
@@ -746,7 +811,8 @@ namespace SidebarDiagnostics.Monitoring.Providers
 
         public bool IsInstalled()
         {
-            return ProviderHelper.IsOnPath("gh") || HasConfigFile();
+            return ProviderHelper.IsOnPath("gh") || ProviderHelper.IsOnPath("copilot") || HasConfigFile()
+                || ProviderHelper.CredentialManagerEntries("https://github.com:*.copilot-cli").Count > 0;
         }
 
         public UsageDetection Detect()
@@ -1015,6 +1081,21 @@ namespace SidebarDiagnostics.Monitoring.Providers
                         }
                         cliArgs = "auth login";
                         title = "SideMon - GitHub Copilot sign-in";
+                    }
+                    break;
+
+                case "AIUsage_Grok":
+                    {
+                        if (IsValidExecutable(provider.CustomPath))
+                        {
+                            exe = ProviderHelper.ResolvePath(provider.CustomPath.Trim().Trim('"'));
+                        }
+                        else
+                        {
+                            exe = ResolveExe(null, "grok", "grok.exe", "grok.cmd");
+                        }
+                        cliArgs = "login";
+                        title = "SideMon - Grok sign-in";
                     }
                     break;
 

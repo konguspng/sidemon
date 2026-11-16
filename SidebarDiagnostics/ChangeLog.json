@@ -6,6 +6,7 @@
       "AI usage reacts to login changes within ~5 s: SideMon watches each provider's stored login (Claude/Codex/Gemini credential files, agy's Windows Credential Manager entry) and re-polls when it changes - CLI token refresh, re-login or account switch - instead of showing 'expired' until the next 5-minute poll.",
       "Provider logos next to each AI usage name (Claude, agy, Gemini, Codex, Copilot). Toggle: Settings > Monitors > AI CLI Usage > Show provider icons.",
       "Auto-fit to screen now works both ways: it shrinks when monitors are added and grows back to your chosen scale when they are removed. New 'Fit to screen now' button resizes the sidebar to fill the screen height at once.",
+      "New AI usage providers: Cursor (uses the Cursor app's own sign-in), Grok Build (grok login; expired sessions renewed through the CLI) and OpenCode Go (workspace ID + console cookie, or opencode's own login). GitHub Copilot now also finds the Copilot CLI login and the COPILOT_GITHUB_TOKEN / GH_TOKEN / GITHUB_TOKEN variables. All are off until ticked.",
       "Fixed network adapters appearing on the sidebar by themselves after a reload: adapters that were never ticked (VPN, Hyper-V, Wi-Fi Direct...) are now off by default in Settings too, so pressing Apply no longer switches them on."
     ]
   },
