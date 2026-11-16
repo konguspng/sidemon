@@ -215,3 +215,11 @@ ModelManifest.xml
 installer/*.exe
 
 SidebarDiagnostics/ReportSecret.cs
+
+# local scratch / build leftovers
+publish-old*/
+publish-sc/
+*_REPORT*.md
+*_DONE.txt
+patch_*.py
+scratch*.py
