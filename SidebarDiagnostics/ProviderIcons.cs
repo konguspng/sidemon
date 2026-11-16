@@ -57,6 +57,11 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
+        public static bool HasColor(string providerId)
+        {
+            return providerId != null && _icons.TryGetValue(providerId, out Icon _icon) && _icon.Color != null;
+        }
+
         public static Brush GetBrush(string providerId)
         {
             string _color = null;

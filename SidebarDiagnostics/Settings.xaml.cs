@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -27,6 +27,9 @@ namespace SidebarDiagnostics
         public Settings(Sidebar sidebar)
         {
             InitializeComponent();
+
+            Version _version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            VersionText.Text = string.Format("Version {0}.{1}.{2}", _version.Major, _version.Minor, _version.Build);
 
             if (_lastSelectedTabIndex >= 0 && _lastSelectedTabIndex < SettingsTabControl.Items.Count)
             {
