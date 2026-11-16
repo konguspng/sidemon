@@ -2,12 +2,6 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
-## 4.5.7 (released 2026-11-16)
-
-- **Per-model AI usage bars.** Claude Code reports some models with their own weekly cap (for example **Fable**), and agy reports per-model limits (for example **Gemini 4 Argon**). Both were ignored before; each now gets its own bar, labelled with the model name. agy's per-model line gives a remaining percentage like the other agy lines; this is read the same way.
-- **Codex / ChatGPT per-model limits.** OpenAI's usage endpoint lists separately metered models or features under `additional_rate_limits` (documented in the official Codex client). SideMon now shows each as its own bar named after the limit, for example a model on its own cap such as ChatGPT Astra. Checked against the official client's test data only; the exact name a given model reports is not known until a subscriber's account returns it.
-- **Turn individual AI usage bars on or off.** In Settings > Monitors > AI CLI Usage, each provider now lists the bars it reported (5-hour, Weekly, Fable Weekly, Gemini 4 Argon Weekly, ...) as checkboxes. Untick a bar to hide it from the sidebar. The list fills in after the provider has been refreshed once.
-
 ## 4.5.6 (released 2026-11-16)
 
 - **AI usage logins stay alive.** When Claude's access token (about 8 h) expires, SideMon lets the Claude CLI renew it in the background, the same way other usage monitors do: first `claude auth status` (no model call), and only if the token is still expired one minimal `claude -p .` from a neutral folder. At most 3 tries per expired token, 10 minutes apart; SideMon still never reads out, stores or writes the token. On by default; turn off with "Renew Claude login automatically".
@@ -21,6 +15,9 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
   - **GitHub Copilot** additionally finds the Copilot CLI login (Windows Credential Manager) and `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN`.
   - These were checked against sample responses only; no Cursor, Grok or OpenCode Go account was available for a live test.
 - **Fixed: network monitors appearing by themselves after a reload.** Adapters SideMon had never seen (VPN, Hyper-V vEthernet, Wi-Fi Direct, ...) were listed as ticked in Settings, so the next Apply saved them as enabled. New adapters are now unticked everywhere. Adapters already saved as enabled stay that way; untick unwanted ones once in Settings > Monitors > Network.
+- **Per-model AI usage bars.** Claude Code reports some models with their own weekly cap (for example **Fable**), and agy reports per-model limits (for example **Gemini 4 Argon**). Both were ignored before; each now gets its own bar, labelled with the model name. agy's per-model line gives a remaining percentage like the other agy lines; this is read the same way.
+- **Codex / ChatGPT per-model limits.** OpenAI's usage endpoint lists separately metered models or features under `additional_rate_limits` (documented in the official Codex client). SideMon now shows each as its own bar named after the limit, for example a model on its own cap such as ChatGPT Astra. Checked against the official client's test data only; the exact name a given model reports is not known until a subscriber's account returns it.
+- **Turn individual AI usage bars on or off.** In Settings > Monitors > AI CLI Usage, each provider now lists the bars it reported (5-hour, Weekly, Fable Weekly, Gemini 4 Argon Weekly, ...) as checkboxes. Untick a bar to hide it from the sidebar. The list fills in after the provider has been refreshed once.
 
 ## 4.5.5 (released 2026-11-11)
 
