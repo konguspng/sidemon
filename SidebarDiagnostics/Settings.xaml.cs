@@ -24,22 +24,130 @@ namespace SidebarDiagnostics
     {
         internal static int _lastSelectedTabIndex = 0;
 
-        public Settings(Sidebar sidebar)
+        public Settings(Sidebar sidebar) : this(sidebar, null)
+        {
+        }
+
+        internal Settings(Sidebar sidebar, SettingsRestoreState restore)
         {
             InitializeComponent();
 
             Version _version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            VersionText.Text = string.Format("Version {0}.{1}.{2}", _version.Major, _version.Minor, _version.Build);
+            VersionText.Text = string.Format(Framework.Resources.SettingsUiVersionFormat, _version.Major, _version.Minor, _version.Build);
 
-            if (_lastSelectedTabIndex >= 0 && _lastSelectedTabIndex < SettingsTabControl.Items.Count)
+            int _tabIndex = restore != null ? restore.SelectedTabIndex : _lastSelectedTabIndex;
+            if (_tabIndex >= 0 && _tabIndex < SettingsTabControl.Items.Count)
             {
-                SettingsTabControl.SelectedIndex = _lastSelectedTabIndex;
+                SettingsTabControl.SelectedIndex = _tabIndex;
             }
 
             DataContext = Model = new SettingsModel(sidebar);
 
+            if (restore != null)
+            {
+                if (restore.SelectedMonitorType.HasValue && Model.MonitorConfig != null)
+                {
+                    MonitorConfig _selected = Model.MonitorConfig.FirstOrDefault(m => m.Type == restore.SelectedMonitorType.Value);
+                    if (_selected != null)
+                    {
+                        Model.SelectedMonitorConfig = _selected;
+                    }
+                }
+
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Left = restore.Left;
+                Top = restore.Top;
+                Width = restore.Width;
+                Height = restore.Height;
+                WindowState = restore.WindowState;
+                ShowActivated = true;
+                _pendingScrollOffset = restore.VerticalScrollOffset;
+            }
+
             ShowInTaskbar = true;
             Show();
+        }
+
+        internal bool IsClosed { get; private set; } = false;
+
+        internal void CloseForReplacement()
+        {
+            _replacing = true;
+            StopReloadTimeout();
+            if (!IsClosed)
+            {
+                Close();
+            }
+        }
+
+        internal void StopReloadTimeout()
+        {
+            if (_reloadTimeoutTimer != null)
+            {
+                _reloadTimeoutTimer.Stop();
+                _reloadTimeoutTimer = null;
+            }
+        }
+
+        private ScrollViewer GetActiveScrollViewer()
+        {
+            if (SettingsTabControl?.SelectedItem is TabItem _tab && _tab.Content is ScrollViewer _sv)
+            {
+                return _sv;
+            }
+
+            return MonitorDetailScroll;
+        }
+
+        private SettingsRestoreState CaptureRestoreState()
+        {
+            bool _useRestoreBounds = WindowState != WindowState.Normal &&
+                !RestoreBounds.IsEmpty &&
+                RestoreBounds.Width > 0 &&
+                RestoreBounds.Height > 0;
+
+            ScrollViewer _sv = GetActiveScrollViewer();
+
+            return new SettingsRestoreState
+            {
+                OldWindow = this,
+                Left = _useRestoreBounds ? RestoreBounds.Left : Left,
+                Top = _useRestoreBounds ? RestoreBounds.Top : Top,
+                Width = _useRestoreBounds ? RestoreBounds.Width : (ActualWidth > 0 ? ActualWidth : Width),
+                Height = _useRestoreBounds ? RestoreBounds.Height : (ActualHeight > 0 ? ActualHeight : Height),
+                WindowState = WindowState,
+                SelectedTabIndex = SettingsTabControl.SelectedIndex,
+                SelectedMonitorType = Model?.SelectedMonitorConfig?.Type,
+                VerticalScrollOffset = _sv != null ? _sv.VerticalOffset : 0d
+            };
+        }
+
+        private void ShowBusyOverlay()
+        {
+            _busyApplying = true;
+            MainContentPanel.IsEnabled = false;
+            BusyOverlay.Visibility = Visibility.Visible;
+
+            StopReloadTimeout();
+            _reloadTimeoutTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+            _reloadTimeoutTimer.Tick += (s, e) =>
+            {
+                if (App.PendingSettingsRestore != null && ReferenceEquals(App.PendingSettingsRestore.OldWindow, this))
+                {
+                    App.PendingSettingsRestore = null;
+                }
+
+                HideBusyOverlay();
+            };
+            _reloadTimeoutTimer.Start();
+        }
+
+        private void HideBusyOverlay()
+        {
+            StopReloadTimeout();
+            _busyApplying = false;
+            BusyOverlay.Visibility = Visibility.Collapsed;
+            MainContentPanel.IsEnabled = true;
         }
 
         private async Task Save(bool finalize)
@@ -67,21 +175,60 @@ namespace SidebarDiagnostics
 
             App.RefreshFpsOverlay();
 
+            if (_reloadNeeded)
+            {
+                if (finalize)
+                {
+                    App.PendingSettingsRestore = null;
+                    App._reloadOpenSettings = false;
+                    Close();
+
+                    await App.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, (Action)(() =>
+                    {
+                        Sidebar _sidebar = App.Current.Sidebar;
+                        _sidebar?.Reload();
+                    }));
+                    return;
+                }
+
+                Sidebar _currentSidebar = App.Current.Sidebar;
+                if (_currentSidebar == null || !_currentSidebar.Ready)
+                {
+                    return;
+                }
+
+                // Keep Settings visible with a busy overlay until the recreated sidebar is ready,
+                // then replace this window in-place with a fresh one.
+                ShowBusyOverlay();
+                App._reloadOpenSettings = false;
+                App.PendingSettingsRestore = CaptureRestoreState();
+
+                await App.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, (Action)(() =>
+                {
+                    Sidebar _sidebar = App.Current.Sidebar;
+
+                    if (_sidebar == null || !_sidebar.Ready)
+                    {
+                        if (App.PendingSettingsRestore != null && ReferenceEquals(App.PendingSettingsRestore.OldWindow, this))
+                        {
+                            App.PendingSettingsRestore = null;
+                        }
+
+                        HideBusyOverlay();
+                        return;
+                    }
+
+                    _sidebar.Reload();
+                }));
+                return;
+            }
+
             await App.Current.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, (Action)(async () =>
             {
                 Sidebar _sidebar = App.Current.Sidebar;
 
                 if (_sidebar == null)
                 {
-                    return;
-                }
-
-                if (_reloadNeeded)
-                {
-                    // glass and culture restyle/localize the window, so the sidebar (and this dialog) must be recreated
-                    App._reloadOpenSettings = !finalize;
-                    Close();
-                    _sidebar.Reload();
                     return;
                 }
 
@@ -152,7 +299,7 @@ namespace SidebarDiagnostics
             
             var btn = sender as Button;
             btn.IsEnabled = false;
-            _hardware.RenewStatus = "Renewing...";
+            _hardware.RenewStatus = Framework.Resources.SettingsUiRenewing;
 
             bool step1Ok = await claude.RunCmdAsync("auth status", 30);
             
@@ -169,10 +316,10 @@ namespace SidebarDiagnostics
             }
 
             _hardware.RenewStatus = Framework.Resources.SettingsUsageClaudeStillExpired;
-            var result = MessageBox.Show(this, Framework.Resources.SettingsUsageClaudeRenewConfirm, "SideMon", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var result = MessageBox.Show(this, Framework.Resources.SettingsUsageClaudeRenewConfirm, Framework.Resources.AppName, MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
-                _hardware.RenewStatus = "Renewing (Step 2)...";
+                _hardware.RenewStatus = Framework.Resources.SettingsUiRenewingStep2;
                 await claude.RunCmdAsync("-p \"ok\" --safe-mode --no-session-persistence --tools \"\"", 60);
                 await claude.FetchAsync(System.Threading.CancellationToken.None);
                 UsageRegistry.PollIfDue(claude);
@@ -450,13 +597,26 @@ namespace SidebarDiagnostics
 
         private async void SaveButton_Click(object sender, RoutedEventArgs e)
         {
+            if (_busyApplying)
+            {
+                return;
+            }
+
             await Save(true);
 
-            Close();
+            if (!IsClosed)
+            {
+                Close();
+            }
         }
 
         private async void ApplyButton_Click(object sender, RoutedEventArgs e)
         {
+            if (_busyApplying)
+            {
+                return;
+            }
+
             await Save(false);
         }
 
@@ -511,7 +671,7 @@ namespace SidebarDiagnostics
             if (!_installed)
             {
                 MessageBoxResult _fallback = MessageBox.Show(
-                    "Automatic installation failed. Open pawnio.eu in your browser to install it manually?",
+                    Framework.Resources.PawnIOInstallFailedPrompt,
                     Framework.Resources.AppName,
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning,
@@ -532,7 +692,7 @@ namespace SidebarDiagnostics
                 return;
             }
 
-            var _prompt = new ReloadPromptDialog("PawnIO installed successfully. Reload SideMon now to start showing CPU and GPU sensor data?");
+            var _prompt = new ReloadPromptDialog(Framework.Resources.PawnIOReloadPrompt);
             _prompt.Owner = this;
             _prompt.ShowDialog();
 
@@ -593,21 +753,45 @@ namespace SidebarDiagnostics
             // keep the whole dialog (incl. Save/Apply) above the taskbar on any resolution
             MaxHeight = SystemParameters.WorkArea.Height;
 
-            if (Top + ActualHeight > SystemParameters.WorkArea.Bottom)
+            if (WindowState == WindowState.Normal && Top + ActualHeight > SystemParameters.WorkArea.Bottom)
             {
                 Top = Math.Max(SystemParameters.WorkArea.Top, SystemParameters.WorkArea.Bottom - ActualHeight);
+            }
+
+            if (_pendingScrollOffset > 0d)
+            {
+                double _offset = _pendingScrollOffset;
+                _pendingScrollOffset = 0d;
+
+                Dispatcher.BeginInvoke(DispatcherPriority.Loaded, (Action)(() =>
+                {
+                    ScrollViewer _sv = GetActiveScrollViewer();
+                    _sv?.ScrollToVerticalOffset(_offset);
+                }));
             }
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
+            StopReloadTimeout();
+
+            if (!_replacing && App.PendingSettingsRestore != null && ReferenceEquals(App.PendingSettingsRestore.OldWindow, this))
+            {
+                App.PendingSettingsRestore = null;
+            }
+
             DataContext = null;
             Model = null;
         }
 
         private void Window_Closed(object sender, EventArgs e)
         {
-            Hotkey.Enable();
+            IsClosed = true;
+
+            if (!_replacing)
+            {
+                Hotkey.Enable();
+            }
         }
 
         
@@ -646,6 +830,14 @@ namespace SidebarDiagnostics
         private Hotkey _hotkey { get; set; }
 
         private ToggleButton _keybinder { get; set; }
+
+        private bool _replacing = false;
+
+        private bool _busyApplying = false;
+
+        private double _pendingScrollOffset = 0d;
+
+        private DispatcherTimer _reloadTimeoutTimer;
     
     public class Win32Window : System.Windows.Forms.IWin32Window
     {

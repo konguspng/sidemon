@@ -281,6 +281,33 @@ namespace SidebarDiagnostics.Monitoring
             // Removed to avoid redundant hardware updates. Hardware is updated in MonitorManager.Update().
         }
 
+        private static IEnumerable<ISensor> BoardSensors(IHardware hardware)
+        {
+            if (hardware == null)
+            {
+                yield break;
+            }
+
+            if (hardware.Sensors != null)
+            {
+                foreach (ISensor sensor in hardware.Sensors)
+                {
+                    yield return sensor;
+                }
+            }
+
+            if (hardware.SubHardware != null)
+            {
+                foreach (IHardware sub in hardware.SubHardware)
+                {
+                    foreach (ISensor sensor in BoardSensors(sub))
+                    {
+                        yield return sensor;
+                    }
+                }
+            }
+        }
+
         private void InitCPU(IHardware board, MetricConfig[] metrics, bool roundAll, bool allCoreClocks, bool useGHz, bool useFahrenheit, double tempAlert, bool useWatts = false, bool showFanRPM = true)
         {
             List<OHMMetric> _sensorList = new List<OHMMetric>();
@@ -346,7 +373,7 @@ namespace SidebarDiagnostics.Monitoring
 
                     if (board != null)
                     {
-                        _voltage = board.Sensors.Where(s => s.SensorType == SensorType.Voltage && s.Name.Contains("CPU")).FirstOrDefault();
+                        _voltage = BoardSensors(board).Where(s => s.SensorType == SensorType.Voltage && s.Name.Contains("CPU")).FirstOrDefault();
                     }
 
                     if (_voltage == null)
@@ -369,7 +396,7 @@ namespace SidebarDiagnostics.Monitoring
 
                 if (board != null && _tempSensor == null)
                 {
-                    _tempSensor = board.Sensors.Where(s => s.SensorType == SensorType.Temperature && s.Name.Contains("CPU")).FirstOrDefault();
+                    _tempSensor = BoardSensors(board).Where(s => s.SensorType == SensorType.Temperature && s.Name.Contains("CPU")).FirstOrDefault();
                 }
 
                 if (_tempSensor == null)
@@ -391,43 +418,47 @@ namespace SidebarDiagnostics.Monitoring
 
                 if (board != null)
                 {
+                    ISensor[] _boardSensors = BoardSensors(board).ToArray();
+
                     if (showFanRPM)
                     {
                         // 1. Prioritize RPM sensor
-                        _fanSensor = board.Sensors.Where(s => s.SensorType == SensorType.Fan && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
-                            ?? board.Sensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault();
+                        _fanSensor = _boardSensors.Where(s => s.SensorType == SensorType.Fan && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
+                            ?? _boardSensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault();
                         // 2. Fallback to Control (Percent) sensor
                         if (_fanSensor == null)
                         {
-                            _fanSensor = board.Sensors.Where(s => s.SensorType == SensorType.Control && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
-                                ?? board.Sensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault();
+                            _fanSensor = _boardSensors.Where(s => s.SensorType == SensorType.Control && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
+                                ?? _boardSensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault();
                         }
                     }
                     else
                     {
                         // 1. Prioritize Control (Percent) sensor
-                        _fanSensor = board.Sensors.Where(s => s.SensorType == SensorType.Control && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
-                            ?? board.Sensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault();
+                        _fanSensor = _boardSensors.Where(s => s.SensorType == SensorType.Control && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
+                            ?? _boardSensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault();
                         // 2. Fallback to RPM sensor
                         if (_fanSensor == null)
                         {
-                            _fanSensor = board.Sensors.Where(s => s.SensorType == SensorType.Fan && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
-                                ?? board.Sensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault();
+                            _fanSensor = _boardSensors.Where(s => s.SensorType == SensorType.Fan && s.Name.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0).FirstOrDefault()
+                                ?? _boardSensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault();
                         }
                     }
                 }
 
                 if (_fanSensor == null)
                 {
+                    ISensor[] _hwSensors = BoardSensors(_hardware).ToArray();
+
                     if (showFanRPM)
                     {
-                        _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault()
-                            ?? _hardware.Sensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault();
+                        _fanSensor = _hwSensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault()
+                            ?? _hwSensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault();
                     }
                     else
                     {
-                        _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault()
-                            ?? _hardware.Sensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault();
+                        _fanSensor = _hwSensors.Where(s => s.SensorType == SensorType.Control).FirstOrDefault()
+                            ?? _hwSensors.Where(s => s.SensorType == SensorType.Fan).FirstOrDefault();
                     }
                 }
 
@@ -495,7 +526,7 @@ namespace SidebarDiagnostics.Monitoring
 
                 if (board != null)
                 {
-                    _voltage = board.Sensors.Where(s => s.SensorType == SensorType.Voltage && s.Name.Contains("RAM")).FirstOrDefault();
+                    _voltage = BoardSensors(board).Where(s => s.SensorType == SensorType.Voltage && s.Name.Contains("RAM")).FirstOrDefault();
                 }
 
                 if (_voltage == null)
@@ -637,25 +668,26 @@ namespace SidebarDiagnostics.Monitoring
             if (metrics.IsEnabled(MetricKey.GPUFan))
             {
                 ISensor _fanSensor = null;
+                ISensor[] _gpuSensors = BoardSensors(_hardware).ToArray();
 
                 if (showFanRPM)
                 {
                     // 1. Prioritize RPM sensor
-                    _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Fan).OrderBy(s => s.Index).FirstOrDefault();
+                    _fanSensor = _gpuSensors.Where(s => s.SensorType == SensorType.Fan).OrderBy(s => s.Index).FirstOrDefault();
                     // 2. Fallback to Control (Percent) sensor
                     if (_fanSensor == null)
                     {
-                        _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Control).OrderBy(s => s.Index).FirstOrDefault();
+                        _fanSensor = _gpuSensors.Where(s => s.SensorType == SensorType.Control).OrderBy(s => s.Index).FirstOrDefault();
                     }
                 }
                 else
                 {
                     // 1. Prioritize Control (Percent) sensor
-                    _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Control).OrderBy(s => s.Index).FirstOrDefault();
+                    _fanSensor = _gpuSensors.Where(s => s.SensorType == SensorType.Control).OrderBy(s => s.Index).FirstOrDefault();
                     // 2. Fallback to RPM sensor
                     if (_fanSensor == null)
                     {
-                        _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Fan).OrderBy(s => s.Index).FirstOrDefault();
+                        _fanSensor = _gpuSensors.Where(s => s.SensorType == SensorType.Fan).OrderBy(s => s.Index).FirstOrDefault();
                     }
                 }
 
@@ -672,10 +704,11 @@ namespace SidebarDiagnostics.Monitoring
         public void InitMotherboard(MetricConfig[] metrics, bool roundAll, bool useFahrenheit, double tempAlert)
         {
             List<iMetric> _sensorList = new List<iMetric>();
+            ISensor[] _boardSensors = BoardSensors(_hardware).ToArray();
 
             if (metrics.IsEnabled(MetricKey.MotherboardTemp))
             {
-                ISensor _tempSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Temperature).OrderBy(s => s.Index).FirstOrDefault();
+                ISensor _tempSensor = _boardSensors.Where(s => s.SensorType == SensorType.Temperature).OrderBy(s => s.Index).FirstOrDefault();
 
                 if (_tempSensor != null)
                 {
@@ -685,8 +718,8 @@ namespace SidebarDiagnostics.Monitoring
 
             if (metrics.IsEnabled(MetricKey.MotherboardFan))
             {
-                ISensor _fanSensor = _hardware.Sensors.Where(s => s.SensorType == SensorType.Fan).OrderBy(s => s.Index).FirstOrDefault()
-                    ?? _hardware.Sensors.Where(s => s.SensorType == SensorType.Control).OrderBy(s => s.Index).FirstOrDefault();
+                ISensor _fanSensor = _boardSensors.Where(s => s.SensorType == SensorType.Fan).OrderBy(s => s.Index).FirstOrDefault()
+                    ?? _boardSensors.Where(s => s.SensorType == SensorType.Control).OrderBy(s => s.Index).FirstOrDefault();
 
                 if (_fanSensor != null)
                 {
@@ -697,7 +730,7 @@ namespace SidebarDiagnostics.Monitoring
 
             if (metrics.IsEnabled(MetricKey.MotherboardVoltage))
             {
-                ISensor _voltage = _hardware.Sensors.Where(s => s.SensorType == SensorType.Voltage).OrderBy(s => s.Index).FirstOrDefault();
+                ISensor _voltage = _boardSensors.Where(s => s.SensorType == SensorType.Voltage).OrderBy(s => s.Index).FirstOrDefault();
 
                 if (_voltage != null)
                 {

@@ -80,7 +80,8 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <DockPanel LastChildFill="True">
+    <Grid>
+        <DockPanel x:Name="MainContentPanel" LastChildFill="True">
         <!-- ===== sticky footer ===== -->
         <Border DockPanel.Dock="Bottom" Background="#F7F8FA" BorderBrush="{StaticResource CardBorder}" BorderThickness="0,1,0,0" Padding="20,12" CornerRadius="0,0,5,5">
             <DockPanel>
@@ -112,7 +113,7 @@
                     <StackPanel Style="{StaticResource PageBody}">
                         <TextBlock Text="{x:Static frame:Resources.SettingsGeneralTab}" Style="{StaticResource PageTitle}" />
 
-                        <TextBlock Text="App" Style="{StaticResource GroupHeader}" Margin="2,0,0,8" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupApp}" Style="{StaticResource GroupHeader}" Margin="2,0,0,8" />
                         <local:SettingRow Icon="&#xE774;" Header="{x:Static frame:Resources.SettingsLanguage}" Description="{x:Static frame:Resources.SettingsLanguageTooltip}">
                             <ComboBox Width="220" ItemsSource="{Binding Path=CultureItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=Culture, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </local:SettingRow>
@@ -130,14 +131,14 @@
                             </StackPanel>
                         </local:SettingRow>
 
-                        <TextBlock Text="Hardware sensors" Style="{StaticResource GroupHeader}" />
-                        <local:SettingRow Icon="&#xE950;" Header="PawnIO driver">
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupHardwareSensors}" Style="{StaticResource GroupHeader}" />
+                        <local:SettingRow Icon="&#xE950;" Header="{x:Static frame:Resources.SettingsUiPawnIOHeader}">
                             <local:SettingRow.Style>
                                 <Style TargetType="{x:Type local:SettingRow}" BasedOn="{StaticResource {x:Type local:SettingRow}}">
-                                    <Setter Property="Description" Value="CPU and GPU clock, temperature and voltage readings need this small signed driver from pawnio.eu. Without it those readings show &quot;No Value&quot;." />
+                                    <Setter Property="Description" Value="{x:Static frame:Resources.SettingsUiPawnIOMissingDesc}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Path=PawnIODriverInstalled}" Value="True">
-                                            <Setter Property="Description" Value="CPU and GPU sensors are available." />
+                                            <Setter Property="Description" Value="{x:Static frame:Resources.SettingsUiPawnIOAvailableDesc}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -145,11 +146,11 @@
                             <Grid>
                                 <StackPanel Orientation="Horizontal" Visibility="{Binding Path=PawnIODriverInstalled, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
                                     <ProgressBar IsIndeterminate="True" Width="90" Height="4" Margin="0,0,12,0" VerticalAlignment="Center" Foreground="{StaticResource Accent}" Background="Transparent" BorderThickness="0" Visibility="{Binding Path=PawnIODriverInstalling, Converter={StaticResource BoolToVisibility}}" />
-                                    <Button Content="Install driver" Style="{StaticResource AccentButton}" Click="InstallPawnIO_Click" IsEnabled="{Binding Path=PawnIODriverInstalling, Converter={StaticResource BoolInverseConverter}}" />
+                                    <Button Content="{x:Static frame:Resources.SettingsUiInstallDriver}" Style="{StaticResource AccentButton}" Click="InstallPawnIO_Click" IsEnabled="{Binding Path=PawnIODriverInstalling, Converter={StaticResource BoolInverseConverter}}" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Visibility="{Binding Path=PawnIODriverInstalled, Converter={StaticResource BoolToVisibility}}">
                                     <TextBlock Text="&#xE73E;" Style="{StaticResource Glyph}" Foreground="#0F7B0F" Margin="0,0,6,0" />
-                                    <TextBlock Text="Installed" Foreground="#0F7B0F" VerticalAlignment="Center" />
+                                    <TextBlock Text="{x:Static frame:Resources.SettingsUiInstalled}" Foreground="#0F7B0F" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Grid>
                         </local:SettingRow>
@@ -163,14 +164,14 @@
                     <StackPanel Style="{StaticResource PageBody}">
                         <TextBlock Text="{x:Static frame:Resources.SettingsAdvancedTab}" Style="{StaticResource PageTitle}" />
 
-                        <TextBlock Text="Position" Style="{StaticResource GroupHeader}" Margin="2,0,0,8" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupPosition}" Style="{StaticResource GroupHeader}" Margin="2,0,0,8" />
                         <local:SettingRow Icon="&#xE7F4;" Header="{x:Static frame:Resources.SettingsScreen}" Description="{x:Static frame:Resources.SettingsScreenTooltip}">
                             <ComboBox Width="220" ItemsSource="{Binding Path=ScreenItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Index" SelectedValue="{Binding Path=ScreenIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </local:SettingRow>
                         <local:SettingRow Icon="&#xE90C;" Header="{x:Static frame:Resources.SettingsDock}" Description="{x:Static frame:Resources.SettingsDockTooltip}">
                             <ComboBox Width="220" ItemsSource="{Binding Path=DockEdgeItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=DockEdge, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </local:SettingRow>
-                        <local:SettingRow Icon="&#xE7C2;" Header="Offset" Description="Nudge the sidebar horizontally (X) or vertically (Y) from its docked position.">
+                        <local:SettingRow Icon="&#xE7C2;" Header="{x:Static frame:Resources.SettingsUiOffsetHeader}" Description="{x:Static frame:Resources.SettingsUiOffsetDesc}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                     <TextBlock Text="X" Style="{StaticResource Unit}" Margin="0,0,10,0" MinWidth="0" ToolTip="{x:Static frame:Resources.SettingsHorizontalOffset}" />
@@ -187,7 +188,7 @@
                             </StackPanel>
                         </local:SettingRow>
 
-                        <TextBlock Text="Size" Style="{StaticResource GroupHeader}" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupSize}" Style="{StaticResource GroupHeader}" />
                         <local:SettingRow Icon="&#xE8A9;" Header="{x:Static frame:Resources.SettingsSidebarWidth}" Description="{x:Static frame:Resources.SettingsSidebarWidthTooltip}">
                             <StackPanel Orientation="Horizontal">
                                 <Slider x:Name="SidebarWidthSlider" Value="{Binding Path=SidebarWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="100" Maximum="300" TickFrequency="5" IsSnapToTickEnabled="True" LargeChange="50" />
@@ -202,12 +203,12 @@
                                 <TextBlock Text="x" Style="{StaticResource Unit}" />
                             </StackPanel>
                         </local:SettingRow>
-                        <local:SettingRow Icon="&#xE740;" Header="Fit to screen" Description="Fit now resizes the sidebar so its monitors fill the screen. With the switch on, it re-fits whenever monitors or drives are added or removed (never above your chosen scale).">
+                        <local:SettingRow Icon="&#xE740;" Header="{x:Static frame:Resources.SettingsUiFitToScreenHeader}" Description="{x:Static frame:Resources.SettingsUiFitToScreenDesc}">
                             <StackPanel Orientation="Horizontal">
-                                <Button Click="FitToScreen_Click" Margin="0,0,16,0" ToolTip="Resize the sidebar now so its monitors fill the screen height">
+                                <Button Click="FitToScreen_Click" Margin="0,0,16,0" ToolTip="{x:Static frame:Resources.SettingsUiFitNowTooltip}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE740;" Style="{StaticResource Glyph}" FontSize="12" Margin="0,0,8,0" />
-                                        <TextBlock Text="Fit now" VerticalAlignment="Center" />
+                                        <TextBlock Text="{x:Static frame:Resources.SettingsUiFitNow}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                                 <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Path=AutoFitScale}" ToolTip="{x:Static frame:Resources.SettingsAutoFitScaleTooltip}" />
@@ -232,23 +233,23 @@
                                 <TextBlock DockPanel.Dock="Left" Text="&#xE946;" Style="{StaticResource Glyph}" Foreground="#8A5300" Margin="0,0,10,0" />
                                 <TextBlock TextWrapping="Wrap" Foreground="#5C3B00">
                                     <TextBlock.Text>
-                                        <Binding Path="MaxUIScale" Mode="OneWay" StringFormat="Auto-fit is using a scale of {0:F2} because your monitors and drives don't fit the screen height." />
+                                        <Binding Path="MaxUIScale" Mode="OneWay" StringFormat="{x:Static frame:Resources.SettingsUiAutoFitCappedFormat}" />
                                     </TextBlock.Text>
                                 </TextBlock>
                             </DockPanel>
                         </Border>
 
-                        <TextBlock Text="Behavior" Style="{StaticResource GroupHeader}" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupBehavior}" Style="{StaticResource GroupHeader}" />
                         <local:SettingRow Icon="&#xE718;" Header="{x:Static frame:Resources.SettingsReserveSpace}" Description="{x:Static frame:Resources.SettingsReserveSpaceTooltip}">
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Path=UseAppBar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </local:SettingRow>
                         <local:SettingRow Icon="&#xE8A7;" Header="{x:Static frame:Resources.SettingsAlwaysOnTop}" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}">
                             <local:SettingRow.Style>
                                 <Style TargetType="{x:Type local:SettingRow}" BasedOn="{StaticResource {x:Type local:SettingRow}}">
-                                    <Setter Property="Description" Value="Keep the sidebar above other windows." />
+                                    <Setter Property="Description" Value="{x:Static frame:Resources.SettingsAlwaysOnTopTooltip}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Path=BGModeBlur}" Value="True">
-                                            <Setter Property="Description" Value="Not available with the Acrylic background." />
+                                            <Setter Property="Description" Value="{x:Static frame:Resources.SettingsUiAlwaysTopBlurDesc}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -274,30 +275,30 @@
                     <StackPanel Style="{StaticResource PageBody}">
                         <TextBlock Text="{x:Static frame:Resources.SettingsCustomizeTab}" Style="{StaticResource PageTitle}" />
 
-                        <TextBlock Text="Background" Style="{StaticResource GroupHeader}" Margin="2,0,0,8" />
-                        <local:SettingRow Icon="&#xE771;" Header="Style" Description="Solid color, your Windows accent color, or live acrylic blur like the taskbar (Windows 10 1803+).">
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupBackground}" Style="{StaticResource GroupHeader}" Margin="2,0,0,8" />
+                        <local:SettingRow Icon="&#xE771;" Header="{x:Static frame:Resources.SettingsUiBgStyleHeader}" Description="{x:Static frame:Resources.SettingsUiBgStyleDesc}">
                             <Border Background="#0A000000" CornerRadius="6" Padding="2">
                                 <StackPanel Orientation="Horizontal">
-                                    <RadioButton Style="{StaticResource Segment}" GroupName="BGMode" Content="Solid" IsChecked="{Binding Path=BGModeSolid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="One flat background color of your choice." />
-                                    <RadioButton Style="{StaticResource Segment}" GroupName="BGMode" Content="Accent" IsChecked="{Binding Path=BGModeAccent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Follows the accent color from your Windows personalization settings." />
-                                    <RadioButton Style="{StaticResource Segment}" GroupName="BGMode" Content="Acrylic" IsChecked="{Binding Path=BGModeBlur, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Real Windows acrylic, the same live blur as the taskbar and Start menu." />
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="BGMode" Content="{x:Static frame:Resources.SettingsUiBgSolid}" IsChecked="{Binding Path=BGModeSolid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsUiBgSolidTooltip}" />
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="BGMode" Content="{x:Static frame:Resources.SettingsUiBgAccent}" IsChecked="{Binding Path=BGModeAccent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsUiBgAccentTooltip}" />
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="BGMode" Content="{x:Static frame:Resources.SettingsUiBgAcrylic}" IsChecked="{Binding Path=BGModeBlur, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsUiBgAcrylicTooltip}" />
                                 </StackPanel>
                             </Border>
                         </local:SettingRow>
-                        <local:SettingRow Icon="&#xE790;" Header="Color / tint" Description="The background color. With Acrylic this tints the blur." IsEnabled="{Binding Path=BGModeAccent, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}">
+                        <local:SettingRow Icon="&#xE790;" Header="{x:Static frame:Resources.SettingsUiBgColorHeader}" Description="{x:Static frame:Resources.SettingsUiBgColorDesc}" IsEnabled="{Binding Path=BGModeAccent, Mode=OneWay, Converter={StaticResource BoolInverseConverter}}">
                             <StackPanel Orientation="Horizontal">
-                                <Border Style="{StaticResource Swatch}" Background="{Binding Path=BGColor, Mode=OneWay}" Tag="BGColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" ToolTip="Click to pick a color." />
+                                <Border Style="{StaticResource Swatch}" Background="{Binding Path=BGColor, Mode=OneWay}" Tag="BGColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" ToolTip="{x:Static frame:Resources.SettingsUiPickColorTooltip}" />
                                 <TextBox Style="{StaticResource ColorBox}" Text="{Binding Path=BGColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
                             </StackPanel>
                         </local:SettingRow>
-                        <local:SettingRow Icon="&#xE706;" Header="Opacity" Description="How solid the background is.">
+                        <local:SettingRow Icon="&#xE706;" Header="{x:Static frame:Resources.SettingsUiOpacityHeader}" Description="{x:Static frame:Resources.SettingsUiBgOpacityDesc}">
                             <StackPanel Orientation="Horizontal">
                                 <Slider x:Name="BGOpacitySlider" Value="{Binding Path=BGOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.01" Maximum="1.0" LargeChange="0.1" TickFrequency="0.01" IsSnapToTickEnabled="True" />
                                 <TextBox Style="{StaticResource NumBox}" Text="{Binding ElementName=BGOpacitySlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F2}}" PreviewTextInput="NumberBox_PreviewTextInput" />
                                 <TextBlock Text="" Style="{StaticResource Unit}" />
                             </StackPanel>
                         </local:SettingRow>
-                        <local:SettingRow Icon="&#xE9CA;" Header="Blur amount" Description="Blur and frosting strength of the acrylic glass." IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}">
+                        <local:SettingRow Icon="&#xE9CA;" Header="{x:Static frame:Resources.SettingsUiBlurAmountHeader}" Description="{x:Static frame:Resources.SettingsUiBlurAmountDesc}" IsEnabled="{Binding Path=BGModeBlur, Mode=OneWay}">
                             <StackPanel Orientation="Horizontal">
                                 <Slider x:Name="GlassBlurAmountSlider" Value="{Binding Path=GlassBlurAmount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.0" Maximum="1.0" LargeChange="0.1" TickFrequency="0.01" IsSnapToTickEnabled="True" />
                                 <TextBox Style="{StaticResource NumBox}" Text="{Binding ElementName=GlassBlurAmountSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F2}}" PreviewTextInput="NumberBox_PreviewTextInput" />
@@ -305,22 +306,22 @@
                             </StackPanel>
                         </local:SettingRow>
 
-                        <TextBlock Text="Panels" Style="{StaticResource GroupHeader}" />
-                        <local:SettingRow Icon="&#xF0E2;" Header="Card panels" Description="Show each monitor group as a rounded card.">
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupPanels}" Style="{StaticResource GroupHeader}" />
+                        <local:SettingRow Icon="&#xF0E2;" Header="{x:Static frame:Resources.SettingsUiCardPanelsHeader}" Description="{x:Static frame:Resources.SettingsUiCardPanelsDesc}">
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Path=UseCardStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </local:SettingRow>
-                        <local:SettingRow Icon="&#xE9D9;" Header="Load bars" Description="Show a slim colored bar under percentage readings.">
+                        <local:SettingRow Icon="&#xE9D9;" Header="{x:Static frame:Resources.SettingsUiLoadBarsHeader}" Description="{x:Static frame:Resources.SettingsUiLoadBarsDesc}">
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Path=ShowAccentBars, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </local:SettingRow>
-                        <local:SettingRow Icon="&#xE790;" Header="Bar color" Description="Accent color used for the load bars." IsEnabled="{Binding Path=AccentColorEnabled}">
+                        <local:SettingRow Icon="&#xE790;" Header="{x:Static frame:Resources.SettingsUiBarColorHeader}" Description="{x:Static frame:Resources.SettingsUiBarColorDesc}" IsEnabled="{Binding Path=AccentColorEnabled}">
                             <StackPanel Orientation="Horizontal">
-                                <Border Style="{StaticResource Swatch}" Background="{Binding Path=AccentColor, Mode=OneWay}" Tag="AccentColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" ToolTip="Click to pick a color." />
+                                <Border Style="{StaticResource Swatch}" Background="{Binding Path=AccentColor, Mode=OneWay}" Tag="AccentColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" ToolTip="{x:Static frame:Resources.SettingsUiPickColorTooltip}" />
                                 <TextBox Style="{StaticResource ColorBox}" Text="{Binding Path=AccentColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
                             </StackPanel>
                         </local:SettingRow>
 
-                        <TextBlock Text="Text" Style="{StaticResource GroupHeader}" />
-                        <local:SettingRow Icon="&#xE8D2;" Header="Font" Description="Font and size used for all sidebar text.">
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupText}" Style="{StaticResource GroupHeader}" />
+                        <local:SettingRow Icon="&#xE8D2;" Header="{x:Static frame:Resources.SettingsUiFontHeader}" Description="{x:Static frame:Resources.SettingsUiFontDesc}">
                             <StackPanel Orientation="Horizontal">
                                 <ComboBox Width="190" ItemsSource="{Binding Path=FontFamilyItems, Mode=OneWay}" SelectedValue="{Binding Path=FontOption, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                     <ComboBox.ItemTemplate>
@@ -334,18 +335,18 @@
                         </local:SettingRow>
                         <local:SettingRow Icon="&#xE8D3;" Header="{x:Static frame:Resources.SettingsFontColor}" Description="{x:Static frame:Resources.SettingsFontColorTooltip}">
                             <StackPanel Orientation="Horizontal">
-                                <Border Style="{StaticResource Swatch}" Background="{Binding Path=FontColor, Mode=OneWay}" Tag="FontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" ToolTip="Click to pick a color." />
+                                <Border Style="{StaticResource Swatch}" Background="{Binding Path=FontColor, Mode=OneWay}" Tag="FontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" ToolTip="{x:Static frame:Resources.SettingsUiPickColorTooltip}" />
                                 <TextBox Style="{StaticResource ColorBox}" Text="{Binding Path=FontColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
                             </StackPanel>
                         </local:SettingRow>
-                        <local:SettingRow Icon="&#xE8E4;" Header="Alignment" Description="Alignment of the readings, and where the content sits when it is shorter than the screen.">
+                        <local:SettingRow Icon="&#xE8E4;" Header="{x:Static frame:Resources.SettingsUiAlignmentHeader}" Description="{x:Static frame:Resources.SettingsUiAlignmentDesc}">
                             <StackPanel Orientation="Horizontal">
                                 <ComboBox Width="130" MinWidth="130" ItemsSource="{Binding Path=TextAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=TextAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsTextAlignTooltip}" />
-                                <ComboBox Width="130" MinWidth="130" Margin="8,0,0,0" ItemsSource="{Binding Path=ContentVerticalAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=ContentVerticalAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="Where the sidebar's content sits vertically when shorter than the screen." />
+                                <ComboBox Width="130" MinWidth="130" Margin="8,0,0,0" ItemsSource="{Binding Path=ContentVerticalAlignItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=ContentVerticalAlign, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsUiVerticalAlignTooltip}" />
                             </StackPanel>
                         </local:SettingRow>
 
-                        <TextBlock Text="Header" Style="{StaticResource GroupHeader}" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupHeader}" Style="{StaticResource GroupHeader}" />
                         <local:SettingRow Icon="&#xE977;" Header="{x:Static frame:Resources.SettingsShowMachineName}" Description="{x:Static frame:Resources.SettingsShowMachineNameTooltip}">
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Path=ShowMachineName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </local:SettingRow>
@@ -359,10 +360,10 @@
                             <ComboBox Width="220" ItemsSource="{Binding Path=DateSettingItems}" DisplayMemberPath="Display" SelectedValue="{Binding Path=DateSetting, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </local:SettingRow>
 
-                        <TextBlock Text="Alerts" Style="{StaticResource GroupHeader}" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupAlerts}" Style="{StaticResource GroupHeader}" />
                         <local:SettingRow Icon="&#xE7BA;" Header="{x:Static frame:Resources.SettingsAlertFontColor}" Description="{x:Static frame:Resources.SettingsAlertFontColorTooltip}">
                             <StackPanel Orientation="Horizontal">
-                                <Border Style="{StaticResource Swatch}" Background="{Binding Path=AlertFontColor, Mode=OneWay}" Tag="AlertFontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" ToolTip="Click to pick a color." />
+                                <Border Style="{StaticResource Swatch}" Background="{Binding Path=AlertFontColor, Mode=OneWay}" Tag="AlertFontColor" MouseLeftButtonDown="ColorBorder_MouseLeftButtonDown" ToolTip="{x:Static frame:Resources.SettingsUiPickColorTooltip}" />
                                 <TextBox Style="{StaticResource ColorBox}" Text="{Binding Path=AlertFontColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
                             </StackPanel>
                         </local:SettingRow>
@@ -386,7 +387,7 @@
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Top" Margin="10,2,8,10">
                                 <TextBlock Text="{x:Static frame:Resources.SettingsMonitorsTab}" FontSize="15" FontWeight="SemiBold" />
-                                <TextBlock Style="{StaticResource Caption}" Margin="0,3,0,0" Text="Switch monitors on or off. Select one to edit it; the arrows set its order on the sidebar." />
+                                <TextBlock Style="{StaticResource Caption}" Margin="0,3,0,0" Text="{x:Static frame:Resources.SettingsUiMonitorsIntro}" />
                             </StackPanel>
                             <ListBox x:Name="MonitorsList" ItemsSource="{Binding Path=MonitorConfig}" SelectedItem="{Binding Path=SelectedMonitorConfig, Mode=TwoWay}" ItemContainerStyle="{StaticResource MasterItem}"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" BorderThickness="0" Background="Transparent">
@@ -400,8 +401,8 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock x:Name="ItemName" Grid.Column="0" Text="{Binding Path=Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                             <StackPanel x:Name="Order" Grid.Column="1" Orientation="Horizontal" Visibility="Hidden">
-                                                <Button Style="{StaticResource IconButton}" Width="24" Height="26" FontSize="10" Content="&#xE70E;" Click="MonitorUp_Click" ToolTip="Move up" />
-                                                <Button Style="{StaticResource IconButton}" Width="24" Height="26" FontSize="10" Content="&#xE70D;" Click="MonitorDown_Click" ToolTip="Move down" />
+                                                <Button Style="{StaticResource IconButton}" Width="24" Height="26" FontSize="10" Content="&#xE70E;" Click="MonitorUp_Click" ToolTip="{x:Static frame:Resources.SettingsUiMoveUpTooltip}" />
+                                                <Button Style="{StaticResource IconButton}" Width="24" Height="26" FontSize="10" Content="&#xE70D;" Click="MonitorDown_Click" ToolTip="{x:Static frame:Resources.SettingsUiMoveDownTooltip}" />
                                             </StackPanel>
                                             <CheckBox Grid.Column="2" Style="{StaticResource SwitchCompact}" Margin="6,0,2,0" IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsMonitorEnabledTooltip}" />
                                         </Grid>
@@ -424,7 +425,7 @@
                     </Border>
 
                     <!-- detail: selected monitor -->
-                    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,12,0" DataContext="{Binding Path=SelectedMonitorConfig}">
+                    <ScrollViewer x:Name="MonitorDetailScroll" Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,12,0" DataContext="{Binding Path=SelectedMonitorConfig}">
                         <StackPanel>
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
@@ -508,14 +509,14 @@
                                                                 </Button.Style>
                                                             </Button>
                                                             <Button Style="{StaticResource IconButton}" Content="&#xE8FA;" Click="HardwareSignIn_Click" ToolTip="{x:Static frame:Resources.UsageSignInTooltip}" />
-                                                            <Button Style="{StaticResource IconButton}" Content="&#xE70E;" FontSize="10" Click="HardwareUp_Click" ToolTip="Move up" />
-                                                            <Button Style="{StaticResource IconButton}" Content="&#xE70D;" FontSize="10" Click="HardwareDown_Click" ToolTip="Move down" />
+                                                            <Button Style="{StaticResource IconButton}" Content="&#xE70E;" FontSize="10" Click="HardwareUp_Click" ToolTip="{x:Static frame:Resources.SettingsUiMoveUpTooltip}" />
+                                                            <Button Style="{StaticResource IconButton}" Content="&#xE70D;" FontSize="10" Click="HardwareDown_Click" ToolTip="{x:Static frame:Resources.SettingsUiMoveDownTooltip}" />
                                                         </StackPanel>
                                                         <CheckBox Grid.Column="4" Style="{StaticResource SwitchCompact}" IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsUsageEnabledTooltip}" />
                                                     </Grid>
 
                                                     <StackPanel x:Name="Body" Margin="40,8,0,0">
-                                                        <ItemsControl ItemsSource="{Binding Path=Bars}" Visibility="{Binding Path=Bars.Count, Converter={StaticResource EmptyToCollapsed}}" ToolTip="Untick a bar to hide it on the sidebar.">
+                                                        <ItemsControl ItemsSource="{Binding Path=Bars}" Visibility="{Binding Path=Bars.Count, Converter={StaticResource EmptyToCollapsed}}" ToolTip="{x:Static frame:Resources.SettingsUiHideBarTooltip}">
                                                             <ItemsControl.ItemsPanel>
                                                                 <ItemsPanelTemplate>
                                                                     <WrapPanel />
@@ -529,13 +530,13 @@
                                                         </ItemsControl>
                                                         <TextBlock Text="{Binding Path=RenewStatus, Mode=OneWay}" Visibility="{Binding Path=RenewStatus, Converter={StaticResource EmptyToCollapsed}}" Style="{StaticResource Caption}" Margin="0,0,0,6" />
 
-                                                        <Expander Style="{StaticResource CardExpander}" Header="Advanced">
+                                                        <Expander Style="{StaticResource CardExpander}" Header="{x:Static frame:Resources.SettingsUiAdvancedExpander}">
                                                             <StackPanel Margin="18,4,0,2">
                                                                 <DockPanel Margin="0,0,0,8">
                                                                     <TextBlock DockPanel.Dock="Left" Text="{x:Static frame:Resources.SettingsUsageCustomPathColumn}" VerticalAlignment="Center" Width="170" />
                                                                     <TextBox Text="{Binding Path=CustomPath, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="{x:Static frame:Resources.SettingsUsageCustomPathTooltip}" />
                                                                 </DockPanel>
-                                                                <CheckBox x:Name="ShowExtraBox" Style="{StaticResource SwitchCompact}" Content="Also show agy's Claude / GPT model bars" Margin="0,0,0,8" Visibility="Collapsed"
+                                                                <CheckBox x:Name="ShowExtraBox" Style="{StaticResource SwitchCompact}" Content="{x:Static frame:Resources.SettingsUiAgyShowExtra}" Margin="0,0,0,8" Visibility="Collapsed"
                                                                           IsChecked="{Binding Path=ShowExtra, TargetNullValue=True, FallbackValue=True, Mode=TwoWay}" />
                                                                 <CheckBox x:Name="AutoRenewBox" Style="{StaticResource SwitchCompact}" Content="{x:Static frame:Resources.SettingsUsageClaudeAutoRenew}" Visibility="Collapsed" IsChecked="{Binding Path=AutoRenew, Mode=TwoWay}" />
                                                             </StackPanel>
@@ -586,8 +587,8 @@
                                                     </Grid.ColumnDefinitions>
                                                     <TextBox Grid.Column="0" Style="{StaticResource InlineEdit}" FontWeight="Normal" Text="{Binding Path=Name, Mode=TwoWay}" VerticalAlignment="Center" ToolTip="{x:Static frame:Resources.SettingsHardwareNameTooltip}" />
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0">
-                                                        <Button Style="{StaticResource IconButton}" Content="&#xE70E;" FontSize="10" Click="HardwareUp_Click" ToolTip="Move up" />
-                                                        <Button Style="{StaticResource IconButton}" Content="&#xE70D;" FontSize="10" Click="HardwareDown_Click" ToolTip="Move down" />
+                                                        <Button Style="{StaticResource IconButton}" Content="&#xE70E;" FontSize="10" Click="HardwareUp_Click" ToolTip="{x:Static frame:Resources.SettingsUiMoveUpTooltip}" />
+                                                        <Button Style="{StaticResource IconButton}" Content="&#xE70D;" FontSize="10" Click="HardwareDown_Click" ToolTip="{x:Static frame:Resources.SettingsUiMoveDownTooltip}" />
                                                     </StackPanel>
                                                     <CheckBox Grid.Column="2" Style="{StaticResource SwitchCompact}" IsChecked="{Binding Path=Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static frame:Resources.SettingsHardwareEnabledTooltip}" />
                                                 </Grid>
@@ -684,57 +685,57 @@
                 <ScrollViewer Style="{StaticResource PageScroll}">
                     <StackPanel Style="{StaticResource PageBody}">
                         <TextBlock Text="{x:Static frame:Resources.SettingsHotkeysTab}" Style="{StaticResource PageTitle}" Margin="0,0,0,4" />
-                        <TextBlock Text="Press Record, then the key combination you want. Shortcuts work anywhere in Windows." Style="{StaticResource Caption}" Margin="0,0,0,18" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiHotkeysIntro}" Style="{StaticResource Caption}" Margin="0,0,0,18" />
 
-                        <TextBlock Text="Sidebar" Style="{StaticResource GroupHeader}" Margin="2,0,0,8" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupSidebar}" Style="{StaticResource GroupHeader}" Margin="2,0,0,8" />
                         <local:SettingRow Icon="&#xE8AB;" Header="{x:Static frame:Resources.SettingsHotkeyToggle}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBox Width="190" Text="{Binding Path=ToggleKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" IsReadOnly="True" Margin="0,0,8,0" />
-                                <ToggleButton Content="Record" Click="BindToggle_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
+                                <ToggleButton Content="{x:Static frame:Resources.SettingsUiRecord}" Click="BindToggle_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
                             </StackPanel>
                         </local:SettingRow>
                         <local:SettingRow Icon="&#xE7B3;" Header="{x:Static frame:Resources.SettingsHotkeyShow}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBox Width="190" Text="{Binding Path=ShowKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" IsReadOnly="True" Margin="0,0,8,0" />
-                                <ToggleButton Content="Record" Click="BindShow_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
+                                <ToggleButton Content="{x:Static frame:Resources.SettingsUiRecord}" Click="BindShow_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
                             </StackPanel>
                         </local:SettingRow>
                         <local:SettingRow Icon="&#xED1A;" Header="{x:Static frame:Resources.SettingsHotkeyHide}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBox Width="190" Text="{Binding Path=HideKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" IsReadOnly="True" Margin="0,0,8,0" />
-                                <ToggleButton Content="Record" Click="BindHide_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
+                                <ToggleButton Content="{x:Static frame:Resources.SettingsUiRecord}" Click="BindHide_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
                             </StackPanel>
                         </local:SettingRow>
                         <local:SettingRow Icon="&#xE90C;" Header="{x:Static frame:Resources.SettingsHotkeyCycleEdge}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBox Width="190" Text="{Binding Path=CycleEdgeKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" IsReadOnly="True" Margin="0,0,8,0" />
-                                <ToggleButton Content="Record" Click="BindCycleEdge_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
+                                <ToggleButton Content="{x:Static frame:Resources.SettingsUiRecord}" Click="BindCycleEdge_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
                             </StackPanel>
                         </local:SettingRow>
                         <local:SettingRow Icon="&#xE7F4;" Header="{x:Static frame:Resources.SettingsHotkeyCycleScreen}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBox Width="190" Text="{Binding Path=CycleScreenKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" IsReadOnly="True" Margin="0,0,8,0" />
-                                <ToggleButton Content="Record" Click="BindCycleScreen_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
+                                <ToggleButton Content="{x:Static frame:Resources.SettingsUiRecord}" Click="BindCycleScreen_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
                             </StackPanel>
                         </local:SettingRow>
                         <local:SettingRow Icon="&#xE718;" Header="{x:Static frame:Resources.SettingsHotkeyReserveSpace}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBox Width="190" Text="{Binding Path=ReserveSpaceKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" IsReadOnly="True" Margin="0,0,8,0" />
-                                <ToggleButton Content="Record" Click="BindReserveSpace_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
+                                <ToggleButton Content="{x:Static frame:Resources.SettingsUiRecord}" Click="BindReserveSpace_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
                             </StackPanel>
                         </local:SettingRow>
 
-                        <TextBlock Text="App" Style="{StaticResource GroupHeader}" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupApp}" Style="{StaticResource GroupHeader}" />
                         <local:SettingRow Icon="&#xE72C;" Header="{x:Static frame:Resources.SettingsHotkeyReload}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBox Width="190" Text="{Binding Path=ReloadKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" IsReadOnly="True" Margin="0,0,8,0" />
-                                <ToggleButton Content="Record" Click="BindReload_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
+                                <ToggleButton Content="{x:Static frame:Resources.SettingsUiRecord}" Click="BindReload_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
                             </StackPanel>
                         </local:SettingRow>
                         <local:SettingRow Icon="&#xE711;" Header="{x:Static frame:Resources.SettingsHotkeyClose}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBox Width="190" Text="{Binding Path=CloseKey, Mode=OneWay, Converter={StaticResource HotkeyConverter}}" IsReadOnly="True" Margin="0,0,8,0" />
-                                <ToggleButton Content="Record" Click="BindClose_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
+                                <ToggleButton Content="{x:Static frame:Resources.SettingsUiRecord}" Click="BindClose_Click" LostFocus="BindButton_LostFocus" Style="{StaticResource RecordToggle}" />
                             </StackPanel>
                         </local:SettingRow>
                     </StackPanel>
@@ -746,7 +747,7 @@
                 <ScrollViewer Style="{StaticResource PageScroll}">
                     <StackPanel Style="{StaticResource PageBody}">
                         <TextBlock Text="{x:Static frame:Resources.SettingsOverlayTab}" Style="{StaticResource PageTitle}" Margin="0,0,0,4" />
-                        <TextBlock Text="A small click-through FPS counter in a screen corner, fed by RivaTuner Statistics Server (RTSS)." Style="{StaticResource Caption}" Margin="0,0,0,14" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiOverlayIntro}" Style="{StaticResource Caption}" Margin="0,0,0,14" />
 
                         <Border CornerRadius="6" Padding="14,10" Margin="0,0,0,12" BorderThickness="1">
                             <Border.Style>
@@ -764,22 +765,22 @@
                             <Grid>
                                 <DockPanel Visibility="{Binding Path=RTSSDetected, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}">
                                     <TextBlock DockPanel.Dock="Left" Text="&#xE7BA;" Style="{StaticResource Glyph}" Foreground="#8A5300" Margin="0,0,10,0" />
-                                    <TextBlock TextWrapping="Wrap" Foreground="#5C3B00" Text="RTSS not detected. Install and run RivaTuner Statistics Server; until then the overlay shows &quot;No RTSS&quot;." />
+                                    <TextBlock TextWrapping="Wrap" Foreground="#5C3B00" Text="{x:Static frame:Resources.SettingsUiRtssNotDetected}" />
                                 </DockPanel>
                                 <DockPanel Visibility="{Binding Path=RTSSDetected, Converter={StaticResource BoolToVisibility}}">
                                     <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" Style="{StaticResource Glyph}" Foreground="#0F7B0F" Margin="0,0,10,0" />
-                                    <TextBlock TextWrapping="Wrap" Foreground="#0B4A0B" Text="RTSS detected. The overlay shows live FPS for the app in focus." />
+                                    <TextBlock TextWrapping="Wrap" Foreground="#0B4A0B" Text="{x:Static frame:Resources.SettingsUiRtssDetected}" />
                                 </DockPanel>
                             </Grid>
                         </Border>
 
-                        <local:SettingRow Icon="&#xE7FC;" Header="Show FPS overlay" Description="Toggle the FPS counter.">
+                        <local:SettingRow Icon="&#xE7FC;" Header="{x:Static frame:Resources.SettingsUiShowFpsOverlayHeader}" Description="{x:Static frame:Resources.SettingsUiShowFpsOverlayDesc}">
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding Path=ShowFpsOverlay, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </local:SettingRow>
-                        <local:SettingRow Icon="&#xE90C;" Header="Corner" Description="Which screen corner the overlay appears in." IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}">
+                        <local:SettingRow Icon="&#xE90C;" Header="{x:Static frame:Resources.SettingsUiOverlayCornerHeader}" Description="{x:Static frame:Resources.SettingsUiOverlayCornerDesc}" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}">
                             <ComboBox Width="220" ItemsSource="{Binding Path=OverlayCornerItems, Mode=OneWay}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding Path=FpsOverlayCorner, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </local:SettingRow>
-                        <local:SettingRow Icon="&#xE706;" Header="Opacity" Description="Overlay transparency." IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}">
+                        <local:SettingRow Icon="&#xE706;" Header="{x:Static frame:Resources.SettingsUiOpacityHeader}" Description="{x:Static frame:Resources.SettingsUiOverlayOpacityDesc}" IsEnabled="{Binding Path=ShowFpsOverlay, Mode=OneWay}">
                             <StackPanel Orientation="Horizontal">
                                 <Slider Value="{Binding Path=FpsOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Minimum="0.2" Maximum="1.0" TickFrequency="0.01" IsSnapToTickEnabled="True" LargeChange="0.1" />
                                 <TextBox Style="{StaticResource NumBox}" Text="{Binding Path=FpsOverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:F2}}" PreviewTextInput="NumberBox_PreviewTextInput" />
@@ -791,10 +792,10 @@
             </TabItem>
 
             <!-- ================= ABOUT ================= -->
-            <TabItem Header="About" Tag="&#xE946;">
+            <TabItem Header="{x:Static frame:Resources.SettingsUiAboutTab}" Tag="&#xE946;">
                 <ScrollViewer Style="{StaticResource PageScroll}">
                     <StackPanel Style="{StaticResource PageBody}">
-                        <TextBlock Text="About" Style="{StaticResource PageTitle}" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiAboutTab}" Style="{StaticResource PageTitle}" />
 
                         <Border Style="{StaticResource Card}" Padding="18,16">
                             <DockPanel>
@@ -804,23 +805,32 @@
                                 <Button DockPanel.Dock="Right" Click="CheckUpdate_Click" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE72C;" Style="{StaticResource Glyph}" FontSize="12" Margin="0,0,8,0" />
-                                        <TextBlock Text="Check for updates" VerticalAlignment="Center" />
+                                        <TextBlock Text="{x:Static frame:Resources.SettingsUiCheckForUpdates}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="SideMon" FontSize="16" FontWeight="SemiBold" />
+                                    <TextBlock Text="{x:Static frame:Resources.AppName}" FontSize="16" FontWeight="SemiBold" />
                                     <TextBlock x:Name="VersionText" Style="{StaticResource Caption}" Margin="0,2,0,0" />
                                 </StackPanel>
                             </DockPanel>
                         </Border>
 
-                        <TextBlock Text="Support" Style="{StaticResource GroupHeader}" Visibility="{Binding Path=IsReportFeatureAvailable, Converter={StaticResource BoolToVisibility}}" />
-                        <local:SettingRow Icon="&#xE90F;" Header="Send log to developer" Description="Submit an anonymous diagnostic report to help fix problems." Visibility="{Binding Path=IsReportFeatureAvailable, Converter={StaticResource BoolToVisibility}}">
-                            <Button Content="Send report..." Click="SendLog_Click" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupSupport}" Style="{StaticResource GroupHeader}" Visibility="{Binding Path=IsReportFeatureAvailable, Converter={StaticResource BoolToVisibility}}" />
+                        <local:SettingRow Icon="&#xE90F;" Header="{x:Static frame:Resources.SettingsUiSendLogHeader}" Description="{x:Static frame:Resources.SettingsUiSendLogDesc}" Visibility="{Binding Path=IsReportFeatureAvailable, Converter={StaticResource BoolToVisibility}}">
+                            <Button Content="{x:Static frame:Resources.SettingsUiSendReport}" Click="SendLog_Click" />
                         </local:SettingRow>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
         </TabControl>
-    </DockPanel>
+        </DockPanel>
+        <Border x:Name="BusyOverlay" Visibility="Collapsed" Background="#B3EEF0F3" CornerRadius="0,0,5,5" IsHitTestVisible="True">
+            <Border Style="{StaticResource Card}" Padding="28,22" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="260">
+                <StackPanel HorizontalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Width="220" Height="4" Margin="0,0,0,12" Foreground="{StaticResource Accent}" Background="#22000000" BorderThickness="0" />
+                    <TextBlock Text="{x:Static frame:Resources.SettingsUiApplyingChanges}" FontSize="13.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
 </sty:FlatWindow>

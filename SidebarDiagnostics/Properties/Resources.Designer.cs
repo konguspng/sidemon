@@ -2765,5 +2765,317 @@ namespace SidebarDiagnostics.Framework {
         public static string SettingsShowSignInButtonTooltip {
             get { return ResourceManager.GetString("SettingsShowSignInButtonTooltip", resourceCulture); }
         }
+        public static string SettingsUiApplyingChanges {
+            get { return ResourceManager.GetString("SettingsUiApplyingChanges", resourceCulture); }
+        }
+        public static string UsageSlotAuto {
+            get { return ResourceManager.GetString("UsageSlotAuto", resourceCulture); }
+        }
+        public static string UsageSlotApi {
+            get { return ResourceManager.GetString("UsageSlotApi", resourceCulture); }
+        }
+        public static string UsageSlotCredits {
+            get { return ResourceManager.GetString("UsageSlotCredits", resourceCulture); }
+        }
+        public static string SettingsUiGroupApp {
+            get { return ResourceManager.GetString("SettingsUiGroupApp", resourceCulture); }
+        }
+        public static string SettingsUiGroupHardwareSensors {
+            get { return ResourceManager.GetString("SettingsUiGroupHardwareSensors", resourceCulture); }
+        }
+        public static string SettingsUiPawnIOHeader {
+            get { return ResourceManager.GetString("SettingsUiPawnIOHeader", resourceCulture); }
+        }
+        public static string SettingsUiPawnIOMissingDesc {
+            get { return ResourceManager.GetString("SettingsUiPawnIOMissingDesc", resourceCulture); }
+        }
+        public static string SettingsUiPawnIOAvailableDesc {
+            get { return ResourceManager.GetString("SettingsUiPawnIOAvailableDesc", resourceCulture); }
+        }
+        public static string SettingsUiInstallDriver {
+            get { return ResourceManager.GetString("SettingsUiInstallDriver", resourceCulture); }
+        }
+        public static string SettingsUiInstalled {
+            get { return ResourceManager.GetString("SettingsUiInstalled", resourceCulture); }
+        }
+        public static string SettingsUiGroupPosition {
+            get { return ResourceManager.GetString("SettingsUiGroupPosition", resourceCulture); }
+        }
+        public static string SettingsUiOffsetHeader {
+            get { return ResourceManager.GetString("SettingsUiOffsetHeader", resourceCulture); }
+        }
+        public static string SettingsUiOffsetDesc {
+            get { return ResourceManager.GetString("SettingsUiOffsetDesc", resourceCulture); }
+        }
+        public static string SettingsUiGroupSize {
+            get { return ResourceManager.GetString("SettingsUiGroupSize", resourceCulture); }
+        }
+        public static string SettingsUiFitToScreenHeader {
+            get { return ResourceManager.GetString("SettingsUiFitToScreenHeader", resourceCulture); }
+        }
+        public static string SettingsUiFitToScreenDesc {
+            get { return ResourceManager.GetString("SettingsUiFitToScreenDesc", resourceCulture); }
+        }
+        public static string SettingsUiFitNowTooltip {
+            get { return ResourceManager.GetString("SettingsUiFitNowTooltip", resourceCulture); }
+        }
+        public static string SettingsUiFitNow {
+            get { return ResourceManager.GetString("SettingsUiFitNow", resourceCulture); }
+        }
+        public static string SettingsUiAutoFitCappedFormat {
+            get { return ResourceManager.GetString("SettingsUiAutoFitCappedFormat", resourceCulture); }
+        }
+        public static string SettingsUiGroupBehavior {
+            get { return ResourceManager.GetString("SettingsUiGroupBehavior", resourceCulture); }
+        }
+        public static string SettingsUiAlwaysTopBlurDesc {
+            get { return ResourceManager.GetString("SettingsUiAlwaysTopBlurDesc", resourceCulture); }
+        }
+        public static string SettingsUiGroupBackground {
+            get { return ResourceManager.GetString("SettingsUiGroupBackground", resourceCulture); }
+        }
+        public static string SettingsUiBgStyleHeader {
+            get { return ResourceManager.GetString("SettingsUiBgStyleHeader", resourceCulture); }
+        }
+        public static string SettingsUiBgStyleDesc {
+            get { return ResourceManager.GetString("SettingsUiBgStyleDesc", resourceCulture); }
+        }
+        public static string SettingsUiBgSolid {
+            get { return ResourceManager.GetString("SettingsUiBgSolid", resourceCulture); }
+        }
+        public static string SettingsUiBgSolidTooltip {
+            get { return ResourceManager.GetString("SettingsUiBgSolidTooltip", resourceCulture); }
+        }
+        public static string SettingsUiBgAccent {
+            get { return ResourceManager.GetString("SettingsUiBgAccent", resourceCulture); }
+        }
+        public static string SettingsUiBgAccentTooltip {
+            get { return ResourceManager.GetString("SettingsUiBgAccentTooltip", resourceCulture); }
+        }
+        public static string SettingsUiBgAcrylic {
+            get { return ResourceManager.GetString("SettingsUiBgAcrylic", resourceCulture); }
+        }
+        public static string SettingsUiBgAcrylicTooltip {
+            get { return ResourceManager.GetString("SettingsUiBgAcrylicTooltip", resourceCulture); }
+        }
+        public static string SettingsUiBgColorHeader {
+            get { return ResourceManager.GetString("SettingsUiBgColorHeader", resourceCulture); }
+        }
+        public static string SettingsUiBgColorDesc {
+            get { return ResourceManager.GetString("SettingsUiBgColorDesc", resourceCulture); }
+        }
+        public static string SettingsUiPickColorTooltip {
+            get { return ResourceManager.GetString("SettingsUiPickColorTooltip", resourceCulture); }
+        }
+        public static string SettingsUiOpacityHeader {
+            get { return ResourceManager.GetString("SettingsUiOpacityHeader", resourceCulture); }
+        }
+        public static string SettingsUiBgOpacityDesc {
+            get { return ResourceManager.GetString("SettingsUiBgOpacityDesc", resourceCulture); }
+        }
+        public static string SettingsUiBlurAmountHeader {
+            get { return ResourceManager.GetString("SettingsUiBlurAmountHeader", resourceCulture); }
+        }
+        public static string SettingsUiBlurAmountDesc {
+            get { return ResourceManager.GetString("SettingsUiBlurAmountDesc", resourceCulture); }
+        }
+        public static string SettingsUiGroupPanels {
+            get { return ResourceManager.GetString("SettingsUiGroupPanels", resourceCulture); }
+        }
+        public static string SettingsUiCardPanelsHeader {
+            get { return ResourceManager.GetString("SettingsUiCardPanelsHeader", resourceCulture); }
+        }
+        public static string SettingsUiCardPanelsDesc {
+            get { return ResourceManager.GetString("SettingsUiCardPanelsDesc", resourceCulture); }
+        }
+        public static string SettingsUiLoadBarsHeader {
+            get { return ResourceManager.GetString("SettingsUiLoadBarsHeader", resourceCulture); }
+        }
+        public static string SettingsUiLoadBarsDesc {
+            get { return ResourceManager.GetString("SettingsUiLoadBarsDesc", resourceCulture); }
+        }
+        public static string SettingsUiBarColorHeader {
+            get { return ResourceManager.GetString("SettingsUiBarColorHeader", resourceCulture); }
+        }
+        public static string SettingsUiBarColorDesc {
+            get { return ResourceManager.GetString("SettingsUiBarColorDesc", resourceCulture); }
+        }
+        public static string SettingsUiGroupText {
+            get { return ResourceManager.GetString("SettingsUiGroupText", resourceCulture); }
+        }
+        public static string SettingsUiFontHeader {
+            get { return ResourceManager.GetString("SettingsUiFontHeader", resourceCulture); }
+        }
+        public static string SettingsUiFontDesc {
+            get { return ResourceManager.GetString("SettingsUiFontDesc", resourceCulture); }
+        }
+        public static string SettingsUiAlignmentHeader {
+            get { return ResourceManager.GetString("SettingsUiAlignmentHeader", resourceCulture); }
+        }
+        public static string SettingsUiAlignmentDesc {
+            get { return ResourceManager.GetString("SettingsUiAlignmentDesc", resourceCulture); }
+        }
+        public static string SettingsUiVerticalAlignTooltip {
+            get { return ResourceManager.GetString("SettingsUiVerticalAlignTooltip", resourceCulture); }
+        }
+        public static string SettingsUiGroupHeader {
+            get { return ResourceManager.GetString("SettingsUiGroupHeader", resourceCulture); }
+        }
+        public static string SettingsUiGroupAlerts {
+            get { return ResourceManager.GetString("SettingsUiGroupAlerts", resourceCulture); }
+        }
+        public static string SettingsUiMonitorsIntro {
+            get { return ResourceManager.GetString("SettingsUiMonitorsIntro", resourceCulture); }
+        }
+        public static string SettingsUiMoveUpTooltip {
+            get { return ResourceManager.GetString("SettingsUiMoveUpTooltip", resourceCulture); }
+        }
+        public static string SettingsUiMoveDownTooltip {
+            get { return ResourceManager.GetString("SettingsUiMoveDownTooltip", resourceCulture); }
+        }
+        public static string SettingsUiHideBarTooltip {
+            get { return ResourceManager.GetString("SettingsUiHideBarTooltip", resourceCulture); }
+        }
+        public static string SettingsUiAdvancedExpander {
+            get { return ResourceManager.GetString("SettingsUiAdvancedExpander", resourceCulture); }
+        }
+        public static string SettingsUiAgyShowExtra {
+            get { return ResourceManager.GetString("SettingsUiAgyShowExtra", resourceCulture); }
+        }
+        public static string SettingsUiHotkeysIntro {
+            get { return ResourceManager.GetString("SettingsUiHotkeysIntro", resourceCulture); }
+        }
+        public static string SettingsUiGroupSidebar {
+            get { return ResourceManager.GetString("SettingsUiGroupSidebar", resourceCulture); }
+        }
+        public static string SettingsUiRecord {
+            get { return ResourceManager.GetString("SettingsUiRecord", resourceCulture); }
+        }
+        public static string SettingsUiOverlayIntro {
+            get { return ResourceManager.GetString("SettingsUiOverlayIntro", resourceCulture); }
+        }
+        public static string SettingsUiRtssNotDetected {
+            get { return ResourceManager.GetString("SettingsUiRtssNotDetected", resourceCulture); }
+        }
+        public static string SettingsUiRtssDetected {
+            get { return ResourceManager.GetString("SettingsUiRtssDetected", resourceCulture); }
+        }
+        public static string SettingsUiShowFpsOverlayHeader {
+            get { return ResourceManager.GetString("SettingsUiShowFpsOverlayHeader", resourceCulture); }
+        }
+        public static string SettingsUiShowFpsOverlayDesc {
+            get { return ResourceManager.GetString("SettingsUiShowFpsOverlayDesc", resourceCulture); }
+        }
+        public static string SettingsUiOverlayCornerHeader {
+            get { return ResourceManager.GetString("SettingsUiOverlayCornerHeader", resourceCulture); }
+        }
+        public static string SettingsUiOverlayCornerDesc {
+            get { return ResourceManager.GetString("SettingsUiOverlayCornerDesc", resourceCulture); }
+        }
+        public static string SettingsUiOverlayOpacityDesc {
+            get { return ResourceManager.GetString("SettingsUiOverlayOpacityDesc", resourceCulture); }
+        }
+        public static string SettingsUiAboutTab {
+            get { return ResourceManager.GetString("SettingsUiAboutTab", resourceCulture); }
+        }
+        public static string SettingsUiCheckForUpdates {
+            get { return ResourceManager.GetString("SettingsUiCheckForUpdates", resourceCulture); }
+        }
+        public static string SettingsUiGroupSupport {
+            get { return ResourceManager.GetString("SettingsUiGroupSupport", resourceCulture); }
+        }
+        public static string SettingsUiSendLogHeader {
+            get { return ResourceManager.GetString("SettingsUiSendLogHeader", resourceCulture); }
+        }
+        public static string SettingsUiSendLogDesc {
+            get { return ResourceManager.GetString("SettingsUiSendLogDesc", resourceCulture); }
+        }
+        public static string SettingsUiSendReport {
+            get { return ResourceManager.GetString("SettingsUiSendReport", resourceCulture); }
+        }
+        public static string SettingsUiVersionFormat {
+            get { return ResourceManager.GetString("SettingsUiVersionFormat", resourceCulture); }
+        }
+        public static string SettingsUiRenewing {
+            get { return ResourceManager.GetString("SettingsUiRenewing", resourceCulture); }
+        }
+        public static string SettingsUiRenewingStep2 {
+            get { return ResourceManager.GetString("SettingsUiRenewingStep2", resourceCulture); }
+        }
+        public static string SettingsUiVerticalAlignTop {
+            get { return ResourceManager.GetString("SettingsUiVerticalAlignTop", resourceCulture); }
+        }
+        public static string SettingsUiVerticalAlignMiddle {
+            get { return ResourceManager.GetString("SettingsUiVerticalAlignMiddle", resourceCulture); }
+        }
+        public static string SettingsUiVerticalAlignBottom {
+            get { return ResourceManager.GetString("SettingsUiVerticalAlignBottom", resourceCulture); }
+        }
+        public static string SettingsUiCornerTopLeft {
+            get { return ResourceManager.GetString("SettingsUiCornerTopLeft", resourceCulture); }
+        }
+        public static string SettingsUiCornerTopRight {
+            get { return ResourceManager.GetString("SettingsUiCornerTopRight", resourceCulture); }
+        }
+        public static string SettingsUiCornerBottomLeft {
+            get { return ResourceManager.GetString("SettingsUiCornerBottomLeft", resourceCulture); }
+        }
+        public static string SettingsUiCornerBottomRight {
+            get { return ResourceManager.GetString("SettingsUiCornerBottomRight", resourceCulture); }
+        }
+        public static string SettingsUiStartupEnabledMsg {
+            get { return ResourceManager.GetString("SettingsUiStartupEnabledMsg", resourceCulture); }
+        }
+        public static string SettingsUiStartupEnabledTitle {
+            get { return ResourceManager.GetString("SettingsUiStartupEnabledTitle", resourceCulture); }
+        }
+        public static string SettingsUiStartupEnableFailedMsg {
+            get { return ResourceManager.GetString("SettingsUiStartupEnableFailedMsg", resourceCulture); }
+        }
+        public static string SettingsUiStartupDisableFailedMsg {
+            get { return ResourceManager.GetString("SettingsUiStartupDisableFailedMsg", resourceCulture); }
+        }
+        public static string PawnIOInstallPrompt {
+            get { return ResourceManager.GetString("PawnIOInstallPrompt", resourceCulture); }
+        }
+        public static string PawnIOInstallingProgress {
+            get { return ResourceManager.GetString("PawnIOInstallingProgress", resourceCulture); }
+        }
+        public static string PawnIOInstallFailedPrompt {
+            get { return ResourceManager.GetString("PawnIOInstallFailedPrompt", resourceCulture); }
+        }
+        public static string PawnIOReloadPrompt {
+            get { return ResourceManager.GetString("PawnIOReloadPrompt", resourceCulture); }
+        }
+        public static string UpdateTrayTooltipFormat {
+            get { return ResourceManager.GetString("UpdateTrayTooltipFormat", resourceCulture); }
+        }
+        public static string UpdateBalloonClickSuffix {
+            get { return ResourceManager.GetString("UpdateBalloonClickSuffix", resourceCulture); }
+        }
+        public static string UpdatePromptInstallSuffix {
+            get { return ResourceManager.GetString("UpdatePromptInstallSuffix", resourceCulture); }
+        }
+        public static string UpdatePromptOpenPageSuffix {
+            get { return ResourceManager.GetString("UpdatePromptOpenPageSuffix", resourceCulture); }
+        }
+        public static string UpdateDownloadingFormat {
+            get { return ResourceManager.GetString("UpdateDownloadingFormat", resourceCulture); }
+        }
+        public static string UpdateInstallingFormat {
+            get { return ResourceManager.GetString("UpdateInstallingFormat", resourceCulture); }
+        }
+        public static string UpdateDownloadFailedPrompt {
+            get { return ResourceManager.GetString("UpdateDownloadFailedPrompt", resourceCulture); }
+        }
+        public static string ErrorCrashReportPromptFormat {
+            get { return ResourceManager.GetString("ErrorCrashReportPromptFormat", resourceCulture); }
+        }
+        public static string ErrorCrashGeneric {
+            get { return ResourceManager.GetString("ErrorCrashGeneric", resourceCulture); }
+        }
+        public static string ErrorReportServerUnreachable {
+            get { return ResourceManager.GetString("ErrorReportServerUnreachable", resourceCulture); }
+        }
     }
 }

@@ -460,13 +460,13 @@ namespace SidebarDiagnostics.Monitoring
                     return Resources.UsageSlotCompletions;
 
                 case "auto":
-                    return "Auto + Composer";
+                    return Resources.UsageSlotAuto;
 
                 case "api":
-                    return "API models";
+                    return Resources.UsageSlotApi;
 
                 case "credits":
-                    return "Credits";
+                    return Resources.UsageSlotCredits;
 
                 case string _s when _s.StartsWith("model:", StringComparison.Ordinal):
                     string _model = _s.Substring(6);

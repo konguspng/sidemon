@@ -238,6 +238,7 @@ namespace SidebarDiagnostics.Monitoring
                 foreach (IHardware hw in _computer.Hardware)
                 {
                     hw.Update();
+                    UpdateSubHardware(hw);
                 }
             }
 
@@ -400,7 +401,41 @@ namespace SidebarDiagnostics.Monitoring
         private void UpdateBoard()
         {
             _board?.Update();
+            UpdateSubHardware(_board);
         }
+
+        private void UpdateSubHardware(IHardware hardware)
+        {
+            if (hardware?.SubHardware == null)
+            {
+                return;
+            }
+
+            foreach (IHardware sub in hardware.SubHardware)
+            {
+                if (sub == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    sub.Update();
+                }
+                catch (Exception ex)
+                {
+                    string key = sub.Identifier?.ToString() ?? sub.Name ?? "SubHardware";
+                    if (_loggedSubHardwareErrors.Add(key))
+                    {
+                        Utilities.ErrorLog.Write(ex);
+                    }
+                }
+
+                UpdateSubHardware(sub);
+            }
+        }
+
+        private readonly HashSet<string> _loggedSubHardwareErrors = new HashSet<string>();
 
         private MonitorPanel[] _monitorPanels { get; set; }
 

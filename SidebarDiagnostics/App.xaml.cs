@@ -209,6 +209,28 @@ namespace SidebarDiagnostics
             new Settings(_sidebar);
         }
 
+        public void RestoreSettings(SettingsRestoreState restore, Sidebar sidebar)
+        {
+            if (restore == null || sidebar == null)
+            {
+                return;
+            }
+
+            Settings _oldWindow = restore.OldWindow;
+            if (_oldWindow == null || _oldWindow.IsClosed)
+            {
+                return;
+            }
+
+            _oldWindow.StopReloadTimeout();
+
+            // Create and show the replacement window first at the same bounds, tab and monitor,
+            // then close the old window in the same dispatcher operation so no frame shows neither.
+            new Settings(sidebar, restore);
+
+            _oldWindow.CloseForReplacement();
+        }
+
         public void OpenGraph()
         {
             Sidebar _sidebar = Sidebar;
@@ -249,9 +271,7 @@ namespace SidebarDiagnostics
             ErrorLog.Write("PawnIO check: showing install prompt");
 
             MessageBoxResult _result = MessageBox.Show(
-                "CPU and GPU sensors (clock, temperature, voltage) require the PawnIO driver, which is not installed.\n\n" +
-                "Install it now? It will be downloaded from its official source (pawnio.eu, by namazso), the digital signature will be verified, and setup runs silently in the background.\n\n" +
-                "If you skip this, those sensors will show \"No Value\" until you install it later.",
+                Framework.Resources.PawnIOInstallPrompt,
                 Framework.Resources.AppName,
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question,
@@ -265,7 +285,7 @@ namespace SidebarDiagnostics
                 return;
             }
 
-            var _progress = new ProgressDialog("Downloading and installing the sensor driver...");
+            var _progress = new ProgressDialog(Framework.Resources.PawnIOInstallingProgress);
             _progress.Show();
 
             bool _installed;
@@ -282,7 +302,7 @@ namespace SidebarDiagnostics
             if (!_installed)
             {
                 MessageBoxResult _fallback = MessageBox.Show(
-                    "Automatic installation failed. Open pawnio.eu in your browser to install it manually?",
+                    Framework.Resources.PawnIOInstallFailedPrompt,
                     Framework.Resources.AppName,
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning,
@@ -306,7 +326,7 @@ namespace SidebarDiagnostics
                 return;
             }
 
-            var _prompt = new ReloadPromptDialog("PawnIO installed successfully. Reload SideMon now to start showing CPU and GPU sensor data?");
+            var _prompt = new ReloadPromptDialog(Framework.Resources.PawnIOReloadPrompt);
             _prompt.ShowDialog();
 
             if (_prompt.ReloadRequested)
@@ -473,7 +493,7 @@ namespace SidebarDiagnostics
                         settingsWindow.Model.AvailableUpdateText = string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version);
                     }
 
-                    TrayIcon.ToolTipText = string.Format("{0} v{1} (update available)", Framework.Resources.AppName, System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
+                    TrayIcon.ToolTipText = string.Format(Framework.Resources.UpdateTrayTooltipFormat, Framework.Resources.AppName, System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
 
                     if (Framework.Settings.Instance.LastNotifiedUpdate != _update.Version)
                     {
@@ -482,12 +502,12 @@ namespace SidebarDiagnostics
                         
                         if (Framework.Settings.Instance.ShowTrayIcon)
                         {
-                            TrayIcon.ShowBalloonTip(Framework.Resources.AppName, string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version) + (UpdateInstaller.CanInstall(_update) ? " - click to install" : ""), BalloonIcon.Info);
+                            TrayIcon.ShowBalloonTip(Framework.Resources.AppName, string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version) + (UpdateInstaller.CanInstall(_update) ? Framework.Resources.UpdateBalloonClickSuffix : ""), BalloonIcon.Info);
                         }
                         else
                         {
                             // no tray icon to click: ask once per version
-                            if (MessageBox.Show(string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version) + (UpdateInstaller.CanInstall(_update) ? "\n\nDownload and install it now?" : "\n\nOpen the download page now?"), Framework.Resources.AppName, MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
+                            if (MessageBox.Show(string.Format(Framework.Resources.SettingsUpdateAvailable, _update.Version) + (UpdateInstaller.CanInstall(_update) ? Framework.Resources.UpdatePromptInstallSuffix : Framework.Resources.UpdatePromptOpenPageSuffix), Framework.Resources.AppName, MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
                             {
                                 InstallUpdate();
                             }
@@ -557,11 +577,11 @@ namespace SidebarDiagnostics
 
             try
             {
-                UpdateNotice(string.Format("Downloading SideMon {0}...", _update.Version));
+                UpdateNotice(string.Format(Framework.Resources.UpdateDownloadingFormat, _update.Version));
 
                 string _path = await System.Threading.Tasks.Task.Run(() => UpdateInstaller.DownloadAsync(_update, null));
 
-                UpdateNotice(string.Format("Installing SideMon {0}...", _update.Version));
+                UpdateNotice(string.Format(Framework.Resources.UpdateInstallingFormat, _update.Version));
 
                 UpdateInstaller.Launch(_path);
 
@@ -575,7 +595,7 @@ namespace SidebarDiagnostics
 
                 ErrorLog.Write(new Exception("Auto update failed: " + ex.GetType().Name + " - " + ex.Message));
 
-                if (MessageBox.Show("The update could not be downloaded or verified automatically.\n\nOpen the download page instead?", Framework.Resources.AppName, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes && AvailableUpdateURL != null)
+                if (MessageBox.Show(Framework.Resources.UpdateDownloadFailedPrompt, Framework.Resources.AppName, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes && AvailableUpdateURL != null)
                 {
                     OpenURL(AvailableUpdateURL);
                 }
@@ -617,9 +637,7 @@ namespace SidebarDiagnostics
             catch { }
 
             MessageBoxResult _result = MessageBox.Show(
-                "SideMon hit an error and must close.\n\n" +
-                "Send an anonymous error report to the developer? It contains only the error details and your SideMon/Windows version; your username, computer name and file paths are removed. Reports are private.\n\n" +
-                "Preview of what will be sent:\n" + logTailPreview,
+                string.Format(Framework.Resources.ErrorCrashReportPromptFormat, logTailPreview),
                 Framework.Resources.ErrorTitle,
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Error,
@@ -638,17 +656,17 @@ namespace SidebarDiagnostics
                     }
                     else
                     {
-                        MessageBox.Show("Could not reach the report server.", Framework.Resources.AppName, MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                        MessageBox.Show(Framework.Resources.ErrorReportServerUnreachable, Framework.Resources.AppName, MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
                     }
                 }
                 catch
                 {
-                    MessageBox.Show("Could not reach the report server.", Framework.Resources.AppName, MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                    MessageBox.Show(Framework.Resources.ErrorReportServerUnreachable, Framework.Resources.AppName, MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
                 }
             }
 #else
             MessageBox.Show(
-                "SideMon hit an error and must close.",
+                Framework.Resources.ErrorCrashGeneric,
                 Framework.Resources.ErrorTitle,
                 MessageBoxButton.OK,
                 MessageBoxImage.Error,
@@ -687,5 +705,20 @@ namespace SidebarDiagnostics
         internal static bool _reloading { get; set; } = false;
 
         internal static bool _reloadOpenSettings { get; set; } = false;
+
+        internal static SettingsRestoreState PendingSettingsRestore { get; set; }
+    }
+
+    public sealed class SettingsRestoreState
+    {
+        public Settings OldWindow { get; set; }
+        public double Left { get; set; }
+        public double Top { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public WindowState WindowState { get; set; }
+        public int SelectedTabIndex { get; set; }
+        public MonitorType? SelectedMonitorType { get; set; }
+        public double VerticalScrollOffset { get; set; }
     }
 }

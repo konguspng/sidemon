@@ -352,7 +352,15 @@ namespace SidebarDiagnostics
 
             BindGraphs();
 
-            if (_openSettings)
+            SettingsRestoreState _restore = App.PendingSettingsRestore;
+            if (_restore != null)
+            {
+                App.PendingSettingsRestore = null;
+                _openSettings = false;
+
+                App.Current.RestoreSettings(_restore, this);
+            }
+            else if (_openSettings)
             {
                 _openSettings = false;
 

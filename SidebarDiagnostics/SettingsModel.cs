@@ -72,19 +72,19 @@ namespace SidebarDiagnostics.Models
 
             ContentVerticalAlignItems = new VerticalAlignItem[3]
             {
-                new VerticalAlignItem() { Text = "Top", Value = System.Windows.VerticalAlignment.Top },
-                new VerticalAlignItem() { Text = "Middle", Value = System.Windows.VerticalAlignment.Center },
-                new VerticalAlignItem() { Text = "Bottom", Value = System.Windows.VerticalAlignment.Bottom }
+                new VerticalAlignItem() { Text = Resources.SettingsUiVerticalAlignTop, Value = System.Windows.VerticalAlignment.Top },
+                new VerticalAlignItem() { Text = Resources.SettingsUiVerticalAlignMiddle, Value = System.Windows.VerticalAlignment.Center },
+                new VerticalAlignItem() { Text = Resources.SettingsUiVerticalAlignBottom, Value = System.Windows.VerticalAlignment.Bottom }
             };
 
             ContentVerticalAlign = Framework.Settings.Instance.ContentVerticalAlign;
 
             OverlayCornerItems = new OverlayCornerItem[4]
             {
-                new OverlayCornerItem() { Text = "Top Left", Value = OverlayCorner.TopLeft },
-                new OverlayCornerItem() { Text = "Top Right", Value = OverlayCorner.TopRight },
-                new OverlayCornerItem() { Text = "Bottom Left", Value = OverlayCorner.BottomLeft },
-                new OverlayCornerItem() { Text = "Bottom Right", Value = OverlayCorner.BottomRight }
+                new OverlayCornerItem() { Text = Resources.SettingsUiCornerTopLeft, Value = OverlayCorner.TopLeft },
+                new OverlayCornerItem() { Text = Resources.SettingsUiCornerTopRight, Value = OverlayCorner.TopRight },
+                new OverlayCornerItem() { Text = Resources.SettingsUiCornerBottomLeft, Value = OverlayCorner.BottomLeft },
+                new OverlayCornerItem() { Text = Resources.SettingsUiCornerBottomRight, Value = OverlayCorner.BottomRight }
             };
 
             ShowFpsOverlay = Framework.Settings.Instance.ShowFpsOverlay;
@@ -313,11 +313,11 @@ namespace SidebarDiagnostics.Models
                 {
                     if (_enabled)
                     {
-                        MessageBox.Show("SideMon will now start automatically when you log in.", "Run at Startup Enabled", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                        MessageBox.Show(Resources.SettingsUiStartupEnabledMsg, Resources.SettingsUiStartupEnabledTitle, MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
                     }
                     else
                     {
-                        MessageBox.Show("Could not enable Run at Startup. See the error log for details.", "Run at Startup", MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                        MessageBox.Show(Resources.SettingsUiStartupEnableFailedMsg, Resources.SettingsRunAtStartup, MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
                     }
                 }
             }
@@ -327,7 +327,7 @@ namespace SidebarDiagnostics.Models
 
                 if (_runAtStartupChanged && !_disabled)
                 {
-                    MessageBox.Show("Could not fully disable Run at Startup. See the error log for details.", "Run at Startup", MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
+                    MessageBox.Show(Resources.SettingsUiStartupDisableFailedMsg, Resources.SettingsRunAtStartup, MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, MessageBoxOptions.DefaultDesktopOnly);
                 }
             }
 

@@ -384,7 +384,7 @@ namespace SidebarDiagnostics.Monitoring
                     return " B/s";
 
                 case DataType.kBps:
-                    return " kB/s";
+                    return " KB/s";
 
                 case DataType.MBps:
                     return " MB/s";
@@ -411,10 +411,10 @@ namespace SidebarDiagnostics.Monitoring
                     return " RPM";
 
                 case DataType.Celcius:
-                    return " C";
+                    return " \u00B0C";
 
                 case DataType.Fahrenheit:
-                    return " F";
+                    return " \u00B0F";
 
                 case DataType.IP:
                     return string.Empty;
