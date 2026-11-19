@@ -1668,4 +1668,13 @@
   <data name="ErrorReportServerUnreachable" xml:space="preserve">
     <value>Could not reach the report server.</value>
   </data>
+  <data name="SettingsUsageShowAccount" xml:space="preserve">
+    <value>Show account</value>
+  </data>
+  <data name="SettingsUsageShowAccountTooltip" xml:space="preserve">
+    <value>Show the signed-in account under this provider's name on the sidebar.</value>
+  </data>
+  <data name="SettingsUsageSignedInAs" xml:space="preserve">
+    <value>Signed in as {0}</value>
+  </data>
 </root>

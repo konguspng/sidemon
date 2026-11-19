@@ -4,7 +4,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using SidebarDiagnostics.Monitoring;
@@ -179,7 +181,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
         }
     }
 
-    public class ClaudeProvider : IUsageProvider, ICredentialWatch
+    public class ClaudeProvider : IUsageProvider, ICredentialWatch, IAccountReader
     {
         public string Id => "AIUsage_Claude";
         public string DisplayName => "Claude Code";
@@ -299,9 +301,48 @@ namespace SidebarDiagnostics.Monitoring.Providers
             return UsageDetection.NotLoggedIn;
         }
 
+        private string FindConfigJsonPath()
+        {
+            try
+            {
+                var dir = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+                if (!string.IsNullOrWhiteSpace(dir))
+                {
+                    var file = Path.Combine(ProviderHelper.ResolvePath(dir.Trim().Trim('"')), ".claude.json");
+                    if (File.Exists(file)) return file;
+                }
+            }
+            catch { }
+
+            var def = ProviderHelper.ResolvePath(@"%USERPROFILE%\.claude.json");
+            return File.Exists(def) ? def : null;
+        }
+
+        public string ReadAccount()
+        {
+            try
+            {
+                var path = FindConfigJsonPath();
+                if (path == null) return null;
+                var json = File.ReadAllText(path);
+                using (var doc = JsonDocument.Parse(json))
+                {
+                    if (doc.RootElement.ValueKind == JsonValueKind.Object
+                        && doc.RootElement.TryGetProperty("oauthAccount", out var oauth)
+                        && oauth.ValueKind == JsonValueKind.Object)
+                    {
+                        var email = UsageParsers.GetString(oauth, "emailAddress")?.Trim();
+                        return string.IsNullOrEmpty(email) ? null : email;
+                    }
+                }
+            }
+            catch { }
+            return null;
+        }
+
         public string CredentialSignature()
         {
-            return ProviderHelper.FileSignature(FindTokenPath());
+            return ProviderHelper.FileSignature(FindTokenPath()) + ";" + ProviderHelper.FileSignature(FindConfigJsonPath());
         }
 
         // when on, an expired token is renewed by running the Claude CLI hidden (it refreshes
@@ -467,14 +508,110 @@ namespace SidebarDiagnostics.Monitoring.Providers
         }
     }
 
-    public class AgyProvider : IUsageProvider, ICredentialWatch
+    public class AgyProvider : IUsageProvider, ICredentialWatch, IAccountReader
     {
         public string Id => "AIUsage_Agy";
+
+        private const int MaxLogReadBytes = 2 * 1024 * 1024;
+        private static readonly Regex EmailAfterKeyRegex = new Regex(
+            @"(?i)\bemail(?:_?address)?[""'\\]*\s*[:=]\s*[""'\\]*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})",
+            RegexOptions.Compiled,
+            TimeSpan.FromSeconds(1));
 
         // agy (Antigravity) keeps its login in Windows Credential Manager
         public string CredentialSignature()
         {
             return ProviderHelper.CredentialManagerSignature("gemini:antigravity");
+        }
+
+        private static string FindLatestLogPath()
+        {
+            try
+            {
+                string logDir = ProviderHelper.ResolvePath(@"%USERPROFILE%\.gemini\antigravity-cli\log");
+                if (!Directory.Exists(logDir)) return null;
+
+                FileInfo best = null;
+                foreach (string file in Directory.EnumerateFiles(logDir, "cli-*.log"))
+                {
+                    try
+                    {
+                        var info = new FileInfo(file);
+                        if (info.Exists && (best == null || info.LastWriteTimeUtc > best.LastWriteTimeUtc))
+                        {
+                            best = info;
+                        }
+                    }
+                    catch { }
+                }
+
+                string cliLog = Path.Combine(logDir, "cli.log");
+                if (File.Exists(cliLog))
+                {
+                    try
+                    {
+                        var linkInfo = new FileInfo(cliLog);
+                        FileSystemInfo resolved = linkInfo.ResolveLinkTarget(true);
+                        FileInfo targetInfo = resolved as FileInfo ?? linkInfo;
+                        if (targetInfo.Exists && (best == null || targetInfo.LastWriteTimeUtc > best.LastWriteTimeUtc))
+                        {
+                            best = targetInfo;
+                        }
+                    }
+                    catch { }
+                }
+
+                return best?.FullName;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public string ReadAccount()
+        {
+            try
+            {
+                string path = FindLatestLogPath();
+                if (string.IsNullOrEmpty(path)) return null;
+
+                string text;
+                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                {
+                    long length = fs.Length;
+                    int toRead = (int)Math.Min(length, MaxLogReadBytes);
+                    if (toRead <= 0) return null;
+                    if (length > MaxLogReadBytes)
+                    {
+                        fs.Seek(-MaxLogReadBytes, SeekOrigin.End);
+                    }
+                    byte[] buffer = new byte[toRead];
+                    int totalRead = 0;
+                    while (totalRead < toRead)
+                    {
+                        int n = fs.Read(buffer, totalRead, toRead - totalRead);
+                        if (n <= 0) break;
+                        totalRead += n;
+                    }
+                    text = Encoding.UTF8.GetString(buffer, 0, totalRead);
+                }
+
+                string lastEmail = null;
+                foreach (Match m in EmailAfterKeyRegex.Matches(text))
+                {
+                    if (m.Success && m.Groups.Count > 1)
+                    {
+                        string val = m.Groups[1].Value.Trim();
+                        if (!string.IsNullOrEmpty(val)) lastEmail = val;
+                    }
+                }
+                return lastEmail;
+            }
+            catch
+            {
+                return null;
+            }
         }
         public string DisplayName => "Gemini (agy)";
 
@@ -561,7 +698,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
         }
     }
 
-    public class CodexProvider : IUsageProvider, ICredentialWatch
+    public class CodexProvider : IUsageProvider, ICredentialWatch, IAccountReader
     {
         public string Id => "AIUsage_Codex";
         public string DisplayName => "Codex CLI";
@@ -600,6 +737,34 @@ namespace SidebarDiagnostics.Monitoring.Providers
                 }
             }
             return (null, null);
+        }
+
+        public string ReadAccount()
+        {
+            foreach (var path in AuthPaths())
+            {
+                if (File.Exists(path))
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(path);
+                        using var doc = JsonDocument.Parse(json);
+                        if (doc.RootElement.TryGetProperty("tokens", out var t) && t.ValueKind == JsonValueKind.Object)
+                        {
+                            string idToken = UsageParsers.GetString(t, "id_token");
+                            if (string.IsNullOrEmpty(idToken)) continue;
+                            using var payload = ExtraHelper.JwtPayload(idToken);
+                            if (payload != null)
+                            {
+                                string email = UsageParsers.GetString(payload.RootElement, "email")?.Trim();
+                                if (!string.IsNullOrEmpty(email)) return email;
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            }
+            return null;
         }
 
         public string CredentialSignature()
@@ -666,7 +831,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
         }
     }
 
-    public class CopilotProvider : IUsageProvider, ICredentialWatch
+    public class CopilotProvider : IUsageProvider, ICredentialWatch, IAccountReader
     {
         public string Id => "AIUsage_Copilot";
         public string DisplayName => "GitHub Copilot";
@@ -786,11 +951,139 @@ namespace SidebarDiagnostics.Monitoring.Providers
             return null;
         }
 
+        private readonly object _loginCacheLock = new object();
+        private string _cachedLoginSig;
+        private string _cachedLogin;
+        private bool _hasCachedLogin;
+
+        private static string HostsYmlPath()
+        {
+            return ProviderHelper.ResolvePath(@"%APPDATA%\GitHub CLI\hosts.yml");
+        }
+
+        public static string ReadHostsYmlUser()
+        {
+            try
+            {
+                string path = HostsYmlPath();
+                if (!File.Exists(path)) return null;
+
+                bool inGithub = false;
+                foreach (string rawLine in File.ReadLines(path))
+                {
+                    if (string.IsNullOrWhiteSpace(rawLine)) continue;
+                    string trimmedStart = rawLine.TrimStart(' ', '\t');
+                    if (trimmedStart.StartsWith("#", StringComparison.Ordinal)) continue;
+
+                    int indent = rawLine.Length - trimmedStart.Length;
+                    if (indent == 0)
+                    {
+                        string key = trimmedStart.TrimEnd();
+                        inGithub = key.StartsWith("github.com:", StringComparison.OrdinalIgnoreCase)
+                            || key.StartsWith("\"github.com\":", StringComparison.OrdinalIgnoreCase)
+                            || key.StartsWith("'github.com':", StringComparison.OrdinalIgnoreCase);
+                        continue;
+                    }
+
+                    if (inGithub && trimmedStart.StartsWith("user:", StringComparison.Ordinal))
+                    {
+                        string val = trimmedStart.Substring(5);
+                        int hash = val.IndexOf('#');
+                        if (hash >= 0) val = val.Substring(0, hash);
+                        val = val.Trim().Trim('"', '\'').Trim();
+                        if (!string.IsNullOrEmpty(val)) return val;
+                    }
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        public string ReadAccount()
+        {
+            try
+            {
+                string sig = CredentialSignature();
+                lock (_loginCacheLock)
+                {
+                    if (_hasCachedLogin && string.Equals(_cachedLoginSig, sig, StringComparison.Ordinal))
+                    {
+                        return _cachedLogin;
+                    }
+                }
+                return ReadHostsYmlUser();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private async Task<string> GetOrFetchLoginAsync(string token, string sig, CancellationToken ct)
+        {
+            lock (_loginCacheLock)
+            {
+                if (_hasCachedLogin && string.Equals(_cachedLoginSig, sig, StringComparison.Ordinal))
+                {
+                    return _cachedLogin;
+                }
+            }
+
+            string login = null;
+            try
+            {
+                using var req = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
+                req.Headers.Authorization = new AuthenticationHeaderValue("token", token);
+                req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                req.Headers.TryAddWithoutValidation("Editor-Version", "vscode/1.96.2");
+                req.Headers.TryAddWithoutValidation("Editor-Plugin-Version", "copilot-chat/0.26.7");
+                req.Headers.TryAddWithoutValidation("User-Agent", "GitHubCopilotChat/0.26.7");
+                req.Headers.TryAddWithoutValidation("X-Github-Api-Version", "2025-04-01");
+
+                using var res = await ProviderHelper.Client.SendAsync(req, ct).ConfigureAwait(false);
+                if (res.IsSuccessStatusCode)
+                {
+                    string json = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    using var doc = JsonDocument.Parse(json);
+                    login = UsageParsers.GetString(doc.RootElement, "login")?.Trim();
+                    if (string.IsNullOrEmpty(login)) login = null;
+                }
+            }
+            catch { }
+
+            if (string.IsNullOrEmpty(login))
+            {
+                login = ReadHostsYmlUser();
+            }
+
+            lock (_loginCacheLock)
+            {
+                _cachedLoginSig = sig;
+                _cachedLogin = login;
+                _hasCachedLogin = true;
+            }
+
+            return login;
+        }
+
         public string CredentialSignature()
         {
             var sb = new System.Text.StringBuilder();
             foreach (var _e in ProviderHelper.CredentialManagerEntries("https://github.com:*.copilot-cli")) sb.Append(_e.Target).Append(_e.Written).Append(';');
             foreach (var _e in ProviderHelper.CredentialManagerEntries("gh:github.com*")) sb.Append(_e.Target).Append(_e.Written).Append(';');
+            foreach (var _f in ConfigFiles()) sb.Append(ProviderHelper.FileSignature(_f)).Append(';');
+            sb.Append(ProviderHelper.FileSignature(HostsYmlPath())).Append(';');
+            foreach (string _name in TokenEnv)
+            {
+                string _env = Environment.GetEnvironmentVariable(_name);
+                if (!string.IsNullOrWhiteSpace(_env))
+                {
+                    byte[] _bytes = Encoding.UTF8.GetBytes(_env.Trim());
+                    sb.Append(_name).Append('=').Append(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(_bytes), 0, 8)).Append(';');
+                    Array.Clear(_bytes, 0, _bytes.Length);
+                    break;
+                }
+            }
             return sb.ToString();
         }
 
@@ -858,7 +1151,8 @@ namespace SidebarDiagnostics.Monitoring.Providers
                 }
                 if (res.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    return UsageResult.Fail(UsageStatus.NoPlan);
+                    string _noPlanLogin = await GetOrFetchLoginAsync(token, CredentialSignature(), ct).ConfigureAwait(false);
+                    return UsageResult.Fail(UsageStatus.NoPlan, null, _noPlanLogin);
                 }
                 if (res.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                 {
@@ -868,11 +1162,12 @@ namespace SidebarDiagnostics.Monitoring.Providers
 
                 var json = await res.Content.ReadAsStringAsync();
                 var windows = UsageParsers.ParseCopilot(json);
+                var login = await GetOrFetchLoginAsync(token, CredentialSignature(), ct).ConfigureAwait(false);
 
                 // signed in, but the account has no Copilot plan that reports a quota
-                if (windows.Count == 0) return UsageResult.Fail(UsageStatus.NoPlan);
+                if (windows.Count == 0) return UsageResult.Fail(UsageStatus.NoPlan, null, login);
 
-                return UsageResult.Ok(windows);
+                return UsageResult.Ok(windows, null, login);
             }
             catch
             {
@@ -880,17 +1175,40 @@ namespace SidebarDiagnostics.Monitoring.Providers
             }
         }
     }
-    public class GeminiProvider : IUsageProvider, ICredentialWatch
+    public class GeminiProvider : IUsageProvider, ICredentialWatch, IAccountReader
     {
         public string Id => "AIUsage_Gemini";
         public string DisplayName => "Gemini CLI";
 
         public string CustomPath { get; set; }
 
+        private string AccountsPath()
+        {
+            var custom = ProviderHelper.ResolveCustomFile(CustomPath, "google_accounts.json");
+            if (custom != null) return custom;
+            return ProviderHelper.ResolvePath(@"%USERPROFILE%\.gemini\google_accounts.json");
+        }
+
+        public string ReadAccount()
+        {
+            try
+            {
+                string path = AccountsPath();
+                if (!File.Exists(path)) return null;
+                using var doc = JsonDocument.Parse(File.ReadAllText(path));
+                string active = UsageParsers.GetString(doc.RootElement, "active")?.Trim();
+                return string.IsNullOrEmpty(active) ? null : active;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public string CredentialSignature()
         {
             string _path = ProviderHelper.ResolveCustomFile(CustomPath, "oauth_creds.json") ?? ProviderHelper.ResolvePath(@"%USERPROFILE%\.gemini\oauth_creds.json");
-            return ProviderHelper.FileSignature(_path);
+            return ProviderHelper.FileSignature(_path) + ";" + ProviderHelper.FileSignature(AccountsPath());
         }
 
         public bool IsInstalled()

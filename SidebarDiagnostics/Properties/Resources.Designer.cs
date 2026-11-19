@@ -3077,5 +3077,14 @@ namespace SidebarDiagnostics.Framework {
         public static string ErrorReportServerUnreachable {
             get { return ResourceManager.GetString("ErrorReportServerUnreachable", resourceCulture); }
         }
+        public static string SettingsUsageShowAccount {
+            get { return ResourceManager.GetString("SettingsUsageShowAccount", resourceCulture); }
+        }
+        public static string SettingsUsageShowAccountTooltip {
+            get { return ResourceManager.GetString("SettingsUsageShowAccountTooltip", resourceCulture); }
+        }
+        public static string SettingsUsageSignedInAs {
+            get { return ResourceManager.GetString("SettingsUsageSignedInAs", resourceCulture); }
+        }
     }
 }

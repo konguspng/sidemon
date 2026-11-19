@@ -494,7 +494,10 @@
                                                             <Path Width="18" Height="18" Stretch="Uniform" Data="{Binding Path=ID, Converter={StaticResource ProviderGeometry}}" Fill="{Binding Path=ID, Converter={StaticResource ProviderBrush}}" />
                                                         </Border>
                                                         <TextBox Grid.Column="1" Style="{StaticResource InlineEdit}" Text="{Binding Path=Name, Mode=TwoWay}" MinWidth="120" Margin="8,0,8,0" VerticalAlignment="Center" ToolTip="{x:Static frame:Resources.SettingsHardwareNameTooltip}" />
-                                                        <TextBlock Grid.Column="2" Text="{Binding Path=Status, Mode=OneWay}" ToolTip="{Binding Path=Status, Mode=OneWay}" Style="{StaticResource Caption}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Path=Status, Mode=OneWay}" ToolTip="{Binding Path=Status, Mode=OneWay}" Style="{StaticResource Caption}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding Path=AccountStatus, Mode=OneWay}" ToolTip="{Binding Path=AccountStatus, Mode=OneWay}" Visibility="{Binding Path=AccountStatus, Converter={StaticResource EmptyToCollapsed}}" Style="{StaticResource Caption}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                                                        </StackPanel>
                                                         <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="8,0">
                                                             <Button Content="&#xE72C;" Click="HardwareClaudeRenew_Click" ToolTip="{x:Static frame:Resources.SettingsUsageClaudeRenewTooltip}">
                                                                 <Button.Style>
@@ -529,6 +532,7 @@
                                                             </ItemsControl.ItemTemplate>
                                                         </ItemsControl>
                                                         <TextBlock Text="{Binding Path=RenewStatus, Mode=OneWay}" Visibility="{Binding Path=RenewStatus, Converter={StaticResource EmptyToCollapsed}}" Style="{StaticResource Caption}" Margin="0,0,0,6" />
+                                                        <CheckBox Style="{StaticResource SwitchCompact}" Content="{x:Static frame:Resources.SettingsUsageShowAccount}" ToolTip="{x:Static frame:Resources.SettingsUsageShowAccountTooltip}" IsChecked="{Binding Path=ShowAccount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,2,0,6" />
 
                                                         <Expander Style="{StaticResource CardExpander}" Header="{x:Static frame:Resources.SettingsUiAdvancedExpander}">
                                                             <StackPanel Margin="18,4,0,2">

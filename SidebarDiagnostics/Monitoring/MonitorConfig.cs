@@ -687,6 +687,52 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
+        private bool _showAccount { get; set; } = false;
+
+        // AI CLI Usage only: show signed-in account under provider name on the sidebar (default off)
+        [JsonPropertyName("ShowAccount")]
+        public bool ShowAccount
+        {
+            get
+            {
+                return _showAccount;
+            }
+            set
+            {
+                if (_showAccount == value)
+                {
+                    return;
+                }
+
+                _showAccount = value;
+
+                NotifyPropertyChanged("ShowAccount");
+            }
+        }
+
+        private string _accountStatus { get; set; }
+
+        // live "Signed in as ..." caption shown in Settings; never saved
+        [JsonIgnore]
+        public string AccountStatus
+        {
+            get
+            {
+                return _accountStatus;
+            }
+            set
+            {
+                if (string.Equals(_accountStatus, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _accountStatus = value;
+
+                NotifyPropertyChanged("AccountStatus");
+            }
+        }
+
         private byte _order { get; set; } = 0;
 
         public byte Order

@@ -188,6 +188,24 @@
                                                         <TextBlock Text="{Binding Path=Name, Mode=OneWay}" Style="{StaticResource HardwareText}" Margin="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                     </DockPanel>
 
+                                                    <TextBlock Text="{Binding Path=AccountText, Mode=OneWay}"
+                                                               Visibility="{Binding Path=AccountVisibility, Mode=OneWay}"
+                                                               ToolTip="{Binding Path=AccountText, Mode=OneWay}"
+                                                               TextWrapping="NoWrap"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Opacity="0.6">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource AppText}">
+                                                                <Setter Property="Margin" Value="0,-3,0,5" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Source={x:Static frame:Settings.Instance}, Path=TextAlign, Mode=OneWay}" Value="Right">
+                                                                        <Setter Property="TextAlignment" Value="Right" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+
                                                     <ItemsControl ItemsSource="{Binding Path=Metrics, Mode=OneWay}">
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate DataType="{x:Type monitor:UsageMetric}">

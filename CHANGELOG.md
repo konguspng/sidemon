@@ -4,6 +4,10 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 
 ## 4.5.7 (unreleased)
 
+- **Show signed-in account for AI providers.** In Settings > Monitors > AI Usage, each provider card now has a **Show account** switch (off by default) and displays "Signed in as ..." when detected. When turned on, a dim single line under the provider name on the sidebar shows which account is signed in (Claude Code, Gemini agy, Gemini CLI, Codex CLI, GitHub Copilot, Cursor, and optional fields for Grok / OpenCode Go). Account details stay local and are never logged or sent in reports.
+- **Fixed: missing CPU fan speed on some motherboards.** CPU fan readings now also check motherboard fan controllers (SuperIO sub-hardware) so systems whose CPU fan is reported there show speed instead of staying blank.
+- **Settings stays open when you press Apply.** Changes that reload the sidebar (such as Acrylic blur, card panels, load bars, or language) now keep the Settings window open in place with an "Applying changes..." indicator and restore your tab, selected monitor, window position and scroll position.
+- **Clearer wording throughout Settings.** Polished labels, descriptions and prompts for plain, consistent English, and moved all Settings text into language resources so future translations cover the whole window.
 - Internal: the 4,400-line monitoring source file is split into focused files. No behaviour change.
 
 ## 4.5.6 (released 2026-11-16)

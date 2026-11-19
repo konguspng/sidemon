@@ -133,6 +133,30 @@ namespace SidebarDiagnostics.Monitoring
 
         public Visibility IconVisibility => IconGeometry != null ? Visibility.Visible : Visibility.Collapsed;
 
+        private string _accountText;
+
+        public string AccountText
+        {
+            get { return _accountText; }
+            private set
+            {
+                if (string.Equals(_accountText, value, StringComparison.Ordinal)) return;
+                _accountText = value;
+                NotifyPropertyChanged("AccountText");
+                NotifyPropertyChanged("AccountVisibility");
+            }
+        }
+
+        public Visibility AccountVisibility
+        {
+            get
+            {
+                return (_hardwareConfig != null && _hardwareConfig.ShowAccount && !string.IsNullOrEmpty(_accountText))
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
+        }
+
         public Visibility SignInButtonVisibility
         {
             get
@@ -225,6 +249,10 @@ namespace SidebarDiagnostics.Monitoring
             UsageRegistry.PollIfDue(_provider);
 
             UsageSnapshot _snapshot = UsageRegistry.GetSnapshot(_provider.Id);
+
+            AccountText = (_hardwareConfig != null && _hardwareConfig.ShowAccount && !string.IsNullOrEmpty(_snapshot.Account))
+                ? _snapshot.Account
+                : null;
 
             if (_snapshot.Plan != null)
             {

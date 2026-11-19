@@ -72,14 +72,16 @@ namespace SidebarDiagnostics.Monitoring
 
         public string Plan { get; set; }
 
-        public static UsageResult Ok(IReadOnlyList<UsageWindow> windows, string plan = null)
+        public string Account { get; set; }
+
+        public static UsageResult Ok(IReadOnlyList<UsageWindow> windows, string plan = null, string account = null)
         {
-            return new UsageResult() { Status = UsageStatus.Ok, Windows = windows, Plan = plan };
+            return new UsageResult() { Status = UsageStatus.Ok, Windows = windows, Plan = plan, Account = account };
         }
 
-        public static UsageResult Fail(UsageStatus status, TimeSpan? retryAfter = null)
+        public static UsageResult Fail(UsageStatus status, TimeSpan? retryAfter = null, string account = null)
         {
-            return new UsageResult() { Status = status, RetryAfter = retryAfter };
+            return new UsageResult() { Status = status, RetryAfter = retryAfter, Account = account };
         }
     }
 
@@ -114,6 +116,14 @@ namespace SidebarDiagnostics.Monitoring
         string CredentialSignature();
     }
 
+    // Optional: read-only local lookup of the signed-in account (email or username), or null.
+    // Called only during background polls and cached per credential signature; must never throw
+    // or log the returned value.
+    public interface IAccountReader
+    {
+        string ReadAccount();
+    }
+
     // Immutable view of what the registry currently knows about one provider.
     public sealed class UsageSnapshot
     {
@@ -128,6 +138,7 @@ namespace SidebarDiagnostics.Monitoring
         // last good windows; kept across failed polls
         public IReadOnlyList<UsageWindow> Windows { get; set; } = Array.Empty<UsageWindow>();
         public string Plan { get; set; }
+        public string Account { get; set; }
 
         public DateTimeOffset? LastGoodAt { get; set; }
 
@@ -282,6 +293,9 @@ namespace SidebarDiagnostics.Monitoring
             public string CredentialSig;
             public DateTime NextWatchUtc = DateTime.MinValue;
             public bool RepollAfterFetch;
+            public string CachedAccountSig;
+            public string CachedAccount;
+            public bool HasCachedAccount;
         }
 
         private static readonly TimeSpan WatchInterval = TimeSpan.FromSeconds(5);
@@ -304,6 +318,9 @@ namespace SidebarDiagnostics.Monitoring
             {
                 state.Failures = 0;
                 state.NextPollUtc = DateTime.MinValue;
+                state.HasCachedAccount = false;
+                state.CachedAccountSig = null;
+                state.CachedAccount = null;
                 if (state.Fetching) state.RepollAfterFetch = true;
             }
 
@@ -365,6 +382,9 @@ namespace SidebarDiagnostics.Monitoring
                 {
                     _state.NextPollUtc = DateTime.MinValue;
                     _state.Failures = 0;
+                    _state.HasCachedAccount = false;
+                    _state.CachedAccountSig = null;
+                    _state.CachedAccount = null;
                 }
             }
         }
@@ -397,9 +417,15 @@ namespace SidebarDiagnostics.Monitoring
             return _bars;
         }
 
+        public static string GetAccountText(string id)
+        {
+            string _account = GetSnapshot(id).Account;
+            return string.IsNullOrWhiteSpace(_account) ? null : string.Format(Resources.SettingsUsageSignedInAs, _account);
+        }
+
         public static HardwareConfig[] GetHardware()
         {
-            return Providers.Select(p => new HardwareConfig() { ID = p.Id, Name = p.DisplayName, ActualName = p.DisplayName, Enabled = false, CustomPath = p.CustomPath, Status = GetStatusText(p.Id) }).ToArray();
+            return Providers.Select(p => new HardwareConfig() { ID = p.Id, Name = p.DisplayName, ActualName = p.DisplayName, Enabled = false, CustomPath = p.CustomPath, Status = GetStatusText(p.Id), AccountStatus = GetAccountText(p.Id) }).ToArray();
         }
 
         public static UsageSnapshot GetSnapshot(string id)
@@ -483,7 +509,44 @@ namespace SidebarDiagnostics.Monitoring
             // a successful call that yielded no windows is "nothing to show", not a good value
             if (_result.Status == UsageStatus.Ok && _result.Windows.Count == 0)
             {
-                _result = UsageResult.Fail(UsageStatus.Error);
+                _result = UsageResult.Fail(UsageStatus.Error, null, _result.Account);
+            }
+
+            string _sig = null;
+            if (provider is ICredentialWatch _watch)
+            {
+                try { _sig = _watch.CredentialSignature(); }
+                catch { _sig = null; }
+            }
+
+            bool _useAccountCache = false;
+            string _account = null;
+
+            lock (_lock)
+            {
+                if (_states.TryGetValue(provider.Id, out State _cachedState)
+                    && _cachedState.HasCachedAccount
+                    && _sig != null
+                    && string.Equals(_cachedState.CachedAccountSig, _sig, StringComparison.Ordinal))
+                {
+                    _useAccountCache = true;
+                    _account = _cachedState.CachedAccount;
+                }
+            }
+
+            if (_result.Status == UsageStatus.NotInstalled || _result.Status == UsageStatus.NotLoggedIn)
+            {
+                _account = null;
+            }
+            else if (!string.IsNullOrWhiteSpace(_result.Account))
+            {
+                _account = _result.Account.Trim();
+            }
+            else if (!_useAccountCache && provider is IAccountReader _accountReader)
+            {
+                try { _account = _accountReader.ReadAccount(); }
+                catch { _account = null; }
+                _account = string.IsNullOrWhiteSpace(_account) ? null : _account.Trim();
             }
 
             lock (_lock)
@@ -491,6 +554,12 @@ namespace SidebarDiagnostics.Monitoring
                 State _state = _states[provider.Id];
 
                 _state.Fetching = false;
+                if (_sig != null)
+                {
+                    _state.CachedAccountSig = _sig;
+                    _state.CachedAccount = _account;
+                    _state.HasCachedAccount = true;
+                }
 
                 bool _repollNow = _state.RepollAfterFetch;
                 _state.RepollAfterFetch = false;
@@ -511,6 +580,7 @@ namespace SidebarDiagnostics.Monitoring
                         Status = UsageStatus.Ok,
                         Windows = _result.Windows,
                         Plan = _result.Plan,
+                        Account = _account,
                         LastGoodAt = DateTimeOffset.Now
                     };
                 }
@@ -526,6 +596,7 @@ namespace SidebarDiagnostics.Monitoring
                             Status = _result.Status,
                             Windows = _previous.Windows,
                             Plan = _previous.Plan,
+                            Account = _account,
                             LastGoodAt = _previous.LastGoodAt
                         };
                     }
@@ -567,6 +638,7 @@ namespace SidebarDiagnostics.Monitoring
                             Status = _result.Status,
                             Windows = _previous.Windows,
                             Plan = _previous.Plan,
+                            Account = _account,
                             LastGoodAt = _previous.LastGoodAt
                         };
                     }

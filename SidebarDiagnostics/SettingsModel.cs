@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Reflection;
 using System.Windows;
 using SidebarDiagnostics.Utilities;
 using SidebarDiagnostics.Monitoring;
@@ -12,8 +13,115 @@ using SidebarDiagnostics.Framework;
 
 namespace SidebarDiagnostics.Models
 {
+    public sealed class MappedScalarProperty
+    {
+        public string Name { get; }
+        public PropertyInfo SettingsProperty { get; }
+        public PropertyInfo ModelProperty { get; }
+
+        internal MappedScalarProperty(string name, PropertyInfo settingsProperty, PropertyInfo modelProperty)
+        {
+            Name = name;
+            SettingsProperty = settingsProperty;
+            ModelProperty = modelProperty;
+        }
+
+        public void CopyToModel(Framework.Settings source, SettingsModel target)
+        {
+            ModelProperty.SetValue(target, SettingsProperty.GetValue(source));
+        }
+
+        public void CopyToSettings(SettingsModel source, Framework.Settings target)
+        {
+            SettingsProperty.SetValue(target, ModelProperty.GetValue(source));
+        }
+    }
+
     public class SettingsModel : INotifyPropertyChanged
     {
+        // Single list of plain scalar settings (bool, int, double, string, enum) copied 1:1
+        // between Framework.Settings and SettingsModel. Non-trivial settings (ScreenIndex
+        // fallback, Culture, UIScale/PreferredUIScale/MaxUIScale, RunAtStartup, background
+        // mode flags GlassBackground/AutoBGColor, FontSetting/FontOption, DateSetting,
+        // MonitorConfig/HardwareOC, Hotkeys, and live statuses) remain explicit.
+        public static readonly string[] SimpleMappedPropertyNames = new string[]
+        {
+            nameof(DockEdge),
+            nameof(AutoFitScale),
+            nameof(XOffset),
+            nameof(YOffset),
+            nameof(PollingInterval),
+            nameof(UseAppBar),
+            nameof(AlwaysTop),
+            nameof(ClickThrough),
+            nameof(ShowTrayIcon),
+            nameof(SidebarWidth),
+            nameof(BGColor),
+            nameof(BGOpacity),
+            nameof(GlassBlurAmount),
+            nameof(BlurAmount),
+            nameof(BlurStrength),
+            nameof(BlurWidth),
+            nameof(FeatherDirection),
+            nameof(FeatherSize),
+            nameof(TextAlign),
+            nameof(ContentVerticalAlign),
+            nameof(ShowFpsOverlay),
+            nameof(FpsOverlayCorner),
+            nameof(FpsOverlayOpacity),
+            nameof(UseCardStyle),
+            nameof(ShowAccentBars),
+            nameof(AccentColor),
+            nameof(FontColor),
+            nameof(AlertFontColor),
+            nameof(AlertBlink),
+            nameof(CollapseMenuBar),
+            nameof(InitiallyHidden),
+            nameof(ShowMachineName),
+            nameof(ShowClock),
+            nameof(Clock24HR)
+        };
+
+        public static readonly MappedScalarProperty[] SimpleMappedProperties = BuildSimpleMappings();
+
+        private static MappedScalarProperty[] BuildSimpleMappings()
+        {
+            Type _settingsType = typeof(Framework.Settings);
+            Type _modelType = typeof(SettingsModel);
+            List<MappedScalarProperty> _list = new List<MappedScalarProperty>(SimpleMappedPropertyNames.Length);
+
+            foreach (string _name in SimpleMappedPropertyNames)
+            {
+                PropertyInfo _sp = _settingsType.GetProperty(_name, BindingFlags.Public | BindingFlags.Instance);
+                PropertyInfo _mp = _modelType.GetProperty(_name, BindingFlags.Public | BindingFlags.Instance);
+
+                if (_sp == null || _mp == null || !_sp.CanRead || !_sp.CanWrite || !_mp.CanRead || !_mp.CanWrite || _sp.PropertyType != _mp.PropertyType)
+                {
+                    throw new InvalidOperationException("SettingsModel simple mapping mismatch for property: " + _name);
+                }
+
+                _list.Add(new MappedScalarProperty(_name, _sp, _mp));
+            }
+
+            return _list.ToArray();
+        }
+
+        public void LoadSimpleSettings(Framework.Settings source)
+        {
+            foreach (MappedScalarProperty _prop in SimpleMappedProperties)
+            {
+                _prop.CopyToModel(source, this);
+            }
+        }
+
+        public void SaveSimpleSettings(Framework.Settings target)
+        {
+            foreach (MappedScalarProperty _prop in SimpleMappedProperties)
+            {
+                _prop.CopyToSettings(this, target);
+            }
+        }
+
         public SettingsModel(Sidebar sidebar)
         {
             DockEdgeItems = new DockItem[2]
@@ -21,8 +129,6 @@ namespace SidebarDiagnostics.Models
                 new DockItem() { Text = Resources.SettingsDockLeft, Value = DockEdge.Left },
                 new DockItem() { Text = Resources.SettingsDockRight, Value = DockEdge.Right }
             };
-
-            DockEdge = Framework.Settings.Instance.DockEdge;
 
             Monitor[] _monitors = Monitor.GetMonitors();
 
@@ -40,30 +146,6 @@ namespace SidebarDiagnostics.Models
             CultureItems = Utilities.Culture.GetAll();
             Culture = Framework.Settings.Instance.Culture;
 
-            AutoFitScale = Framework.Settings.Instance.AutoFitScale;
-            UIScale = Framework.Settings.Instance.PreferredUIScale > 0d ? Framework.Settings.Instance.PreferredUIScale : Framework.Settings.Instance.UIScale;
-            MaxUIScale = Framework.Settings.Instance.MaxUIScale;
-            XOffset = Framework.Settings.Instance.XOffset;
-            YOffset = Framework.Settings.Instance.YOffset;
-            PollingInterval = Framework.Settings.Instance.PollingInterval;
-            UseAppBar = Framework.Settings.Instance.UseAppBar;
-            AlwaysTop = Framework.Settings.Instance.AlwaysTop;
-            ClickThrough = Framework.Settings.Instance.ClickThrough;
-            ShowTrayIcon = Framework.Settings.Instance.ShowTrayIcon;
-            RunAtStartup = Framework.Settings.Instance.RunAtStartup;
-            PawnIODriverInstalled = PawnIO.IsInstalled;
-            SidebarWidth = Framework.Settings.Instance.SidebarWidth;
-            AutoBGColor = Framework.Settings.Instance.AutoBGColor;
-            GlassBackground = Framework.Settings.Instance.GlassBackground;
-            BGColor = Framework.Settings.Instance.BGColor;
-            BGOpacity = Framework.Settings.Instance.BGOpacity;
-            GlassBlurAmount = Framework.Settings.Instance.GlassBlurAmount;
-            BlurAmount = Framework.Settings.Instance.BlurAmount;
-            BlurStrength = Framework.Settings.Instance.BlurStrength;
-            BlurWidth = Framework.Settings.Instance.BlurWidth;
-            FeatherDirection = Framework.Settings.Instance.FeatherDirection;
-            FeatherSize = Framework.Settings.Instance.FeatherSize;
-
             TextAlignItems = new TextAlignItem[2]
             {
                 new TextAlignItem() { Text = Resources.SettingsTextAlignLeft, Value = TextAlign.Left },
@@ -77,8 +159,6 @@ namespace SidebarDiagnostics.Models
                 new VerticalAlignItem() { Text = Resources.SettingsUiVerticalAlignBottom, Value = System.Windows.VerticalAlignment.Bottom }
             };
 
-            ContentVerticalAlign = Framework.Settings.Instance.ContentVerticalAlign;
-
             OverlayCornerItems = new OverlayCornerItem[4]
             {
                 new OverlayCornerItem() { Text = Resources.SettingsUiCornerTopLeft, Value = OverlayCorner.TopLeft },
@@ -86,13 +166,6 @@ namespace SidebarDiagnostics.Models
                 new OverlayCornerItem() { Text = Resources.SettingsUiCornerBottomLeft, Value = OverlayCorner.BottomLeft },
                 new OverlayCornerItem() { Text = Resources.SettingsUiCornerBottomRight, Value = OverlayCorner.BottomRight }
             };
-
-            ShowFpsOverlay = Framework.Settings.Instance.ShowFpsOverlay;
-            FpsOverlayCorner = Framework.Settings.Instance.FpsOverlayCorner;
-            FpsOverlayOpacity = Framework.Settings.Instance.FpsOverlayOpacity;
-            RTSSDetected = SidebarDiagnostics.Overlay.RTSSReader.IsAvailable;
-
-            TextAlign = Framework.Settings.Instance.TextAlign;
 
             FontSettingItems = new FontSetting[5]
             {
@@ -103,18 +176,7 @@ namespace SidebarDiagnostics.Models
                 FontSetting.x18
             };
 
-            FontSetting = Framework.Settings.Instance.FontSetting;
-
-            UseCardStyle = Framework.Settings.Instance.UseCardStyle;
-            ShowAccentBars = Framework.Settings.Instance.ShowAccentBars;
-            AccentColor = Framework.Settings.Instance.AccentColor;
-
             FontFamilyItems = SidebarFonts.All;
-            FontOption = FontFamilyItems.FirstOrDefault(f => string.Equals(f.Name, Framework.Settings.Instance.FontFamilyName, StringComparison.OrdinalIgnoreCase)) ?? FontFamilyItems[0];
-
-            FontColor = Framework.Settings.Instance.FontColor;
-            AlertFontColor = Framework.Settings.Instance.AlertFontColor;
-            AlertBlink = Framework.Settings.Instance.AlertBlink;
 
             DateSettingItems = new DateSetting[4]
             {
@@ -124,12 +186,18 @@ namespace SidebarDiagnostics.Models
                 DateSetting.Long
             };
 
+            LoadSimpleSettings(Framework.Settings.Instance);
+
+            UIScale = Framework.Settings.Instance.PreferredUIScale > 0d ? Framework.Settings.Instance.PreferredUIScale : Framework.Settings.Instance.UIScale;
+            MaxUIScale = Framework.Settings.Instance.MaxUIScale;
+            RunAtStartup = Framework.Settings.Instance.RunAtStartup;
+            PawnIODriverInstalled = PawnIO.IsInstalled;
+            AutoBGColor = Framework.Settings.Instance.AutoBGColor;
+            GlassBackground = Framework.Settings.Instance.GlassBackground;
+            RTSSDetected = SidebarDiagnostics.Overlay.RTSSReader.IsAvailable;
+            FontSetting = Framework.Settings.Instance.FontSetting;
+            FontOption = FontFamilyItems.FirstOrDefault(f => string.Equals(f.Name, Framework.Settings.Instance.FontFamilyName, StringComparison.OrdinalIgnoreCase)) ?? FontFamilyItems[0];
             DateSetting = Framework.Settings.Instance.DateSetting;
-            CollapseMenuBar = Framework.Settings.Instance.CollapseMenuBar;
-            InitiallyHidden = Framework.Settings.Instance.InitiallyHidden;
-            ShowMachineName = Framework.Settings.Instance.ShowMachineName;
-            ShowClock = Framework.Settings.Instance.ShowClock;
-            Clock24HR = Framework.Settings.Instance.Clock24HR;
 
             ObservableCollection<MonitorConfig> _config = new ObservableCollection<MonitorConfig>(Framework.Settings.Instance.MonitorConfig.Select(c => c.Clone()).OrderByDescending(c => c.Order));
 
@@ -140,7 +208,7 @@ namespace SidebarDiagnostics.Models
                     _record.HardwareOC = new ObservableCollection<HardwareConfig>(
                         from hw in sidebar.Model.MonitorManager.GetHardware(_record.Type)
                         join config in _record.Hardware on hw.ID equals config.ID into merged
-                        from newhw in merged.DefaultIfEmpty(hw).Select(newhw => { newhw.ActualName = hw.ActualName; newhw.Status = hw.Status; if (_record.Type == MonitorType.AIUsage) { UsageRegistry.SetCustomPath(newhw.ID, newhw.CustomPath); newhw.Bars = UsageRegistry.GetBarToggles(newhw); newhw.Status = UsageRegistry.GetStatusText(newhw.ID); if (UsageRegistry.IsSigningIn(newhw.ID)) newhw.RenewStatus = Resources.UsageWaitingForSignIn; } if (string.IsNullOrEmpty(newhw.Name)) { newhw.Name = hw.ActualName; } return newhw; })
+                        from newhw in merged.DefaultIfEmpty(hw).Select(newhw => { newhw.ActualName = hw.ActualName; newhw.Status = hw.Status; if (_record.Type == MonitorType.AIUsage) { UsageRegistry.SetCustomPath(newhw.ID, newhw.CustomPath); newhw.Bars = UsageRegistry.GetBarToggles(newhw); newhw.Status = UsageRegistry.GetStatusText(newhw.ID); newhw.AccountStatus = UsageRegistry.GetAccountText(newhw.ID); if (UsageRegistry.IsSigningIn(newhw.ID)) newhw.RenewStatus = Resources.UsageWaitingForSignIn; } if (string.IsNullOrEmpty(newhw.Name)) { newhw.Name = hw.ActualName; } return newhw; })
                         orderby newhw.Order descending, newhw.Name ascending
                         select newhw
                         );
@@ -154,7 +222,7 @@ namespace SidebarDiagnostics.Models
                     if (_record.HardwareOC == null)
                     {
                         _record.HardwareOC = new ObservableCollection<HardwareConfig>(
-                            (_record.Hardware ?? new HardwareConfig[0]).Select(h => { if (string.IsNullOrEmpty(h.Name)) { h.Name = h.ActualName; } return h; }).OrderByDescending(h => h.Order));
+                            (_record.Hardware ?? new HardwareConfig[0]).Select(h => { if (string.IsNullOrEmpty(h.Name)) { h.Name = h.ActualName; } if (_record.Type == MonitorType.AIUsage) { h.AccountStatus = UsageRegistry.GetAccountText(h.ID); } return h; }).OrderByDescending(h => h.Order));
                     }
                 }
             }
@@ -183,50 +251,18 @@ namespace SidebarDiagnostics.Models
 
             bool _runAtStartupChanged = RunAtStartup != Framework.Settings.Instance.RunAtStartup;
 
-            Framework.Settings.Instance.DockEdge = DockEdge;
+            SaveSimpleSettings(Framework.Settings.Instance);
+
             Framework.Settings.Instance.ScreenIndex = ScreenIndex;
             Framework.Settings.Instance.Culture = Culture;
-            Framework.Settings.Instance.AutoFitScale = AutoFitScale;
             Framework.Settings.Instance.UIScale = Math.Round(UIScale, 2);
             Framework.Settings.Instance.PreferredUIScale = Math.Round(UIScale, 2);
-            Framework.Settings.Instance.XOffset = XOffset;
-            Framework.Settings.Instance.YOffset = YOffset;
-            Framework.Settings.Instance.PollingInterval = PollingInterval;
-            Framework.Settings.Instance.UseAppBar = UseAppBar;
-            Framework.Settings.Instance.AlwaysTop = AlwaysTop;
-            Framework.Settings.Instance.ClickThrough = ClickThrough;
-            Framework.Settings.Instance.ShowTrayIcon = ShowTrayIcon;
             Framework.Settings.Instance.RunAtStartup = RunAtStartup;
-            Framework.Settings.Instance.SidebarWidth = SidebarWidth;
             Framework.Settings.Instance.AutoBGColor = AutoBGColor;
             Framework.Settings.Instance.GlassBackground = GlassBackground;
-            Framework.Settings.Instance.BGColor = BGColor;
-            Framework.Settings.Instance.BGOpacity = BGOpacity;
-            Framework.Settings.Instance.GlassBlurAmount = GlassBlurAmount;
-            Framework.Settings.Instance.BlurAmount = BlurAmount;
-            Framework.Settings.Instance.BlurStrength = BlurStrength;
-            Framework.Settings.Instance.BlurWidth = BlurWidth;
-            Framework.Settings.Instance.FeatherDirection = FeatherDirection;
-            Framework.Settings.Instance.FeatherSize = FeatherSize;
-            Framework.Settings.Instance.TextAlign = TextAlign;
-            Framework.Settings.Instance.ContentVerticalAlign = ContentVerticalAlign;
-            Framework.Settings.Instance.ShowFpsOverlay = ShowFpsOverlay;
-            Framework.Settings.Instance.FpsOverlayCorner = FpsOverlayCorner;
-            Framework.Settings.Instance.FpsOverlayOpacity = FpsOverlayOpacity;
             Framework.Settings.Instance.FontSetting = FontSetting;
             Framework.Settings.Instance.FontFamilyName = FontOption != null ? FontOption.Name : SidebarFonts.DefaultName;
-            Framework.Settings.Instance.UseCardStyle = UseCardStyle;
-            Framework.Settings.Instance.ShowAccentBars = ShowAccentBars;
-            Framework.Settings.Instance.AccentColor = AccentColor;
-            Framework.Settings.Instance.FontColor = FontColor;
-            Framework.Settings.Instance.AlertFontColor = AlertFontColor;
-            Framework.Settings.Instance.AlertBlink = AlertBlink;
             Framework.Settings.Instance.DateSetting = DateSetting;
-            Framework.Settings.Instance.CollapseMenuBar = CollapseMenuBar;
-            Framework.Settings.Instance.InitiallyHidden = InitiallyHidden;
-            Framework.Settings.Instance.ShowMachineName = ShowMachineName;
-            Framework.Settings.Instance.ShowClock = ShowClock;
-            Framework.Settings.Instance.Clock24HR = Clock24HR;
 
             MonitorConfig[] _config = MonitorConfig.Select(c => c.Clone()).ToArray();
 

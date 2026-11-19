@@ -225,7 +225,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
     // Login: workspace ID + opencode.ai console session cookie (env OPENCODE_GO_WORKSPACE_ID /
     // OPENCODE_GO_AUTH_COOKIE, or %APPDATA%\opencode-go\config.json {workspaceId, authCookie}),
     // or the active "opencode" credential in opencode's own opencode.db.
-    public class OpenCodeGoProvider : IUsageProvider, ICredentialWatch
+    public class OpenCodeGoProvider : IUsageProvider, ICredentialWatch, IAccountReader
     {
         public string Id => "AIUsage_OpenCodeGo";
         public string DisplayName => "OpenCode Go";
@@ -333,6 +333,39 @@ namespace SidebarDiagnostics.Monitoring.Providers
             return ReadCreds(false) != null || File.Exists(DbPath()) ? UsageDetection.Detected : UsageDetection.NotLoggedIn;
         }
 
+        public string ReadAccount()
+        {
+            foreach (string _path in ConfigPaths())
+            {
+                try
+                {
+                    if (!File.Exists(_path)) continue;
+                    using var doc = JsonDocument.Parse(File.ReadAllText(_path));
+                    string _acct = (UsageParsers.GetString(doc.RootElement, "email") ?? UsageParsers.GetString(doc.RootElement, "user"))?.Trim();
+                    if (!string.IsNullOrEmpty(_acct)) return _acct;
+                }
+                catch { }
+            }
+
+            try
+            {
+                string _db = DbPath();
+                if (!File.Exists(_db)) return null;
+                string _json = WinSqlite.QueryText(_db, "SELECT value FROM credential WHERE integration_id = 'opencode' AND active = 1 LIMIT 1");
+                if (string.IsNullOrEmpty(_json)) return null;
+                using var doc = JsonDocument.Parse(_json);
+                string _acct = (UsageParsers.GetString(doc.RootElement, "email") ?? UsageParsers.GetString(doc.RootElement, "user"))?.Trim();
+                if (string.IsNullOrEmpty(_acct) && doc.RootElement.TryGetProperty("metadata", out var meta) && meta.ValueKind == JsonValueKind.Object)
+                {
+                    _acct = (UsageParsers.GetString(meta, "email") ?? UsageParsers.GetString(meta, "user"))?.Trim();
+                }
+                if (!string.IsNullOrEmpty(_acct)) return _acct;
+            }
+            catch { }
+
+            return null;
+        }
+
         public string CredentialSignature()
         {
             var sb = new StringBuilder();
@@ -424,7 +457,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
     // ---------------------------------------------------------------- Cursor
     // Login: Cursor's own session (cursorAuth/accessToken in %APPDATA%\Cursor\User\globalStorage\
     // state.vscdb, opened read-only) or env CURSOR_SESSION_TOKEN.
-    public class CursorProvider : IUsageProvider, ICredentialWatch
+    public class CursorProvider : IUsageProvider, ICredentialWatch, IAccountReader
     {
         public string Id => "AIUsage_Cursor";
         public string DisplayName => "Cursor";
@@ -449,6 +482,23 @@ namespace SidebarDiagnostics.Monitoring.Providers
             if (!IsInstalled()) return UsageDetection.NotInstalled;
             try { return ReadCookie() != null ? UsageDetection.Detected : UsageDetection.NotLoggedIn; }
             catch { return UsageDetection.NotLoggedIn; }
+        }
+
+        public string ReadAccount()
+        {
+            try
+            {
+                string _db = StatePath();
+                if (!File.Exists(_db)) return null;
+                string _email = WinSqlite.QueryText(_db, "SELECT value FROM ItemTable WHERE key = ?1", "cursorAuth/cachedEmail");
+                if (string.IsNullOrWhiteSpace(_email)) return null;
+                _email = _email.Trim().Trim('"').Trim();
+                return string.IsNullOrEmpty(_email) ? null : _email;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public string CredentialSignature()
@@ -549,7 +599,7 @@ namespace SidebarDiagnostics.Monitoring.Providers
     // ---------------------------------------------------------------- Grok Build
     // Login: `grok login` session in %USERPROFILE%\.grok\auth.json (GROK_HOME overrides). Only
     // xAI sign-in entries are used. An expired session is renewed by the CLI itself (`grok models`).
-    public class GrokProvider : IUsageProvider, ICredentialWatch
+    public class GrokProvider : IUsageProvider, ICredentialWatch, IAccountReader
     {
         public string Id => "AIUsage_Grok";
         public string DisplayName => "Grok Build";
@@ -625,6 +675,43 @@ namespace SidebarDiagnostics.Monitoring.Providers
         {
             if (!IsInstalled()) return UsageDetection.NotInstalled;
             return ReadSession() != null ? UsageDetection.Detected : UsageDetection.NotLoggedIn;
+        }
+
+        public string ReadAccount()
+        {
+            try
+            {
+                string _path = AuthPath();
+                if (!File.Exists(_path)) return null;
+                using var doc = JsonDocument.Parse(File.ReadAllText(_path));
+                if (doc.RootElement.ValueKind != JsonValueKind.Object) return null;
+
+                string _bestAcct = null;
+                DateTimeOffset _bestExp = DateTimeOffset.MinValue;
+                foreach (var prop in doc.RootElement.EnumerateObject())
+                {
+                    string _scope = prop.Name;
+                    bool _xai = _scope == "https://accounts.x.ai/sign-in" || (_scope.StartsWith("https://auth.x.ai::", StringComparison.Ordinal) && _scope.Length > "https://auth.x.ai::".Length);
+                    if (!_xai || prop.Value.ValueKind != JsonValueKind.Object) continue;
+
+                    string _acct = (UsageParsers.GetString(prop.Value, "email")
+                        ?? UsageParsers.GetString(prop.Value, "username")
+                        ?? UsageParsers.GetString(prop.Value, "user"))?.Trim();
+                    if (string.IsNullOrEmpty(_acct)) continue;
+
+                    DateTimeOffset _exp = UsageParsers.ParseDate(UsageParsers.GetString(prop.Value, "expires_at")) ?? DateTimeOffset.MinValue;
+                    if (_bestAcct == null || _exp > _bestExp)
+                    {
+                        _bestExp = _exp;
+                        _bestAcct = _acct;
+                    }
+                }
+                return _bestAcct;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public string CredentialSignature()
