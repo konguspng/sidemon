@@ -2,6 +2,10 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
+## 4.5.7 (unreleased)
+
+- Internal: the 4,400-line monitoring source file is split into focused files. No behaviour change.
+
 ## 4.5.6 (released 2026-11-16)
 
 - **AI usage logins stay alive.** When Claude's access token (about 8 h) expires, SideMon lets the Claude CLI renew it in the background, the same way other usage monitors do: first `claude auth status` (no model call), and only if the token is still expired one minimal `claude -p .` from a neutral folder. At most 3 tries per expired token, 10 minutes apart; SideMon still never reads out, stores or writes the token. On by default; turn off with "Renew Claude login automatically".

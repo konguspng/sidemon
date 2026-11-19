@@ -1,5 +1,11 @@
 [
   {
+    "Version": "4.5.7",
+    "Changes": [
+      "Internal: the monitoring code is split into smaller files (no behaviour change)."
+    ]
+  },
+  {
     "Version": "4.5.6",
     "Changes": [
       "AI usage logins stay alive: when Claude's token expires SideMon now lets the Claude CLI renew it in the background (claude auth status, then one minimal claude -p only if still expired; max 3 tries per token, 10 min apart). On by default ('Renew Claude login automatically').",
