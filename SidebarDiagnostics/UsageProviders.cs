@@ -351,6 +351,169 @@ namespace SidebarDiagnostics.Monitoring.Providers
 
         private static readonly SemaphoreSlim _refreshGate = new SemaphoreSlim(1, 1);
 
+        private const string UsageEndpointUrl = "https://api.anthropic.com/api/oauth/usage";
+        private const string MessagesFallbackUrl = "https://api.anthropic.com/v1/messages";
+        private const string FallbackPrimaryModel = "claude-haiku-4-5-20251001";
+        private const string FallbackSecondaryModel = "claude-3-haiku-20240307";
+
+        public static readonly TimeSpan FallbackMinInterval = TimeSpan.FromMinutes(5);
+
+        private DateTimeOffset _lastFallbackAttemptUtc = DateTimeOffset.MinValue;
+        private int _failureLoggedInStreak = 0;
+
+        internal static Action<string> LogWriter { get; set; } = SidebarDiagnostics.Utilities.ErrorLog.Write;
+        internal HttpClient HttpClientOverride { get; set; }
+        internal Func<DateTimeOffset> UtcNow { get; set; } = () => DateTimeOffset.UtcNow;
+
+        internal static string FormatFailureLog(string endpointOutcome, TimeSpan? retryAfter, string fallbackOutcome)
+        {
+            string _endpoint = string.IsNullOrWhiteSpace(endpointOutcome) ? "unknown" : endpointOutcome;
+            string _retryAfter = retryAfter.HasValue && retryAfter.Value > TimeSpan.Zero
+                ? ((long)Math.Ceiling(retryAfter.Value.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : "none";
+            string _fallback = string.IsNullOrWhiteSpace(fallbackOutcome) ? "skipped" : fallbackOutcome;
+
+            return string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                "claude usage poll failed: endpoint={0} retryAfter={1} fallback={2}",
+                _endpoint,
+                _retryAfter,
+                _fallback);
+        }
+
+        private void LogFailureOnceInStreak(string endpointOutcome, TimeSpan? retryAfter, string fallbackOutcome)
+        {
+            if (Interlocked.CompareExchange(ref _failureLoggedInStreak, 1, 0) == 0)
+            {
+                string _line = FormatFailureLog(endpointOutcome, retryAfter, fallbackOutcome);
+                try { LogWriter?.Invoke(_line); }
+                catch { }
+            }
+        }
+
+        private HttpClient GetClient()
+        {
+            return HttpClientOverride ?? ProviderHelper.Client;
+        }
+
+        private static TimeSpan? ExtractRetryAfter(HttpResponseHeaders headers, DateTimeOffset now)
+        {
+            if (headers?.RetryAfter == null)
+            {
+                return null;
+            }
+
+            if (headers.RetryAfter.Delta.HasValue)
+            {
+                return headers.RetryAfter.Delta.Value;
+            }
+
+            if (headers.RetryAfter.Date.HasValue)
+            {
+                TimeSpan _delta = headers.RetryAfter.Date.Value - now;
+                return _delta > TimeSpan.Zero ? _delta : TimeSpan.Zero;
+            }
+
+            return null;
+        }
+
+        private string ReadPlan(string tokenPath)
+        {
+            if (string.IsNullOrEmpty(tokenPath))
+            {
+                return null;
+            }
+
+            try
+            {
+                var credJson = File.ReadAllText(tokenPath);
+                using (var doc = JsonDocument.Parse(credJson))
+                {
+                    // the plan lives inside the claudeAiOauth object (a plain label like "pro")
+                    if (doc.RootElement.TryGetProperty("claudeAiOauth", out var oauthProp)
+                        && oauthProp.ValueKind == JsonValueKind.Object
+                        && oauthProp.TryGetProperty("subscriptionType", out var subProp)
+                        && subProp.ValueKind == JsonValueKind.String)
+                    {
+                        var p = subProp.GetString();
+                        if (!string.IsNullOrEmpty(p)) return char.ToUpper(p[0]) + p.Substring(1);
+                    }
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        private async Task<(UsageResult Result, string Outcome, TimeSpan? RetryAfter)> SendMessagesFallbackRequestAsync(string token, string tokenPath, string model, CancellationToken ct)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, MessagesFallbackUrl);
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            req.Headers.TryAddWithoutValidation("anthropic-version", "2023-06-01");
+            req.Headers.TryAddWithoutValidation("anthropic-beta", "oauth-2025-04-20");
+
+            string body = "{\"model\":\"" + model + "\",\"max_tokens\":1,\"messages\":[{\"role\":\"user\",\"content\":\".\"}]}";
+            req.Content = new StringContent(body, Encoding.UTF8);
+            req.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+            // Read headers only; never read, store or log the response body.
+            using var res = await GetClient().SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+
+            if (res.StatusCode == System.Net.HttpStatusCode.Unauthorized || res.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                var rejected = UsageResult.Fail(UsageStatus.AuthExpired);
+                if (await TryCliRefreshAsync(tokenPath).ConfigureAwait(false)) rejected.RetryIn = TimeSpan.FromSeconds(5);
+                return (rejected, ((int)res.StatusCode).ToString(System.Globalization.CultureInfo.InvariantCulture), null);
+            }
+
+            if (res.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                TimeSpan? retryAfter = ExtractRetryAfter(res.Headers, UtcNow());
+                return (UsageResult.Fail(UsageStatus.RateLimited, retryAfter), "429", retryAfter);
+            }
+
+            // Read rate-limit headers even on error responses other than 401/403/429.
+            var windows = UsageParsers.ParseClaudeRateLimitHeaders(res.Headers);
+            if (windows.Count > 0)
+            {
+                return (UsageResult.Ok(windows, ReadPlan(tokenPath)), "ok", null);
+            }
+
+            return (null, ((int)res.StatusCode).ToString(System.Globalization.CultureInfo.InvariantCulture), null);
+        }
+
+        private async Task<(UsageResult Result, string Outcome, TimeSpan? RetryAfter)> TryMessagesFallbackAsync(string token, string tokenPath, CancellationToken ct)
+        {
+            DateTimeOffset now = UtcNow();
+            if (_lastFallbackAttemptUtc != DateTimeOffset.MinValue && (now - _lastFallbackAttemptUtc) < FallbackMinInterval)
+            {
+                return (null, "skipped", null);
+            }
+
+            _lastFallbackAttemptUtc = now;
+
+            try
+            {
+                var first = await SendMessagesFallbackRequestAsync(token, tokenPath, FallbackPrimaryModel, ct).ConfigureAwait(false);
+                if (first.Result != null)
+                {
+                    return first;
+                }
+
+                // If the primary model was rejected with 404/400 (and carried no usage headers), retry once with the newer Haiku model.
+                if (first.Outcome == "404" || first.Outcome == "400")
+                {
+                    return await SendMessagesFallbackRequestAsync(token, tokenPath, FallbackSecondaryModel, ct).ConfigureAwait(false);
+                }
+
+                return first;
+            }
+            catch (Exception ex)
+            {
+                return (null, ex.GetType().Name, null);
+            }
+        }
+
         // reads the access token; expMs = expiresAt (ms) or null. Returns null when absent.
         private string ReadToken(string tokenPath, out long? expMs)
         {
@@ -451,60 +614,100 @@ namespace SidebarDiagnostics.Monitoring.Providers
 
             if (string.IsNullOrEmpty(token)) return UsageResult.Fail(UsageStatus.NotLoggedIn);
 
+            bool endpointRateLimited = false;
+            TimeSpan? endpointRetryAfter = null;
+            bool shouldFallback = false;
+            string endpointOutcome = null;
+
             try
             {
-                using var req = new HttpRequestMessage(HttpMethod.Get, "https://api.anthropic.com/api/oauth/usage");
+                using var req = new HttpRequestMessage(HttpMethod.Get, UsageEndpointUrl);
                 req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 req.Headers.TryAddWithoutValidation("User-Agent", "claude-cli/2.1.123 (external, cli)");
                 req.Headers.TryAddWithoutValidation("anthropic-beta", "oauth-2025-04-20");
 
-                using var res = await ProviderHelper.Client.SendAsync(req, ct);
-                if (res.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
-                {
-                    return UsageResult.Fail(UsageStatus.RateLimited, res.Headers.RetryAfter?.Delta);
-                }
+                using var res = await GetClient().SendAsync(req, ct).ConfigureAwait(false);
                 if (res.StatusCode == System.Net.HttpStatusCode.Unauthorized || res.StatusCode == System.Net.HttpStatusCode.Forbidden)
                 {
+                    LogFailureOnceInStreak(((int)res.StatusCode).ToString(System.Globalization.CultureInfo.InvariantCulture), null, "skipped");
                     // rejected before its expiry (revoked/rotated): let the CLI renew it, then retry soon
                     var _rejected = UsageResult.Fail(UsageStatus.AuthExpired);
                     if (await TryCliRefreshAsync(tokenPath).ConfigureAwait(false)) _rejected.RetryIn = TimeSpan.FromSeconds(5);
                     return _rejected;
                 }
-                res.EnsureSuccessStatusCode();
 
-                var resJson = await res.Content.ReadAsStringAsync();
-                var windows = UsageParsers.ParseClaude(resJson);
-
-                string plan = null;
-                var tp = FindTokenPath();
-                if (tp != null)
+                if (res.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                 {
+                    endpointOutcome = "429";
+                    endpointRateLimited = true;
+                    endpointRetryAfter = ExtractRetryAfter(res.Headers, UtcNow());
+                    shouldFallback = true;
+                }
+                else if ((int)res.StatusCode >= 500 && (int)res.StatusCode <= 599)
+                {
+                    endpointOutcome = ((int)res.StatusCode).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    shouldFallback = true;
+                }
+                else if (res.IsSuccessStatusCode)
+                {
+                    var resJson = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
                     try
                     {
-                        var credJson = System.IO.File.ReadAllText(tp);
-                        using (var doc = System.Text.Json.JsonDocument.Parse(credJson))
+                        var windows = UsageParsers.ParseClaude(resJson);
+                        if (windows.Count > 0)
                         {
-                            // the plan lives inside the claudeAiOauth object (a plain label like "pro")
-                            if (doc.RootElement.TryGetProperty("claudeAiOauth", out var oauthProp)
-                                && oauthProp.ValueKind == System.Text.Json.JsonValueKind.Object
-                                && oauthProp.TryGetProperty("subscriptionType", out var subProp)
-                                && subProp.ValueKind == System.Text.Json.JsonValueKind.String)
-                            {
-                                var p = subProp.GetString();
-                                if (!string.IsNullOrEmpty(p)) plan = char.ToUpper(p[0]) + p.Substring(1);
-                            }
+                            Interlocked.Exchange(ref _failureLoggedInStreak, 0);
+                            return UsageResult.Ok(windows, ReadPlan(tokenPath));
                         }
-                    }
-                    catch { }
-                }
 
-                return UsageResult.Ok(windows, plan);
+                        endpointOutcome = "empty";
+                        shouldFallback = true;
+                    }
+                    catch (JsonException ex)
+                    {
+                        endpointOutcome = ex.GetType().Name;
+                        shouldFallback = true;
+                    }
+                }
+                else
+                {
+                    LogFailureOnceInStreak(((int)res.StatusCode).ToString(System.Globalization.CultureInfo.InvariantCulture), null, "skipped");
+                    return UsageResult.Fail(UsageStatus.Error);
+                }
             }
-            catch
+            catch (OperationCanceledException ex) when (ct.IsCancellationRequested)
             {
+                LogFailureOnceInStreak(ex.GetType().Name, null, "skipped");
                 return UsageResult.Fail(UsageStatus.Error);
             }
+            catch (Exception ex)
+            {
+                endpointOutcome = ex.GetType().Name;
+                shouldFallback = true;
+            }
+
+            string fallbackOutcome = "skipped";
+            TimeSpan? fallbackRetryAfter = null;
+
+            if (shouldFallback && !ct.IsCancellationRequested)
+            {
+                var fallback = await TryMessagesFallbackAsync(token, tokenPath, ct).ConfigureAwait(false);
+                fallbackOutcome = fallback.Outcome;
+                fallbackRetryAfter = fallback.RetryAfter;
+
+                if (fallback.Result != null)
+                {
+                    LogFailureOnceInStreak(endpointOutcome, endpointRetryAfter ?? fallbackRetryAfter, fallbackOutcome);
+                    return fallback.Result;
+                }
+            }
+
+            LogFailureOnceInStreak(endpointOutcome, endpointRetryAfter ?? fallbackRetryAfter, fallbackOutcome);
+
+            return endpointRateLimited
+                ? UsageResult.Fail(UsageStatus.RateLimited, endpointRetryAfter)
+                : UsageResult.Fail(UsageStatus.Error);
         }
     }
 

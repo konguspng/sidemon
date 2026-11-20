@@ -292,6 +292,9 @@ namespace SidebarDiagnostics.Monitoring
 
         private static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(60);
 
+        // cap a honoured HTTP Retry-After so one 429 does not freeze the row for hours
+        public static readonly TimeSpan MaxRetryAfter = TimeSpan.FromMinutes(15);
+
         // fast retry window after app start or power resume
         public static readonly TimeSpan FastRetryWindow = TimeSpan.FromMinutes(10);
 
@@ -547,9 +550,14 @@ namespace SidebarDiagnostics.Monitoring
             }
 
             // the server's own Retry-After wins over our cap (but not beyond a day)
-            if (result != null && result.RetryAfter.HasValue && result.RetryAfter.Value > _delay)
+            // capped at MaxRetryAfter (15 minutes) so a single 429 does not freeze the row
+            if (result != null && result.RetryAfter.HasValue)
             {
-                _delay = result.RetryAfter.Value > TimeSpan.FromHours(24) ? TimeSpan.FromHours(24) : result.RetryAfter.Value;
+                TimeSpan _retryAfter = result.RetryAfter.Value > MaxRetryAfter ? MaxRetryAfter : result.RetryAfter.Value;
+                if (_retryAfter > _delay)
+                {
+                    _delay = _retryAfter;
+                }
             }
 
             // an expired login is fixed by using the CLI once, which can happen any

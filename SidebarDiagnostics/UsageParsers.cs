@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -123,6 +124,111 @@ namespace SidebarDiagnostics.Monitoring
                 UsedPercent = Clamp(_utilization),
                 ResetsAt = ParseDate(GetString(_window, "resets_at"))
             });
+        }
+
+        // ---- Claude Code fallback: POST https://api.anthropic.com/v1/messages -------
+        // Reads subscription rate-limit headers directly:
+        //   anthropic-ratelimit-unified-5h-utilization (0..1 float), -5h-reset (unix s)
+        //   anthropic-ratelimit-unified-7d-utilization (0..1 float), -7d-reset (unix s)
+        public static List<UsageWindow> ParseClaudeRateLimitHeaders(HttpResponseHeaders headers)
+        {
+            if (headers == null)
+            {
+                return new List<UsageWindow>();
+            }
+
+            return ParseClaudeRateLimitHeaders(name =>
+            {
+                if (headers.TryGetValues(name, out IEnumerable<string> _values))
+                {
+                    foreach (string _v in _values)
+                    {
+                        if (!string.IsNullOrWhiteSpace(_v))
+                        {
+                            return _v.Trim();
+                        }
+                    }
+                }
+
+                return null;
+            });
+        }
+
+        public static List<UsageWindow> ParseClaudeRateLimitHeaders(Func<string, string> getHeader)
+        {
+            List<UsageWindow> _list = new List<UsageWindow>();
+
+            if (getHeader == null)
+            {
+                return _list;
+            }
+
+            AddClaudeHeaderWindow(_list, getHeader, "anthropic-ratelimit-unified-5h-utilization", "anthropic-ratelimit-unified-5h-reset", UsageKind.FiveHour);
+            AddClaudeHeaderWindow(_list, getHeader, "anthropic-ratelimit-unified-7d-utilization", "anthropic-ratelimit-unified-7d-reset", UsageKind.Weekly);
+
+            return _list;
+        }
+
+        private static void AddClaudeHeaderWindow(List<UsageWindow> list, Func<string, string> getHeader, string utilizationHeader, string resetHeader, UsageKind kind)
+        {
+            string _rawUtil = getHeader(utilizationHeader);
+            if (string.IsNullOrWhiteSpace(_rawUtil)
+                || !double.TryParse(_rawUtil.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double _util)
+                || double.IsNaN(_util)
+                || double.IsInfinity(_util))
+            {
+                return;
+            }
+
+            list.Add(new UsageWindow()
+            {
+                Kind = kind,
+                UsedPercent = Clamp(Math.Round(_util * 100d, 6)),
+                ResetsAt = ParseUnixSecondsOrDate(getHeader(resetHeader))
+            });
+        }
+
+        private static DateTimeOffset? ParseUnixSecondsOrDate(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return null;
+            }
+
+            string _trimmed = raw.Trim();
+            try
+            {
+                if (long.TryParse(_trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out long _intVal))
+                {
+                    if (_intVal <= 0)
+                    {
+                        return null;
+                    }
+
+                    return _intVal > 100_000_000_000L
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(_intVal)
+                        : DateTimeOffset.FromUnixTimeSeconds(_intVal);
+                }
+
+                if (double.TryParse(_trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double _dblVal)
+                    && !double.IsNaN(_dblVal)
+                    && !double.IsInfinity(_dblVal))
+                {
+                    if (_dblVal <= 0)
+                    {
+                        return null;
+                    }
+
+                    return _dblVal > 1e11
+                        ? DateTimeOffset.FromUnixTimeMilliseconds((long)_dblVal)
+                        : DateTimeOffset.FromUnixTimeSeconds((long)_dblVal);
+                }
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+            }
+
+            return ParseDate(_trimmed);
         }
 
         // ---- agy / Antigravity: `agy -p "/usage"` -----------------------------------
