@@ -45,7 +45,9 @@ namespace SidebarDiagnostics.Monitoring
         NoUsageApi,
         // the account is signed in but has no plan that carries a quota (Copilot)
         NoPlan,
-        Error
+        Error,
+        // seeded from disk cache at startup while the first fresh poll is running
+        Cached
     }
 
     // Result of a cheap local check (files / PATH only, never the network).
@@ -208,11 +210,20 @@ namespace SidebarDiagnostics.Monitoring
         {
             lock (_lock)
             {
+                _fastWindowStartUtc = UtcNow();
                 foreach (var state in _states.Values)
                 {
                     state.Fetching = false;
                     state.NextPollUtc = DateTime.MinValue;
                     state.Failures = 0;
+                }
+            }
+
+            foreach (IUsageProvider _provider in Providers)
+            {
+                if (_provider is Providers.AgyProvider _agy)
+                {
+                    _agy.NotifyPowerResume();
                 }
             }
         }
@@ -257,7 +268,7 @@ namespace SidebarDiagnostics.Monitoring
                     _states[id] = state;
                 }
 
-                state.NextPollUtc = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+                state.NextPollUtc = UtcNow() + TimeSpan.FromSeconds(5);
             }
 
             return true;
@@ -281,8 +292,25 @@ namespace SidebarDiagnostics.Monitoring
 
         private static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(60);
 
-        // a single poll (process + network) may never run longer than this
+        // fast retry window after app start or power resume
+        public static readonly TimeSpan FastRetryWindow = TimeSpan.FromMinutes(10);
+
+        private static readonly TimeSpan[] FastRetryDelays = new TimeSpan[]
+        {
+            TimeSpan.FromSeconds(20),
+            TimeSpan.FromSeconds(40),
+            TimeSpan.FromSeconds(60),
+            TimeSpan.FromSeconds(120)
+        };
+
+        internal static Func<DateTime> UtcNow { get; set; } = () => DateTime.UtcNow;
+
+        private static DateTime _fastWindowStartUtc = DateTime.UtcNow;
+
+        // a single poll (process + network) may never run longer than this;
+        // cold-start/post-resume agy runs get extra headroom above their 120 s timeout
         private static readonly TimeSpan PollTimeout = TimeSpan.FromSeconds(90);
+        private static readonly TimeSpan ColdStartPollTimeout = TimeSpan.FromSeconds(135);
 
         private sealed class State
         {
@@ -290,6 +318,7 @@ namespace SidebarDiagnostics.Monitoring
             public DateTime NextPollUtc = DateTime.MinValue;
             public bool Fetching;
             public int Failures;
+            public bool HasGoodPollInSession;
             public string CredentialSig;
             public DateTime NextWatchUtc = DateTime.MinValue;
             public bool RepollAfterFetch;
@@ -303,12 +332,12 @@ namespace SidebarDiagnostics.Monitoring
         // called under _lock
         private static void CheckCredentials(IUsageProvider provider, State state)
         {
-            if (!(provider is ICredentialWatch _watch) || DateTime.UtcNow < state.NextWatchUtc)
+            if (!(provider is ICredentialWatch _watch) || UtcNow() < state.NextWatchUtc)
             {
                 return;
             }
 
-            state.NextWatchUtc = DateTime.UtcNow + WatchInterval;
+            state.NextWatchUtc = UtcNow() + WatchInterval;
 
             string _sig;
             try { _sig = _watch.CredentialSignature(); }
@@ -436,20 +465,118 @@ namespace SidebarDiagnostics.Monitoring
             }
         }
 
+        // Seeds an enabled provider's initial state from the disk cache before its first poll.
+        // Disabled providers never call this or PollIfDue, so they are never seeded.
+        public static void EnsureSeeded(IUsageProvider provider)
+        {
+            if (provider == null)
+            {
+                return;
+            }
+
+            lock (_lock)
+            {
+                GetOrCreateStateLocked(provider);
+            }
+        }
+
+        // caller must hold _lock
+        private static State GetOrCreateStateLocked(IUsageProvider provider)
+        {
+            if (_states.TryGetValue(provider.Id, out State _state))
+            {
+                return _state;
+            }
+
+            _state = new State();
+            DateTime _nowUtc = UtcNow();
+            UsageSnapshot _seeded = UsageCache.TrySeed(provider, new DateTimeOffset(_nowUtc, TimeSpan.Zero), out string _sig);
+            if (_seeded != null)
+            {
+                _state.Snapshot = _seeded;
+            }
+
+            if (provider is ICredentialWatch)
+            {
+                _state.CredentialSig = _sig;
+                _state.NextWatchUtc = _nowUtc + WatchInterval;
+            }
+
+            // Always run the first real poll immediately on startup.
+            _state.NextPollUtc = DateTime.MinValue;
+            _states[provider.Id] = _state;
+            return _state;
+        }
+
+        internal static void ResetStatesForTests(Func<DateTime> utcNow = null)
+        {
+            lock (_lock)
+            {
+                UtcNow = utcNow ?? (() => DateTime.UtcNow);
+                _fastWindowStartUtc = UtcNow();
+                _states.Clear();
+                _loginSessions.Clear();
+            }
+        }
+
+        internal static DateTime? GetNextPollUtcForTests(string id)
+        {
+            lock (_lock)
+            {
+                return _states.TryGetValue(id, out State _state) ? _state.NextPollUtc : (DateTime?)null;
+            }
+        }
+
+        internal static TimeSpan ComputeFailureDelay(int failures, bool useFastLadder, UsageResult result)
+        {
+            if (failures < 1) failures = 1;
+
+            TimeSpan _delay;
+            if (useFastLadder && failures <= FastRetryDelays.Length)
+            {
+                _delay = FastRetryDelays[failures - 1];
+            }
+            else
+            {
+                int _normalFailures = useFastLadder ? failures - FastRetryDelays.Length : failures;
+                _delay = TimeSpan.FromTicks(MinInterval.Ticks << Math.Min(_normalFailures - 1, 4));
+                if (_delay > MaxBackoff)
+                {
+                    _delay = MaxBackoff;
+                }
+            }
+
+            // the server's own Retry-After wins over our cap (but not beyond a day)
+            if (result != null && result.RetryAfter.HasValue && result.RetryAfter.Value > _delay)
+            {
+                _delay = result.RetryAfter.Value > TimeSpan.FromHours(24) ? TimeSpan.FromHours(24) : result.RetryAfter.Value;
+            }
+
+            // an expired login is fixed by using the CLI once, which can happen any
+            // time: keep looking every MinInterval instead of backing off for an hour
+            if (result != null && result.Status == UsageStatus.AuthExpired && !result.RetryIn.HasValue)
+            {
+                _delay = MinInterval;
+            }
+
+            if (result != null && result.RetryIn.HasValue)
+            {
+                _delay = result.RetryIn.Value < TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : result.RetryIn.Value;
+            }
+
+            return _delay;
+        }
+
         // Starts a background poll when one is due. Returns immediately.
         public static void PollIfDue(IUsageProvider provider)
         {
             lock (_lock)
             {
-                if (!_states.TryGetValue(provider.Id, out State _state))
-                {
-                    _state = new State();
-                    _states[provider.Id] = _state;
-                }
+                State _state = GetOrCreateStateLocked(provider);
 
                 if (_loginSessions.TryGetValue(provider.Id, out var session) && session.Active)
                 {
-                    if (DateTime.UtcNow - session.StartedUtc > TimeSpan.FromMinutes(10))
+                    if (UtcNow() - session.StartedUtc > TimeSpan.FromMinutes(10))
                     {
                         session.Active = false;
                     }
@@ -474,7 +601,7 @@ namespace SidebarDiagnostics.Monitoring
 
                 CheckCredentials(provider, _state);
 
-                if (_state.Fetching || DateTime.UtcNow < _state.NextPollUtc)
+                if (_state.Fetching || UtcNow() < _state.NextPollUtc)
                 {
                     return;
                 }
@@ -491,7 +618,10 @@ namespace SidebarDiagnostics.Monitoring
 
             try
             {
-                using (CancellationTokenSource _cts = new CancellationTokenSource(PollTimeout))
+                TimeSpan _pollTimeout = (provider is Providers.AgyProvider _agy && _agy.IsColdStartPending)
+                    ? ColdStartPollTimeout
+                    : PollTimeout;
+                using (CancellationTokenSource _cts = new CancellationTokenSource(_pollTimeout))
                 {
                     _result = await provider.FetchAsync(_cts.Token).ConfigureAwait(false);
                 }
@@ -549,6 +679,8 @@ namespace SidebarDiagnostics.Monitoring
                 _account = string.IsNullOrWhiteSpace(_account) ? null : _account.Trim();
             }
 
+            UsageSnapshot _snapshotToCache = null;
+
             lock (_lock)
             {
                 State _state = _states[provider.Id];
@@ -572,7 +704,8 @@ namespace SidebarDiagnostics.Monitoring
                 {
                     if (session != null) session.Active = false;
                     _state.Failures = 0;
-                    _state.NextPollUtc = _repollNow ? DateTime.MinValue : DateTime.UtcNow + MinInterval;
+                    _state.HasGoodPollInSession = true;
+                    _state.NextPollUtc = _repollNow ? DateTime.MinValue : UtcNow() + MinInterval;
 
                     _state.Snapshot = new UsageSnapshot()
                     {
@@ -583,12 +716,13 @@ namespace SidebarDiagnostics.Monitoring
                         Account = _account,
                         LastGoodAt = DateTimeOffset.Now
                     };
+                    _snapshotToCache = _state.Snapshot;
                 }
                 else
                 {
                     if (isSigningIn)
                     {
-                        _state.NextPollUtc = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+                        _state.NextPollUtc = UtcNow() + TimeSpan.FromSeconds(5);
 
                         _state.Snapshot = new UsageSnapshot()
                         {
@@ -602,35 +736,15 @@ namespace SidebarDiagnostics.Monitoring
                     }
                     else
                     {
-                        // 5, 10, 20, 40 minutes ... capped at one hour; honour Retry-After
-                        _state.Failures = Math.Min(_state.Failures + 1, 8);
+                        // fast retry ladder (20s, 40s, 60s, 120s) before the first good poll or within 10 minutes
+                        // of start/resume; then 5, 10, 20, 40 minutes ... capped at one hour; honour Retry-After
+                        _state.Failures = Math.Min(_state.Failures + 1, 12);
 
-                        TimeSpan _delay = TimeSpan.FromTicks(MinInterval.Ticks << Math.Min(_state.Failures - 1, 4));
+                        DateTime _nowUtc = UtcNow();
+                        bool _useFastLadder = !_state.HasGoodPollInSession || (_nowUtc - _fastWindowStartUtc) < FastRetryWindow;
+                        TimeSpan _delay = ComputeFailureDelay(_state.Failures, _useFastLadder, _result);
 
-                        if (_delay > MaxBackoff)
-                        {
-                            _delay = MaxBackoff;
-                        }
-
-                        // the server's own Retry-After wins over our cap (but not beyond a day)
-                        if (_result.RetryAfter.HasValue && _result.RetryAfter.Value > _delay)
-                        {
-                            _delay = _result.RetryAfter.Value > TimeSpan.FromHours(24) ? TimeSpan.FromHours(24) : _result.RetryAfter.Value;
-                        }
-
-                        // an expired login is fixed by using the CLI once, which can happen any
-                        // time: keep looking every MinInterval instead of backing off for an hour
-                        if (_result.Status == UsageStatus.AuthExpired && !_result.RetryIn.HasValue)
-                        {
-                            _delay = MinInterval;
-                        }
-
-                        if (_result.RetryIn.HasValue)
-                        {
-                            _delay = _result.RetryIn.Value < TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : _result.RetryIn.Value;
-                        }
-
-                        _state.NextPollUtc = _repollNow ? DateTime.MinValue : DateTime.UtcNow + _delay;
+                        _state.NextPollUtc = _repollNow ? DateTime.MinValue : _nowUtc + _delay;
 
                         _state.Snapshot = new UsageSnapshot()
                         {
@@ -643,6 +757,11 @@ namespace SidebarDiagnostics.Monitoring
                         };
                     }
                 }
+            }
+
+            if (_snapshotToCache != null)
+            {
+                UsageCache.Save(provider.Id, _snapshotToCache, UsageCache.HashSignature(_sig));
             }
         }
 
@@ -670,6 +789,9 @@ namespace SidebarDiagnostics.Monitoring
 
                 case UsageStatus.Error:
                     return Resources.UsageError;
+
+                case UsageStatus.Cached:
+                    return Resources.UsageLoading;
 
                 default:
                     return Resources.UsageNA;
@@ -723,7 +845,7 @@ namespace SidebarDiagnostics.Monitoring
 
             UsageSnapshot _snapshot = GetSnapshot(id);
 
-            if (_snapshot.HasAttempt && _snapshot.Status != UsageStatus.Ok)
+            if (_snapshot.HasAttempt && _snapshot.Status != UsageStatus.Ok && _snapshot.Status != UsageStatus.Cached)
             {
                 if (IsSigningIn(id))
                 {

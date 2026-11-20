@@ -617,6 +617,102 @@ namespace SidebarDiagnostics.Monitoring.Providers
 
         public string CustomPath { get; set; }
 
+        public static readonly TimeSpan ColdStartTimeout = TimeSpan.FromSeconds(120);
+        public static readonly TimeSpan NormalTimeout = TimeSpan.FromSeconds(60);
+
+        private static readonly Regex AnsiEscapeRegex = new Regex("\u001B\\[[0-9;?]*[A-Za-z]", RegexOptions.Compiled);
+        private static readonly Regex NotLoggedInRegex = new Regex(
+            @"(?i)\b(not\s+logged\s+in|not\s+signed\s+in|not\s+authenticated|unauthenticated|authentication\s+required|login\s+required|sign[\s-]?in|log[\s-]?in|login)\b",
+            RegexOptions.Compiled,
+            TimeSpan.FromSeconds(1));
+
+        private int _coldStartPending = 1;
+        private int _failureLoggedInStreak = 0;
+
+        internal static Action<string> LogWriter { get; set; } = SidebarDiagnostics.Utilities.ErrorLog.Write;
+        internal static Func<string, string> Scrubber { get; set; } = SidebarDiagnostics.ReportService.Scrub;
+
+        internal bool IsColdStartPending => Volatile.Read(ref _coldStartPending) == 1;
+
+        public void NotifyPowerResume()
+        {
+            Interlocked.Exchange(ref _coldStartPending, 1);
+        }
+
+        internal TimeSpan ConsumeRunTimeout()
+        {
+            return Interlocked.Exchange(ref _coldStartPending, 0) == 1 ? ColdStartTimeout : NormalTimeout;
+        }
+
+        internal static bool LooksNotLoggedIn(string stdout)
+        {
+            if (string.IsNullOrWhiteSpace(stdout))
+            {
+                return false;
+            }
+
+            try
+            {
+                string clean = AnsiEscapeRegex.Replace(stdout, string.Empty);
+                return NotLoggedInRegex.IsMatch(clean);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        internal static string FormatFailureLog(int exitCode, bool timedOut, int stdoutLength, string stderr)
+        {
+            string cleaned = string.Empty;
+            if (!string.IsNullOrEmpty(stderr))
+            {
+                string bounded = stderr.Length > 2048 ? stderr.Substring(0, 2048) : stderr;
+                try { cleaned = Scrubber != null ? Scrubber(bounded) : bounded; }
+                catch { cleaned = bounded; }
+                cleaned = Regex.Replace(cleaned, @"\s+", " ").Trim();
+                if (cleaned.Length > 160)
+                {
+                    cleaned = cleaned.Substring(0, 160);
+                }
+            }
+
+            return string.Format(
+                "agy usage poll failed: exit={0} timeout={1} stdout={2} chars, stderr: {3}",
+                exitCode,
+                timedOut ? "true" : "false",
+                stdoutLength,
+                cleaned);
+        }
+
+        internal UsageResult ClassifyAndLogOutcome(int exitCode, bool timedOut, string stdout, string stderr)
+        {
+            if (!timedOut)
+            {
+                var windows = UsageParsers.ParseAgy(stdout);
+                if (windows.Count > 0)
+                {
+                    Interlocked.Exchange(ref _failureLoggedInStreak, 0);
+                    return UsageResult.Ok(windows);
+                }
+
+                if (LooksNotLoggedIn(stdout))
+                {
+                    Interlocked.Exchange(ref _failureLoggedInStreak, 0);
+                    return UsageResult.Fail(UsageStatus.NotLoggedIn);
+                }
+            }
+
+            if (Interlocked.CompareExchange(ref _failureLoggedInStreak, 1, 0) == 0)
+            {
+                string line = FormatFailureLog(exitCode, timedOut, stdout != null ? stdout.Length : 0, stderr);
+                try { LogWriter?.Invoke(line); }
+                catch { }
+            }
+
+            return UsageResult.Fail(UsageStatus.Error);
+        }
+
         private string GetExePath()
         {
             var custom = ProviderHelper.ResolveCustomFile(CustomPath, "agy.exe", "agy.cmd");
@@ -642,10 +738,12 @@ namespace SidebarDiagnostics.Monitoring.Providers
             var exe = GetExePath();
             if (exe == null) return UsageResult.Fail(UsageStatus.NotInstalled);
 
+            TimeSpan runTimeout = ConsumeRunTimeout();
+
             try
             {
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                cts.CancelAfter(TimeSpan.FromSeconds(60));
+                cts.CancelAfter(runTimeout);
 
                 var psi = new ProcessStartInfo
                 {
@@ -659,41 +757,70 @@ namespace SidebarDiagnostics.Monitoring.Providers
                 };
 
                 Process process;
-                try {
-                    process = Process.Start(psi);
-                } catch { return UsageResult.Fail(UsageStatus.Error); }
-                if (process == null) return UsageResult.Fail(UsageStatus.Error);
-
-                string output;
                 try
                 {
-                    process.StandardInput.Close();
-                    var errorTask = process.StandardError.ReadToEndAsync(cts.Token);
-                    var outputTask = process.StandardOutput.ReadToEndAsync(cts.Token);
-                    await process.WaitForExitAsync(cts.Token);
-                    output = await outputTask;
-                    await errorTask;
+                    process = Process.Start(psi);
                 }
-                catch (OperationCanceledException)
+                catch (Exception ex)
                 {
-                    return UsageResult.Fail(UsageStatus.Error);
-                }
-                finally
-                {
-                    // Dispose() only drops our handle; never leave agy running behind us
-                    try { if (!process.HasExited) process.Kill(true); } catch { }
+                    return ClassifyAndLogOutcome(-1, false, string.Empty, ex.GetType().Name + ": " + ex.Message);
                 }
 
-                var windows = UsageParsers.ParseAgy(output);
-                return UsageResult.Ok(windows);
+                if (process == null)
+                {
+                    return ClassifyAndLogOutcome(-1, false, string.Empty, "process could not start");
+                }
+
+                string output = string.Empty;
+                string stderr = string.Empty;
+                int exitCode = -1;
+
+                using (process)
+                {
+                    Task<string> outputTask = null;
+                    Task<string> errorTask = null;
+                    try
+                    {
+                        process.StandardInput.Close();
+                        errorTask = process.StandardError.ReadToEndAsync();
+                        outputTask = process.StandardOutput.ReadToEndAsync();
+                        await process.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+                        exitCode = process.ExitCode;
+                        output = await outputTask.ConfigureAwait(false);
+                        stderr = await errorTask.ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        try { if (!process.HasExited) process.Kill(true); } catch { }
+                        try
+                        {
+                            if (outputTask != null) output = await outputTask.WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                        }
+                        catch { }
+                        try
+                        {
+                            if (errorTask != null) stderr = await errorTask.WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                        }
+                        catch { }
+
+                        return ClassifyAndLogOutcome(-1, true, output, stderr);
+                    }
+                    finally
+                    {
+                        // Dispose() only drops our handle; never leave agy running behind us
+                        try { if (!process.HasExited) process.Kill(true); } catch { }
+                    }
+                }
+
+                return ClassifyAndLogOutcome(exitCode, false, output, stderr);
             }
             catch (OperationCanceledException)
             {
-                return UsageResult.Fail(UsageStatus.Error);
+                return ClassifyAndLogOutcome(-1, true, string.Empty, string.Empty);
             }
-            catch
+            catch (Exception ex)
             {
-                return UsageResult.Fail(UsageStatus.Error);
+                return ClassifyAndLogOutcome(-1, false, string.Empty, ex.GetType().Name + ": " + ex.Message);
             }
         }
     }

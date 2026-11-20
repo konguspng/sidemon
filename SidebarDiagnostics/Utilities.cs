@@ -19,6 +19,7 @@ namespace SidebarDiagnostics.Utilities
         private const string SETTINGS = "settings.json";
         private const string CHANGELOG = "ChangeLog.json";
         private const string ERRORLOG = "error.log";
+        private const string USAGECACHE = "usage-cache.json";
 
         public static string ChangeLog
         {
@@ -79,6 +80,14 @@ namespace SidebarDiagnostics.Utilities
             get
             {
                 return Path.Combine(LocalApp, ERRORLOG);
+            }
+        }
+
+        public static string UsageCacheFile
+        {
+            get
+            {
+                return Path.Combine(LocalApp, USAGECACHE);
             }
         }
 

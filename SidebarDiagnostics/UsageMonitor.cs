@@ -189,6 +189,8 @@ namespace SidebarDiagnostics.Monitoring
             _showSignInButton = showSignInButton;
             SignInCommand = new SidebarDiagnostics.Commands.ActionCommand(() => LaunchSignIn());
 
+            UsageRegistry.EnsureSeeded(provider);
+
             Metrics = new iMetric[0];
         }
 
