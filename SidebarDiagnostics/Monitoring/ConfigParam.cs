@@ -174,6 +174,12 @@ namespace SidebarDiagnostics.Monitoring
                     case ParamKey.ShowProviderIcon:
                         return Resources.SettingsShowProviderIcon;
 
+                    case ParamKey.HideStoppedFans:
+                        return Resources.SettingsHideStoppedFans;
+
+                    case ParamKey.ShowFanControl:
+                        return Resources.SettingsShowFanControl;
+
                     default:
                         return "Unknown";
                 }
@@ -246,6 +252,12 @@ namespace SidebarDiagnostics.Monitoring
 
                     case ParamKey.ShowProviderIcon:
                         return Resources.SettingsShowProviderIconTooltip;
+
+                    case ParamKey.HideStoppedFans:
+                        return Resources.SettingsHideStoppedFansTooltip;
+
+                    case ParamKey.ShowFanControl:
+                        return Resources.SettingsShowFanControlTooltip;
 
                     default:
                         return "Unknown";
@@ -422,6 +434,22 @@ namespace SidebarDiagnostics.Monitoring
                     return new ConfigParam() { Key = ParamKey.ShowProviderIcon, Value = true };
                 }
             }
+
+            public static ConfigParam HideStoppedFans
+            {
+                get
+                {
+                    return new ConfigParam() { Key = ParamKey.HideStoppedFans, Value = true };
+                }
+            }
+
+            public static ConfigParam ShowFanControl
+            {
+                get
+                {
+                    return new ConfigParam() { Key = ParamKey.ShowFanControl, Value = false };
+                }
+            }
         }
     }
 
@@ -483,7 +511,9 @@ namespace SidebarDiagnostics.Monitoring
         ShowFanRPM,
         UsageAlert,
         ShowSignInButton,
-        ShowProviderIcon
+        ShowProviderIcon,
+        HideStoppedFans,
+        ShowFanControl
     }
 
     public enum DataType : byte

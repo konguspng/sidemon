@@ -4,6 +4,7 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 
 ## 4.5.7 (unreleased)
 
+- **New Fans monitor:** lists every fan and pump connected to the motherboard with its speed in RPM; rename, reorder or hide each fan, optionally hide stopped fans and show control %. Off by default; needs SideMon running as administrator.
 - **AI usage survives restarts and recovers quickly.** AI usage now appears straight away after a restart: the last known values are kept on disk (numbers only, no account details) and shown dimmed with their age until the first fresh reading arrives. If the first reading after start-up fails, SideMon retries within seconds instead of waiting five minutes.
 - **Show signed-in account for AI providers.** In Settings > Monitors > AI Usage, each provider card now has a **Show account** switch (off by default) and displays "Signed in as ..." when detected. When turned on, a dim single line under the provider name on the sidebar shows which account is signed in (Claude Code, Gemini agy, Gemini CLI, Codex CLI, GitHub Copilot, Cursor, and optional fields for Grok / OpenCode Go). Account details stay local and are never logged or sent in reports.
 - **Fixed: missing CPU fan speed on some motherboards.** CPU fan readings now also check motherboard fan controllers (SuperIO sub-hardware) so systems whose CPU fan is reported there show speed instead of staying blank.

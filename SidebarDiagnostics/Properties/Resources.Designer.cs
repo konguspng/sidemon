@@ -3086,5 +3086,26 @@ namespace SidebarDiagnostics.Framework {
         public static string SettingsUsageSignedInAs {
             get { return ResourceManager.GetString("SettingsUsageSignedInAs", resourceCulture); }
         }
+        public static string Fans {
+            get { return ResourceManager.GetString("Fans", resourceCulture); }
+        }
+        public static string FanUnitRPM {
+            get { return ResourceManager.GetString("FanUnitRPM", resourceCulture); }
+        }
+        public static string SettingsHideStoppedFans {
+            get { return ResourceManager.GetString("SettingsHideStoppedFans", resourceCulture); }
+        }
+        public static string SettingsHideStoppedFansTooltip {
+            get { return ResourceManager.GetString("SettingsHideStoppedFansTooltip", resourceCulture); }
+        }
+        public static string SettingsShowFanControl {
+            get { return ResourceManager.GetString("SettingsShowFanControl", resourceCulture); }
+        }
+        public static string SettingsShowFanControlTooltip {
+            get { return ResourceManager.GetString("SettingsShowFanControlTooltip", resourceCulture); }
+        }
+        public static string SettingsFansEmptyHint {
+            get { return ResourceManager.GetString("SettingsFansEmptyHint", resourceCulture); }
+        }
     }
 }

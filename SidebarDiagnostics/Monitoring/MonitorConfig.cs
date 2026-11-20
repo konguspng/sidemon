@@ -29,7 +29,8 @@ namespace SidebarDiagnostics.Monitoring
         Network,
         Motherboard,
         Battery,
-        AIUsage
+        AIUsage,
+        Fans
     }
 
     public class MonitorConfig : INotifyPropertyChanged, ICloneable
@@ -264,7 +265,7 @@ namespace SidebarDiagnostics.Monitoring
         {
             get
             {
-                return new MonitorConfig[8]
+                return new MonitorConfig[9]
                 {
                     new MonitorConfig()
                     {
@@ -388,7 +389,7 @@ namespace SidebarDiagnostics.Monitoring
                     {
                         Type = MonitorType.Motherboard,
                         Enabled = true,
-                        Order = 6,
+                        Order = 7,
                         Hardware = new HardwareConfig[0],
                         Metrics = new MetricConfig[3]
                         {
@@ -402,6 +403,21 @@ namespace SidebarDiagnostics.Monitoring
                             ConfigParam.Defaults.RoundAll,
                             ConfigParam.Defaults.UseFahrenheit,
                             ConfigParam.Defaults.TempAlert
+                        }
+                    },
+                    new MonitorConfig()
+                    {
+                        Type = MonitorType.Fans,
+                        Enabled = false,
+                        Order = 6,
+                        Hardware = new HardwareConfig[0],
+                        Metrics = new MetricConfig[0],
+                        Params = new ConfigParam[4]
+                        {
+                            ConfigParam.Defaults.NoHardwareNames,
+                            ConfigParam.Defaults.RoundAll,
+                            ConfigParam.Defaults.HideStoppedFans,
+                            ConfigParam.Defaults.ShowFanControl
                         }
                     },
                     new MonitorConfig()
@@ -748,6 +764,10 @@ namespace SidebarDiagnostics.Monitoring
                 NotifyPropertyChanged("Order");
             }
         }
+
+        // Fans monitor only: whether this sensor was reading > 0 RPM at discovery time; never saved
+        [JsonIgnore]
+        internal bool IsSpinning { get; set; }
     }
 
     public class MetricConfig : INotifyPropertyChanged, ICloneable

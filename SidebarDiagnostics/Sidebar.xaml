@@ -152,7 +152,7 @@
                                                     <ItemsControl ItemsSource="{Binding Path=Metrics, Mode=OneWay}">
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate DataType="{x:Type monitor:iMetric}">
-                                                                <StackPanel Style="{StaticResource VerticalPanel}">
+                                                                <StackPanel Style="{StaticResource VerticalPanel}" Visibility="{Binding Path=IsVisible, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
                                                                     <DockPanel Style="{StaticResource MetricPanel}">
                                                                         <TextBlock Text="{Binding Path=Label, Mode=OneWay, Converter={StaticResource MetricLabelConverter}}" Style="{StaticResource MetricLabel}" />
                                                                         <TextBlock Text="{Binding Path=Text, Mode=OneWay}" Style="{StaticResource MetricValue}" />

@@ -281,7 +281,7 @@ namespace SidebarDiagnostics.Monitoring
             // Removed to avoid redundant hardware updates. Hardware is updated in MonitorManager.Update().
         }
 
-        private static IEnumerable<ISensor> BoardSensors(IHardware hardware)
+        internal static IEnumerable<ISensor> BoardSensors(IHardware hardware)
         {
             if (hardware == null)
             {

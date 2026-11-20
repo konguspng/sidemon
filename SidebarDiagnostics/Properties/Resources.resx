@@ -1677,4 +1677,32 @@
   <data name="SettingsUsageSignedInAs" xml:space="preserve">
     <value>Signed in as {0}</value>
   </data>
+  <data name="Fans" xml:space="preserve">
+    <value>Fans</value>
+    <comment>Fans monitor title</comment>
+  </data>
+  <data name="FanUnitRPM" xml:space="preserve">
+    <value>RPM</value>
+    <comment>Fan speed unit</comment>
+  </data>
+  <data name="SettingsHideStoppedFans" xml:space="preserve">
+    <value>Hide stopped fans</value>
+    <comment>Hide stopped fans option label</comment>
+  </data>
+  <data name="SettingsHideStoppedFansTooltip" xml:space="preserve">
+    <value>Hide fans currently reading 0 RPM; they reappear automatically when they spin up.</value>
+    <comment>Hide stopped fans option tooltip</comment>
+  </data>
+  <data name="SettingsShowFanControl" xml:space="preserve">
+    <value>Show fan control %</value>
+    <comment>Show fan control percentage option label</comment>
+  </data>
+  <data name="SettingsShowFanControlTooltip" xml:space="preserve">
+    <value>Append the matching PWM control percentage next to each fan's RPM when available.</value>
+    <comment>Show fan control percentage option tooltip</comment>
+  </data>
+  <data name="SettingsFansEmptyHint" xml:space="preserve">
+    <value>Fans appear when SideMon runs as administrator and your board's sensor chip is supported.</value>
+    <comment>Shown in Settings when no motherboard fan sensors are detected</comment>
+  </data>
 </root>

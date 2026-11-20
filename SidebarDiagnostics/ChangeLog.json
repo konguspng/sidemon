@@ -2,6 +2,7 @@
   {
     "Version": "4.5.7",
     "Changes": [
+      "New Fans monitor: lists every fan and pump connected to the motherboard with its speed in RPM; rename, reorder or hide each fan, optionally hide stopped fans and show control %. Off by default; needs SideMon running as administrator.",
       "AI usage now appears straight away after a restart: the last known values are kept on disk (numbers only, no account details) and shown dimmed with their age until the first fresh reading arrives. If the first reading after start-up fails, SideMon retries within seconds instead of waiting five minutes.",
       "Show connected account per AI provider: each provider in Settings > Monitors > AI Usage has a 'Show account' switch (off by default) and shows 'Signed in as ...'. When enabled, the signed-in email or username appears on a dim line under the provider name in the sidebar.",
       "Fixed missing CPU fan speed on motherboards that report CPU fans through a separate fan controller chip.",

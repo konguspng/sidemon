@@ -29,6 +29,7 @@ namespace SidebarDiagnostics.Monitoring
                 bool enableGpu = config.Any(c => c.Enabled && c.Type == MonitorType.GPU);
                 bool enableMotherboard = config.Any(c => c.Enabled && (
                     c.Type == MonitorType.Motherboard ||
+                    c.Type == MonitorType.Fans ||
                     (c.Type == MonitorType.CPU && c.Metrics.Any(m => m.Enabled && (m.Key == MetricKey.CPUFan || m.Key == MetricKey.CPUVoltage))) ||
                     (c.Type == MonitorType.RAM && c.Metrics.Any(m => m.Enabled && m.Key == MetricKey.RAMVoltage))
                 ));
@@ -226,6 +227,49 @@ namespace SidebarDiagnostics.Monitoring
                 case MonitorType.AIUsage:
                     return UsageRegistry.GetHardware();
 
+                case MonitorType.Fans:
+                    if (_computer != null && _computer.IsMotherboardEnabled)
+                    {
+                        return FanMonitor.DiscoverFans(_board);
+                    }
+                    else
+                    {
+                        if (!_cachedOfflineHardware.TryGetValue(MonitorType.Fans, out var cachedFans))
+                        {
+                            var probe = new Computer();
+                            bool probeOpened = false;
+                            cachedFans = new HardwareConfig[0];
+                            try
+                            {
+                                probe.IsMotherboardEnabled = true;
+                                probe.IsControllerEnabled = true;
+                                probe.Open();
+                                probeOpened = true;
+                                IHardware probeBoard = probe.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Motherboard);
+                                probeBoard?.Update();
+                                UpdateSubHardware(probeBoard);
+                                cachedFans = FanMonitor.DiscoverFans(probeBoard);
+                            }
+                            catch (Exception _ex)
+                            {
+                                SidebarDiagnostics.Utilities.ErrorLog.Write(_ex);
+                            }
+                            finally
+                            {
+                                if (probeOpened)
+                                {
+                                    _probes.Add(probe);
+                                }
+                                else
+                                {
+                                    try { probe.Close(); } catch { }
+                                }
+                            }
+                            _cachedOfflineHardware[MonitorType.Fans] = cachedFans;
+                        }
+                        return cachedFans;
+                    }
+
                 default:
                     throw new ArgumentException("Invalid MonitorType.");
             }
@@ -349,6 +393,13 @@ namespace SidebarDiagnostics.Monitoring
                         config.Params
                         );
 
+                case MonitorType.Fans:
+                    return FanPanel(
+                        config.Type,
+                        config.Hardware,
+                        config.Params
+                        );
+
                 default:
                     throw new ArgumentException("Invalid MonitorType.");
             }
@@ -394,6 +445,23 @@ namespace SidebarDiagnostics.Monitoring
             return new MonitorPanel(
                 type.GetDescription(),
                 "M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.6 5.6l2.1 2.1 M16.3 16.3l2.1 2.1 M5.6 18.4l2.1-2.1 M16.3 7.7l2.1-2.1 M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z",
+                _monitors
+                );
+        }
+
+        // null when no fans are enabled or detected, so an empty card never shows in the sidebar
+        private MonitorPanel FanPanel(MonitorType type, HardwareConfig[] hardwareConfig, ConfigParam[] parameters)
+        {
+            iMonitor[] _monitors = FanMonitor.GetInstances(_board, hardwareConfig, parameters);
+
+            if (_monitors.Length == 0)
+            {
+                return null;
+            }
+
+            return new MonitorPanel(
+                type.GetDescription(),
+                FanMonitor.IconPathData,
                 _monitors
                 );
         }

@@ -41,6 +41,8 @@ namespace SidebarDiagnostics.Monitoring
 
         bool IsNumeric { get; }
 
+        bool IsVisible { get; }
+
         void Update();
 
         void Update(double value);
@@ -362,6 +364,27 @@ namespace SidebarDiagnostics.Monitoring
         public virtual bool IsNumeric
         {
             get { return true; }
+        }
+
+        private bool _isVisible { get; set; } = true;
+
+        public bool IsVisible
+        {
+            get
+            {
+                return _isVisible;
+            }
+            protected set
+            {
+                if (_isVisible == value)
+                {
+                    return;
+                }
+
+                _isVisible = value;
+
+                NotifyPropertyChanged("IsVisible");
+            }
         }
 
         public string AlertColor

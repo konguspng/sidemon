@@ -78,6 +78,9 @@ namespace SidebarDiagnostics.Monitoring
                 case MonitorType.AIUsage:
                     return Resources.AIUsage;
 
+                case MonitorType.Fans:
+                    return Resources.Fans;
+
                 default:
                     throw new ArgumentException("Invalid MonitorType.");
             }
@@ -408,7 +411,7 @@ namespace SidebarDiagnostics.Monitoring
                     return "%";
 
                 case DataType.RPM:
-                    return " RPM";
+                    return " " + Resources.FanUnitRPM;
 
                 case DataType.Celcius:
                     return " \u00B0C";

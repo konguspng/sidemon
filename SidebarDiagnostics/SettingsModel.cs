@@ -205,13 +205,33 @@ namespace SidebarDiagnostics.Models
             {
                 foreach (MonitorConfig _record in _config)
                 {
+                    bool _isFansFirstSetup = _record.Type == MonitorType.Fans && (_record.Hardware == null || _record.Hardware.Length == 0);
+
                     _record.HardwareOC = new ObservableCollection<HardwareConfig>(
                         from hw in sidebar.Model.MonitorManager.GetHardware(_record.Type)
                         join config in _record.Hardware on hw.ID equals config.ID into merged
-                        from newhw in merged.DefaultIfEmpty(hw).Select(newhw => { newhw.ActualName = hw.ActualName; newhw.Status = hw.Status; if (_record.Type == MonitorType.AIUsage) { UsageRegistry.SetCustomPath(newhw.ID, newhw.CustomPath); newhw.Bars = UsageRegistry.GetBarToggles(newhw); newhw.Status = UsageRegistry.GetStatusText(newhw.ID); newhw.AccountStatus = UsageRegistry.GetAccountText(newhw.ID); if (UsageRegistry.IsSigningIn(newhw.ID)) newhw.RenewStatus = Resources.UsageWaitingForSignIn; } if (string.IsNullOrEmpty(newhw.Name)) { newhw.Name = hw.ActualName; } return newhw; })
+                        from newhw in merged.DefaultIfEmpty(hw).Select(newhw => { newhw.ActualName = hw.ActualName; newhw.Status = hw.Status; newhw.IsSpinning = hw.IsSpinning; if (_record.Type == MonitorType.AIUsage) { UsageRegistry.SetCustomPath(newhw.ID, newhw.CustomPath); newhw.Bars = UsageRegistry.GetBarToggles(newhw); newhw.Status = UsageRegistry.GetStatusText(newhw.ID); newhw.AccountStatus = UsageRegistry.GetAccountText(newhw.ID); if (UsageRegistry.IsSigningIn(newhw.ID)) newhw.RenewStatus = Resources.UsageWaitingForSignIn; } if (string.IsNullOrEmpty(newhw.Name)) { newhw.Name = hw.ActualName; } return newhw; })
                         orderby newhw.Order descending, newhw.Name ascending
                         select newhw
                         );
+
+                    if (_isFansFirstSetup)
+                    {
+                        if (_record.Enabled)
+                        {
+                            foreach (HardwareConfig _fan in _record.HardwareOC)
+                            {
+                                if (_fan.IsSpinning)
+                                {
+                                    _fan.Enabled = true;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            _fansNeedsFirstEnableDefaults = true;
+                        }
+                    }
                 }
             }
             else
@@ -283,6 +303,13 @@ namespace SidebarDiagnostics.Models
                     {
                         _hardware[v].Name = null;
                     }
+                }
+
+                if (_config[i].Type == MonitorType.Fans && !_config[i].Enabled && _fansNeedsFirstEnableDefaults && !_fansHardwareTouched)
+                {
+                    // Fans has never been enabled or customized yet; keep Hardware empty so the
+                    // first-enable spinning-fan defaults still run when the user later turns Fans on.
+                    _hardware = new HardwareConfig[0];
                 }
 
                 _config[i].Hardware = _hardware;
@@ -389,16 +416,53 @@ namespace SidebarDiagnostics.Models
         {
             // the live provider only learns the new path on Save (the sidebar is rebuilt
             // then); until then say so instead of showing a stale detection result
-            if (sender is HardwareConfig _hw && string.Equals(e.PropertyName, "CustomPath", StringComparison.Ordinal))
+            if (sender is HardwareConfig _hw)
             {
-                _hw.Status = Resources.UsageAppliesAfterSave;
+                if (string.Equals(e.PropertyName, "CustomPath", StringComparison.Ordinal))
+                {
+                    _hw.Status = Resources.UsageAppliesAfterSave;
+                }
+
+                MonitorConfig _fansConfig = _monitorConfig?.FirstOrDefault(c => c.Type == MonitorType.Fans);
+                if (_fansConfig?.HardwareOC != null && _fansConfig.HardwareOC.Contains(_hw))
+                {
+                    _fansHardwareTouched = true;
+                    _fansNeedsFirstEnableDefaults = false;
+                }
+            }
+            else if (sender is MonitorConfig _mc && _mc.Type == MonitorType.Fans && string.Equals(e.PropertyName, "Enabled", StringComparison.Ordinal) && _mc.Enabled && _fansNeedsFirstEnableDefaults)
+            {
+                // Very first enable of Fans: enable every fan currently reading > 0 RPM.
+                _fansNeedsFirstEnableDefaults = false;
+
+                if (_mc.HardwareOC != null && !_mc.HardwareOC.Any(h => h.Enabled))
+                {
+                    foreach (HardwareConfig _fan in _mc.HardwareOC)
+                    {
+                        if (_fan.IsSpinning)
+                        {
+                            _fan.Enabled = true;
+                        }
+                    }
+                }
             }
 
             IsChanged = true;
         }
 
+        private bool _fansNeedsFirstEnableDefaults { get; set; } = false;
+
+        private bool _fansHardwareTouched { get; set; } = false;
+
         private void Child_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            MonitorConfig _fansConfig = _monitorConfig?.FirstOrDefault(c => c.Type == MonitorType.Fans);
+            if (_fansConfig?.HardwareOC != null && ReferenceEquals(sender, _fansConfig.HardwareOC))
+            {
+                _fansHardwareTouched = true;
+                _fansNeedsFirstEnableDefaults = false;
+            }
+
             IsChanged = true;
         }
 
