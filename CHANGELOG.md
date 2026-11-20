@@ -2,7 +2,7 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
-## 4.5.7 (unreleased)
+## 4.5.7 (released 2026-11-21)
 
 - **New Fans monitor:** lists every fan and pump connected to the motherboard with its speed in RPM; rename, reorder or hide each fan, optionally hide stopped fans and show control %. Off by default; needs SideMon running as administrator.
 - **AI usage survives restarts and recovers quickly.** AI usage now appears straight away after a restart: the last known values are kept on disk (numbers only, no account details) and shown dimmed with their age until the first fresh reading arrives. If the first reading after start-up fails, SideMon retries within seconds instead of waiting five minutes.
