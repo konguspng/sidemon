@@ -838,9 +838,12 @@
                             </DockPanel>
                         </Border>
 
-                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupSupport}" Style="{StaticResource GroupHeader}" Visibility="{Binding Path=IsReportFeatureAvailable, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Text="{x:Static frame:Resources.SettingsUiGroupSupport}" Style="{StaticResource GroupHeader}" />
                         <local:SettingRow Icon="&#xE90F;" Header="{x:Static frame:Resources.SettingsUiSendLogHeader}" Description="{x:Static frame:Resources.SettingsUiSendLogDesc}" Visibility="{Binding Path=IsReportFeatureAvailable, Converter={StaticResource BoolToVisibility}}">
                             <Button Content="{x:Static frame:Resources.SettingsUiSendReport}" Click="SendLog_Click" />
+                        </local:SettingRow>
+                        <local:SettingRow Icon="&#xE950;" Header="{x:Static frame:Resources.SettingsUiSendHardwareHeader}" Description="{x:Static frame:Resources.SettingsUiSendHardwareDesc}">
+                            <Button Content="{Binding Path=HardwareReportButtonText}" IsEnabled="{Binding Path=CanBuildHardwareReport}" Click="SendHardwareReport_Click" />
                         </local:SettingRow>
                     </StackPanel>
                 </ScrollViewer>

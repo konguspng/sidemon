@@ -1705,4 +1705,19 @@
     <value>Fans appear when SideMon runs as administrator and your board's sensor chip is supported.</value>
     <comment>Shown in Settings when no motherboard fan sensors are detected</comment>
   </data>
+  <data name="SettingsUiSendHardwareHeader" xml:space="preserve">
+    <value>Send hardware report</value>
+  </data>
+  <data name="SettingsUiSendHardwareDesc" xml:space="preserve">
+    <value>Sends the list of sensors this PC exposes so missing readings can be supported. You can review it first.</value>
+  </data>
+  <data name="SettingsUiBuildingHardwareReport" xml:space="preserve">
+    <value>Scanning...</value>
+  </data>
+  <data name="ReportPreviewHardwareTitle" xml:space="preserve">
+    <value>Send hardware report</value>
+  </data>
+  <data name="ReportPreviewSaveToFile" xml:space="preserve">
+    <value>Save to file...</value>
+  </data>
 </root>

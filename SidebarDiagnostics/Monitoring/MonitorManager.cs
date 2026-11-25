@@ -51,6 +51,8 @@ namespace SidebarDiagnostics.Monitoring
                     IsBatteryEnabled = enableBattery
                 };
                 _computer.Open();
+                _registeredLiveComputer = true;
+                Interlocked.Increment(ref _activeLiveComputers);
                 _board = GetHardware(HardwareType.Motherboard).FirstOrDefault();
 
                 UpdateBoard();
@@ -79,6 +81,11 @@ namespace SidebarDiagnostics.Monitoring
                             IsBatteryEnabled = true
                         };
                         _computer.Open();
+                        if (!_registeredLiveComputer)
+                        {
+                            _registeredLiveComputer = true;
+                            Interlocked.Increment(ref _activeLiveComputers);
+                        }
                         _board = null;
                         
                         MonitorPanels = config.Where(c => c.Enabled).OrderByDescending(c => c.Order).Select(c => NewPanel(c)).Where(p => p != null).ToArray();
@@ -121,6 +128,11 @@ namespace SidebarDiagnostics.Monitoring
                     }
 
                     _computer?.Close();
+                    if (_registeredLiveComputer)
+                    {
+                        _registeredLiveComputer = false;
+                        Interlocked.Decrement(ref _activeLiveComputers);
+                    }
 
                     _monitorPanels = null;
                     _computer = null;
@@ -728,6 +740,10 @@ namespace SidebarDiagnostics.Monitoring
         private Computer _computer { get; set; }
 
         private IHardware _board { get; set; }
+
+        private static int _activeLiveComputers;
+        internal static bool HasActiveLiveComputer => Volatile.Read(ref _activeLiveComputers) > 0;
+        private bool _registeredLiveComputer;
 
         private bool _disposed { get; set; } = false;
     }

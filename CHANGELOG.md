@@ -5,6 +5,8 @@ This file is the source for GitHub release notes. Keep it updated as changes lan
 ## 4.5.8 (unreleased)
 
 - **Faster tray menu and Settings:** sensor updates no longer crowd out mouse and keyboard input, and Settings no longer re-scans hardware every time it opens or after Apply.
+- Updated the hardware sensor library (LibreHardwareMonitor 0.9.7) for newer CPUs, GPUs and laptops.
+- New: Settings > About > Send hardware report. Sends (after you review it) the list of sensors your PC exposes, without serial numbers or network details, so missing CPU, GPU and fan readings can be supported on more machines. Can also be saved to a file.
 
 ## 4.5.7 (released 2026-11-21)
 

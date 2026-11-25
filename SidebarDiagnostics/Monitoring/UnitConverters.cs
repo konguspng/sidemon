@@ -174,6 +174,54 @@ namespace SidebarDiagnostics.Monitoring
         }
     }
 
+    public class BytesToGigabytes : iConverter
+    {
+        private BytesToGigabytes() { }
+
+        public void Convert(ref double value)
+        {
+            value = value / 1073741824d;
+        }
+
+        public void Convert(ref double value, out double normalized, out DataType targetType)
+        {
+            Convert(ref value);
+            normalized = value;
+            targetType = TargetType;
+        }
+
+        public DataType TargetType
+        {
+            get
+            {
+                return DataType.Gigabyte;
+            }
+        }
+
+        public bool IsDynamic
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        private static BytesToGigabytes _instance { get; set; } = null;
+
+        public static BytesToGigabytes Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new BytesToGigabytes();
+                }
+
+                return _instance;
+            }
+        }
+    }
+
     public class BitsPerSecondConverter : iConverter
     {
         private BitsPerSecondConverter() { }

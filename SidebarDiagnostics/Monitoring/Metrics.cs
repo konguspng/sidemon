@@ -593,28 +593,31 @@ namespace SidebarDiagnostics.Monitoring
                 float used = _memoryUsedSensor.Value.Value;
                 float total = _memoryTotalSensor.Value.Value;
 
+                // LibreHardwareMonitor 0.9.7+ removed SensorType.SmallData and reports SensorType.Data in bytes.
+                float usedMB = used / 1048576f;
+                float totalMB = total / 1048576f;
+
                 if (_showAsData)
                 {
-                    // Used and Total are in MB in LibreHardwareMonitor.
                     // Convert to GB if total is large enough.
-                    if (total >= 1000f)
+                    if (totalMB >= 1000f)
                     {
-                        float usedGB = used / 1024f;
-                        float totalGB = total / 1024f;
+                        float usedGB = usedMB / 1024f;
+                        float totalGB = totalMB / 1024f;
                         Text = string.Format("{0:0.0} GB / {1:0.0} GB", usedGB, totalGB);
                     }
                     else
                     {
-                        Text = string.Format("{0:0} MB / {1:0} MB", used, total);
+                        Text = string.Format("{0:0} MB / {1:0} MB", usedMB, totalMB);
                     }
                     
                     // Keep updating percentage values for alerts and charts
-                    nValue = (used / total) * 100f;
-                    Value = used;
+                    nValue = total > 0f ? (used / total) * 100f : 0f;
+                    Value = usedMB;
                 }
                 else
                 {
-                    float load = used / total * 100f;
+                    float load = total > 0f ? (used / total) * 100f : 0f;
                     Update(load);
                 }
             }

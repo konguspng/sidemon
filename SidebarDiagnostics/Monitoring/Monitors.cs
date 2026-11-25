@@ -554,7 +554,8 @@ namespace SidebarDiagnostics.Monitoring
 
                 if (_usedSensor != null)
                 {
-                    _sensorList.Add(new OHMMetric(_usedSensor, MetricKey.RAMUsed, DataType.Gigabyte, null, roundAll));
+                    // LibreHardwareMonitor 0.9.7+ reports SensorType.Data in bytes (formerly GB).
+                    _sensorList.Add(new OHMMetric(_usedSensor, MetricKey.RAMUsed, DataType.Gigabyte, null, roundAll, 0, BytesToGigabytes.Instance));
                 }
             }
 
@@ -564,7 +565,8 @@ namespace SidebarDiagnostics.Monitoring
 
                 if (_freeSensor != null)
                 {
-                    _sensorList.Add(new OHMMetric(_freeSensor, MetricKey.RAMFree, DataType.Gigabyte, null, roundAll));
+                    // LibreHardwareMonitor 0.9.7+ reports SensorType.Data in bytes (formerly GB).
+                    _sensorList.Add(new OHMMetric(_freeSensor, MetricKey.RAMFree, DataType.Gigabyte, null, roundAll, 0, BytesToGigabytes.Instance));
                 }
             }
 
@@ -608,8 +610,8 @@ namespace SidebarDiagnostics.Monitoring
 
             if (metrics.IsEnabled(MetricKey.GPUVRAMLoad))
             {
-                ISensor _memoryUsed = _hardware.Sensors.Where(s => (s.SensorType == SensorType.Data || s.SensorType == SensorType.SmallData) && s.Name == "GPU Memory Used").FirstOrDefault();
-                ISensor _memoryTotal = _hardware.Sensors.Where(s => (s.SensorType == SensorType.Data || s.SensorType == SensorType.SmallData) && s.Name == "GPU Memory Total").FirstOrDefault();
+                ISensor _memoryUsed = _hardware.Sensors.Where(s => s.SensorType == SensorType.Data && s.Name == "GPU Memory Used").FirstOrDefault();
+                ISensor _memoryTotal = _hardware.Sensors.Where(s => s.SensorType == SensorType.Data && s.Name == "GPU Memory Total").FirstOrDefault();
 
                 if (_memoryUsed != null && _memoryTotal != null)
                 {

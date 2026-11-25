@@ -1,9 +1,10 @@
 <Window x:Class="SidebarDiagnostics.ReportPreviewWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Send log to developer" Height="400" Width="600"
+        xmlns:frame="clr-namespace:SidebarDiagnostics.Framework"
+        Title="Send log to developer" Height="450" Width="640" MinHeight="340" MinWidth="520"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        ResizeMode="CanResizeWithGrip"
         ShowInTaskbar="False"
         Background="#222222" Foreground="#FFFFFF"
         WindowStyle="ToolWindow">
@@ -14,12 +15,13 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
-        <TextBlock Grid.Row="0" Margin="0,0,0,10" TextWrapping="Wrap"
+        <TextBlock x:Name="IntroText" Grid.Row="0" Margin="0,0,0,10" TextWrapping="Wrap"
                    Text="The following report will be sent to the developer. Your username, computer name, tokens, and file paths have been removed. Reports are private." />
         
         <TextBox Grid.Row="1" x:Name="ReportTextBox"
                  IsReadOnly="True"
-                 TextWrapping="Wrap"
+                 TextWrapping="NoWrap"
+                 HorizontalScrollBarVisibility="Auto"
                  VerticalScrollBarVisibility="Auto"
                  Background="#111111" Foreground="#CCCCCC"
                  BorderBrush="#444444"
@@ -31,13 +33,16 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             
-            <TextBlock x:Name="StatusText" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <TextBlock x:Name="StatusText" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0" TextTrimming="CharacterEllipsis" />
             
-            <Button x:Name="SendButton" Grid.Column="1" Content="Send" Width="80" Margin="0,0,10,0" Click="Send_Click"
+            <Button x:Name="SaveButton" Grid.Column="1" Content="{x:Static frame:Resources.ReportPreviewSaveToFile}" MinWidth="95" Padding="10,2" Margin="0,0,10,0" Click="Save_Click"
                     Background="#333333" Foreground="#FFFFFF" BorderBrush="#555555" />
-            <Button x:Name="CancelButton" Grid.Column="2" Content="Cancel" Width="80" Click="Cancel_Click" IsCancel="True"
+            <Button x:Name="SendButton" Grid.Column="2" Content="Send" Width="80" Margin="0,0,10,0" Click="Send_Click"
+                    Background="#333333" Foreground="#FFFFFF" BorderBrush="#555555" />
+            <Button x:Name="CancelButton" Grid.Column="3" Content="Cancel" Width="80" Click="Cancel_Click" IsCancel="True"
                     Background="#333333" Foreground="#FFFFFF" BorderBrush="#555555" />
         </Grid>
     </Grid>

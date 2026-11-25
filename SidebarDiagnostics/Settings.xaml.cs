@@ -647,6 +647,49 @@ namespace SidebarDiagnostics
             window.ShowDialog();
         }
 
+        private async void SendHardwareReport_Click(object sender, RoutedEventArgs e)
+        {
+            if (Model == null || Model.BuildingHardwareReport)
+            {
+                return;
+            }
+
+            Model.BuildingHardwareReport = true;
+            string report;
+
+            try
+            {
+                report = await HardwareReport.BuildReportAsync();
+            }
+            catch (Exception ex)
+            {
+                ErrorLog.Write(ex);
+                report = "[SideMon hardware report]\r\n\r\nFailed to collect hardware report: " + ex.GetType().Name;
+            }
+            finally
+            {
+                if (Model != null)
+                {
+                    Model.BuildingHardwareReport = false;
+                }
+            }
+
+            if (!IsLoaded)
+            {
+                return;
+            }
+
+            var window = new ReportPreviewWindow(
+                report,
+                Framework.Resources.ReportPreviewHardwareTitle,
+                Model.IsReportFeatureAvailable,
+                "sidemon-hardware-report.txt")
+            {
+                Owner = this
+            };
+            window.ShowDialog();
+        }
+
         private async void InstallPawnIO_Click(object sender, RoutedEventArgs e)
         {
             Model.PawnIODriverInstalling = true;

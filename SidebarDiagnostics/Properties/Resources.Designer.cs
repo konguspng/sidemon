@@ -3107,5 +3107,20 @@ namespace SidebarDiagnostics.Framework {
         public static string SettingsFansEmptyHint {
             get { return ResourceManager.GetString("SettingsFansEmptyHint", resourceCulture); }
         }
+        public static string SettingsUiSendHardwareHeader {
+            get { return ResourceManager.GetString("SettingsUiSendHardwareHeader", resourceCulture); }
+        }
+        public static string SettingsUiSendHardwareDesc {
+            get { return ResourceManager.GetString("SettingsUiSendHardwareDesc", resourceCulture); }
+        }
+        public static string SettingsUiBuildingHardwareReport {
+            get { return ResourceManager.GetString("SettingsUiBuildingHardwareReport", resourceCulture); }
+        }
+        public static string ReportPreviewHardwareTitle {
+            get { return ResourceManager.GetString("ReportPreviewHardwareTitle", resourceCulture); }
+        }
+        public static string ReportPreviewSaveToFile {
+            get { return ResourceManager.GetString("ReportPreviewSaveToFile", resourceCulture); }
+        }
     }
 }

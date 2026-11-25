@@ -977,6 +977,43 @@ namespace SidebarDiagnostics.Models
             }
         }
 
+        private bool _buildingHardwareReport;
+
+        public bool BuildingHardwareReport
+        {
+            get
+            {
+                return _buildingHardwareReport;
+            }
+            set
+            {
+                if (_buildingHardwareReport == value)
+                {
+                    return;
+                }
+
+                _buildingHardwareReport = value;
+                NotifyPropertyChanged("BuildingHardwareReport");
+                NotifyPropertyChanged("CanBuildHardwareReport");
+                NotifyPropertyChanged("HardwareReportButtonText");
+            }
+        }
+
+        public bool CanBuildHardwareReport
+        {
+            get { return !_buildingHardwareReport; }
+        }
+
+        public string HardwareReportButtonText
+        {
+            get
+            {
+                return _buildingHardwareReport
+                    ? Framework.Resources.SettingsUiBuildingHardwareReport
+                    : Framework.Resources.SettingsUiSendReport;
+            }
+        }
+
         private int _sidebarWidth { get; set; }
 
         public int SidebarWidth
