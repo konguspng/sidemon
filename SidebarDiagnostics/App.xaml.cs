@@ -331,7 +331,8 @@ namespace SidebarDiagnostics
 
             if (_prompt.ReloadRequested)
             {
-                _sidebar.Reload();
+                MonitorManager.InvalidateOfflineHardwareCache();
+            _sidebar.Reload();
             }
         }
 
@@ -380,6 +381,7 @@ namespace SidebarDiagnostics
                 return;
             }
 
+            MonitorManager.InvalidateOfflineHardwareCache();
             _sidebar.Reload();
         }
 

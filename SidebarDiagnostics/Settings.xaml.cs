@@ -628,6 +628,7 @@ namespace SidebarDiagnostics
 
                 if (_sidebar != null)
                 {
+                    Model?.Detach();
                     DataContext = Model = new SettingsModel(_sidebar);
                     return;
                 }
@@ -698,6 +699,7 @@ namespace SidebarDiagnostics
 
             if (_prompt.ReloadRequested)
             {
+                MonitorManager.InvalidateOfflineHardwareCache();
                 _sidebar.Reload();
             }
         }
@@ -780,6 +782,7 @@ namespace SidebarDiagnostics
                 App.PendingSettingsRestore = null;
             }
 
+            Model?.Detach();
             DataContext = null;
             Model = null;
         }

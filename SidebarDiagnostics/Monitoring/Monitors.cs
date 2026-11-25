@@ -84,18 +84,16 @@ namespace SidebarDiagnostics.Monitoring
 
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+            if (PropertyChanged == null)
             {
-                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
-                {
-                    var _h = PropertyChanged;
-                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
-                }));
+                return;
             }
-            else
+
+            UiNotify.Post(this, propertyName, () =>
             {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-            }
+                var _h = PropertyChanged;
+                if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+            });
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

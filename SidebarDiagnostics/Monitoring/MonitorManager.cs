@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -12,6 +13,8 @@ using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 using System.Windows.Media;
 using LibreHardwareMonitor.Hardware;
@@ -119,12 +122,6 @@ namespace SidebarDiagnostics.Monitoring
 
                     _computer?.Close();
 
-                    foreach (Computer _probe in _probes)
-                    {
-                        try { _probe.Close(); } catch { }
-                    }
-                    _probes.Clear();
-
                     _monitorPanels = null;
                     _computer = null;
                     _board = null;
@@ -139,10 +136,78 @@ namespace SidebarDiagnostics.Monitoring
             Dispose(false);
         }
 
-        private Dictionary<MonitorType, HardwareConfig[]> _cachedOfflineHardware = new Dictionary<MonitorType, HardwareConfig[]>();
-        private readonly List<Computer> _probes = new List<Computer>();
+        private static readonly MonitorType[] OfflineProbeTypes = new MonitorType[]
+        {
+            MonitorType.CPU,
+            MonitorType.RAM,
+            MonitorType.GPU,
+            MonitorType.Motherboard,
+            MonitorType.Battery,
+            MonitorType.Fans
+        };
 
-        public HardwareConfig[] GetHardware(MonitorType type)
+        private static readonly ConcurrentDictionary<MonitorType, HardwareConfig[]> _offlineHardwareCache = new ConcurrentDictionary<MonitorType, HardwareConfig[]>();
+        private static readonly SemaphoreSlim _probeLock = new SemaphoreSlim(1, 1);
+        private static readonly ConcurrentQueue<MonitorType> _probeQueue = new ConcurrentQueue<MonitorType>();
+        private static readonly ConcurrentDictionary<MonitorType, byte> _probeQueued = new ConcurrentDictionary<MonitorType, byte>();
+        private static int _cacheGeneration;
+        private static int _probeWorkerRunning;
+
+        public static event Action<MonitorType> OfflineHardwareCached;
+
+        public static void InvalidateOfflineHardwareCache()
+        {
+            Interlocked.Increment(ref _cacheGeneration);
+            _offlineHardwareCache.Clear();
+        }
+
+        public static bool TryGetCachedOfflineHardware(MonitorType type, out HardwareConfig[] hardware)
+        {
+            if (_offlineHardwareCache.TryGetValue(type, out HardwareConfig[] cached))
+            {
+                hardware = CloneHardwareList(cached);
+                return true;
+            }
+
+            hardware = null;
+            return false;
+        }
+
+        private static HardwareConfig[] CloneHardwareList(HardwareConfig[] list)
+        {
+            if (list == null || list.Length == 0)
+            {
+                return Array.Empty<HardwareConfig>();
+            }
+
+            HardwareConfig[] copy = new HardwareConfig[list.Length];
+            for (int i = 0; i < list.Length; i++)
+            {
+                copy[i] = list[i].Clone();
+            }
+            return copy;
+        }
+
+        private bool IsLiveGroupEnabled(MonitorType type)
+        {
+            if (_computer == null)
+            {
+                return false;
+            }
+
+            switch (type)
+            {
+                case MonitorType.CPU: return _computer.IsCpuEnabled;
+                case MonitorType.RAM: return _computer.IsMemoryEnabled;
+                case MonitorType.GPU: return _computer.IsGpuEnabled;
+                case MonitorType.Motherboard: return _computer.IsMotherboardEnabled;
+                case MonitorType.Battery: return _computer.IsBatteryEnabled;
+                case MonitorType.Fans: return _computer.IsMotherboardEnabled;
+                default: return false;
+            }
+        }
+
+        public bool TryGetHardwareCached(MonitorType type, out HardwareConfig[] hardware)
         {
             switch (type)
             {
@@ -151,127 +216,268 @@ namespace SidebarDiagnostics.Monitoring
                 case MonitorType.GPU:
                 case MonitorType.Motherboard:
                 case MonitorType.Battery:
-                    bool isEnabled = false;
-                    if (_computer != null)
+                    if (IsLiveGroupEnabled(type))
                     {
-                        switch (type)
-                        {
-                            case MonitorType.CPU: isEnabled = _computer.IsCpuEnabled; break;
-                            case MonitorType.RAM: isEnabled = _computer.IsMemoryEnabled; break;
-                            case MonitorType.GPU: isEnabled = _computer.IsGpuEnabled; break;
-                            case MonitorType.Motherboard: isEnabled = _computer.IsMotherboardEnabled; break;
-                            case MonitorType.Battery: isEnabled = _computer.IsBatteryEnabled; break;
-                        }
+                        hardware = GetHardware(type.GetHardwareTypes())
+                            .Select(h => new HardwareConfig() { ID = h.Identifier.ToString(), Name = h.Name, ActualName = h.Name })
+                            .ToArray();
+                        return true;
                     }
 
-                    if (isEnabled)
-                    {
-                        return GetHardware(type.GetHardwareTypes()).Select(h => new HardwareConfig() { ID = h.Identifier.ToString(), Name = h.Name, ActualName = h.Name }).ToArray();
-                    }
-                    else
-                    {
-                        if (!_cachedOfflineHardware.TryGetValue(type, out var cached))
-                        {
-                            var probe = new Computer();
-                            bool probeOpened = false;
-                            cached = new HardwareConfig[0];
-                            try
-                            {
-                                switch (type)
-                                {
-                                    case MonitorType.CPU: probe.IsCpuEnabled = true; break;
-                                    case MonitorType.RAM: probe.IsMemoryEnabled = true; break;
-                                    case MonitorType.GPU: probe.IsGpuEnabled = true; break;
-                                    case MonitorType.Motherboard: probe.IsMotherboardEnabled = true; probe.IsControllerEnabled = true; break;
-                                    case MonitorType.Battery: probe.IsBatteryEnabled = true; break;
-                                }
-                                probe.Open();
-                                probeOpened = true;
-                                var types = type.GetHardwareTypes();
-                                cached = probe.Hardware.Where(h => types.Contains(h.HardwareType)).Select(h => new HardwareConfig() { ID = h.Identifier.ToString(), Name = h.Name, ActualName = h.Name }).ToArray();
-                            }
-                            catch (Exception _ex)
-                            {
-                                // probing is best-effort (driver / permission problems): never let it take the
-                                // Settings window or the app down, just show no devices for this monitor
-                                SidebarDiagnostics.Utilities.ErrorLog.Write(_ex);
-                            }
-                            finally
-                            {
-                                // LibreHardwareMonitor shares driver state between Computer instances:
-                                // closing a probe while the live Computer is running breaks the live
-                                // sensors (NullReferenceException in Cpu.Update every tick). Keep an
-                                // opened probe alive (one per monitor type at most) and close it in
-                                // Dispose together with the live Computer; only close a probe whose
-                                // Open() failed.
-                                if (probeOpened)
-                                {
-                                    _probes.Add(probe);
-                                }
-                                else
-                                {
-                                    try { probe.Close(); } catch { }
-                                }
-                            }
-                            _cachedOfflineHardware[type] = cached;
-                        }
-                        return cached;
-                    }
+                    return TryGetCachedOfflineHardware(type, out hardware);
 
                 case MonitorType.HD:
-                    return DriveMonitor.GetHardware().ToArray();
+                    hardware = DriveMonitor.GetHardware().ToArray();
+                    return true;
 
                 case MonitorType.Network:
-                    return NetworkMonitor.GetHardware().ToArray();
+                    hardware = NetworkMonitor.GetHardware().ToArray();
+                    return true;
 
                 case MonitorType.AIUsage:
-                    return UsageRegistry.GetHardware();
+                    hardware = UsageRegistry.GetHardware();
+                    return true;
 
                 case MonitorType.Fans:
-                    if (_computer != null && _computer.IsMotherboardEnabled)
+                    if (IsLiveGroupEnabled(MonitorType.Fans))
                     {
-                        return FanMonitor.DiscoverFans(_board);
+                        hardware = FanMonitor.DiscoverFans(_board);
+                        return true;
                     }
-                    else
-                    {
-                        if (!_cachedOfflineHardware.TryGetValue(MonitorType.Fans, out var cachedFans))
-                        {
-                            var probe = new Computer();
-                            bool probeOpened = false;
-                            cachedFans = new HardwareConfig[0];
-                            try
-                            {
-                                probe.IsMotherboardEnabled = true;
-                                probe.IsControllerEnabled = true;
-                                probe.Open();
-                                probeOpened = true;
-                                IHardware probeBoard = probe.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Motherboard);
-                                probeBoard?.Update();
-                                UpdateSubHardware(probeBoard);
-                                cachedFans = FanMonitor.DiscoverFans(probeBoard);
-                            }
-                            catch (Exception _ex)
-                            {
-                                SidebarDiagnostics.Utilities.ErrorLog.Write(_ex);
-                            }
-                            finally
-                            {
-                                if (probeOpened)
-                                {
-                                    _probes.Add(probe);
-                                }
-                                else
-                                {
-                                    try { probe.Close(); } catch { }
-                                }
-                            }
-                            _cachedOfflineHardware[MonitorType.Fans] = cachedFans;
-                        }
-                        return cachedFans;
-                    }
+
+                    return TryGetCachedOfflineHardware(MonitorType.Fans, out hardware);
 
                 default:
                     throw new ArgumentException("Invalid MonitorType.");
+            }
+        }
+
+        public HardwareConfig[] GetHardware(MonitorType type)
+        {
+            return TryGetHardwareCached(type, out HardwareConfig[] hardware)
+                ? hardware
+                : Array.Empty<HardwareConfig>();
+        }
+
+        public void StartOfflineHardwarePrewarm()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            bool enqueuedAny = false;
+            foreach (MonitorType type in OfflineProbeTypes)
+            {
+                if (IsLiveGroupEnabled(type) || _offlineHardwareCache.ContainsKey(type))
+                {
+                    continue;
+                }
+
+                if (_probeQueued.TryAdd(type, 0))
+                {
+                    _probeQueue.Enqueue(type);
+                    enqueuedAny = true;
+                }
+            }
+
+            if (enqueuedAny)
+            {
+                EnsureProbeWorkerRunning();
+            }
+        }
+
+        private static void EnsureProbeWorkerRunning()
+        {
+            if (Interlocked.CompareExchange(ref _probeWorkerRunning, 1, 0) != 0)
+            {
+                return;
+            }
+
+            _ = Task.Run(RunProbeWorkerAsync);
+        }
+
+        private static async Task RunProbeWorkerAsync()
+        {
+            try
+            {
+                while (_probeQueue.TryDequeue(out MonitorType type))
+                {
+                    _probeQueued.TryRemove(type, out _);
+
+                    if (_offlineHardwareCache.ContainsKey(type))
+                    {
+                        continue;
+                    }
+
+                    await _probeLock.WaitAsync().ConfigureAwait(false);
+                    try
+                    {
+                        if (_offlineHardwareCache.ContainsKey(type))
+                        {
+                            continue;
+                        }
+
+                        int generation = Volatile.Read(ref _cacheGeneration);
+                        ProbeOfflineType(type, generation);
+                    }
+                    finally
+                    {
+                        _probeLock.Release();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                SidebarDiagnostics.Utilities.ErrorLog.Write(ex);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _probeWorkerRunning, 0);
+
+                if (!_probeQueue.IsEmpty)
+                {
+                    EnsureProbeWorkerRunning();
+                }
+            }
+        }
+
+        private static void ProbeOfflineType(MonitorType type, int generation)
+        {
+            var probe = new Computer();
+            HardwareConfig[] discovered = Array.Empty<HardwareConfig>();
+            HardwareConfig[] discoveredFans = null;
+            HardwareConfig[] discoveredBoard = null;
+
+            bool probeMotherboardPair = type == MonitorType.Motherboard || type == MonitorType.Fans;
+
+            try
+            {
+                switch (type)
+                {
+                    case MonitorType.CPU: probe.IsCpuEnabled = true; break;
+                    case MonitorType.RAM: probe.IsMemoryEnabled = true; break;
+                    case MonitorType.GPU: probe.IsGpuEnabled = true; break;
+                    case MonitorType.Motherboard:
+                    case MonitorType.Fans:
+                        probe.IsMotherboardEnabled = true;
+                        probe.IsControllerEnabled = true;
+                        break;
+                    case MonitorType.Battery: probe.IsBatteryEnabled = true; break;
+                }
+
+                probe.Open();
+
+                if (probeMotherboardPair)
+                {
+                    var boardTypes = MonitorType.Motherboard.GetHardwareTypes();
+                    discoveredBoard = probe.Hardware
+                        .Where(h => boardTypes.Contains(h.HardwareType))
+                        .Select(h => new HardwareConfig() { ID = h.Identifier.ToString(), Name = h.Name, ActualName = h.Name })
+                        .ToArray();
+
+                    IHardware probeBoard = probe.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Motherboard);
+                    probeBoard?.Update();
+                    UpdateSubHardwareStatic(probeBoard);
+                    discoveredFans = FanMonitor.DiscoverFans(probeBoard);
+                }
+                else
+                {
+                    var types = type.GetHardwareTypes();
+                    discovered = probe.Hardware
+                        .Where(h => types.Contains(h.HardwareType))
+                        .Select(h => new HardwareConfig() { ID = h.Identifier.ToString(), Name = h.Name, ActualName = h.Name })
+                        .ToArray();
+                }
+            }
+            catch (Exception _ex)
+            {
+                // probing is best-effort (driver / permission problems): never let it take the
+                // Settings window or the app down, just show no devices for this monitor
+                SidebarDiagnostics.Utilities.ErrorLog.Write(_ex);
+                if (probeMotherboardPair)
+                {
+                    discoveredBoard = Array.Empty<HardwareConfig>();
+                    discoveredFans = Array.Empty<HardwareConfig>();
+                }
+            }
+            finally
+            {
+                // LibreHardwareMonitor's Computer.Close() unconditionally calls static
+                // OpCode.Close() and Mutexes.Close(), which tears down global driver state
+                // used by the live Computer and breaks Cpu/Motherboard updates on every tick.
+                // Clearing the Is*Enabled flags removes and calls IGroup.Close() on every
+                // hardware group opened by this probe without touching static OpCode/Mutexes.
+                CloseProbeGroups(probe);
+            }
+
+            if (Volatile.Read(ref _cacheGeneration) != generation)
+            {
+                return;
+            }
+
+            if (probeMotherboardPair)
+            {
+                _offlineHardwareCache[MonitorType.Motherboard] = discoveredBoard ?? Array.Empty<HardwareConfig>();
+                _offlineHardwareCache[MonitorType.Fans] = discoveredFans ?? Array.Empty<HardwareConfig>();
+                RaiseOfflineHardwareCached(MonitorType.Motherboard);
+                RaiseOfflineHardwareCached(MonitorType.Fans);
+            }
+            else
+            {
+                _offlineHardwareCache[type] = discovered ?? Array.Empty<HardwareConfig>();
+                RaiseOfflineHardwareCached(type);
+            }
+        }
+
+        private static void CloseProbeGroups(Computer probe)
+        {
+            if (probe == null)
+            {
+                return;
+            }
+
+            try { probe.IsCpuEnabled = false; } catch { }
+            try { probe.IsMemoryEnabled = false; } catch { }
+            try { probe.IsGpuEnabled = false; } catch { }
+            try { probe.IsMotherboardEnabled = false; } catch { }
+            try { probe.IsControllerEnabled = false; } catch { }
+            try { probe.IsBatteryEnabled = false; } catch { }
+        }
+
+        private static void RaiseOfflineHardwareCached(MonitorType type)
+        {
+            try
+            {
+                OfflineHardwareCached?.Invoke(type);
+            }
+            catch (Exception ex)
+            {
+                SidebarDiagnostics.Utilities.ErrorLog.Write(ex);
+            }
+        }
+
+        private static void UpdateSubHardwareStatic(IHardware hardware)
+        {
+            if (hardware?.SubHardware == null)
+            {
+                return;
+            }
+
+            foreach (IHardware sub in hardware.SubHardware)
+            {
+                if (sub == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    sub.Update();
+                }
+                catch { }
+
+                UpdateSubHardwareStatic(sub);
             }
         }
 
@@ -294,18 +500,16 @@ namespace SidebarDiagnostics.Monitoring
 
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+            if (PropertyChanged == null)
             {
-                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
-                {
-                    var _h = PropertyChanged;
-                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
-                }));
+                return;
             }
-            else
+
+            UiNotify.Post(this, propertyName, () =>
             {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-            }
+                var _h = PropertyChanged;
+                if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+            });
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -574,18 +778,16 @@ namespace SidebarDiagnostics.Monitoring
 
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+            if (PropertyChanged == null)
             {
-                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
-                {
-                    var _h = PropertyChanged;
-                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
-                }));
+                return;
             }
-            else
+
+            UiNotify.Post(this, propertyName, () =>
             {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-            }
+                var _h = PropertyChanged;
+                if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+            });
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

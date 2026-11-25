@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -201,35 +202,48 @@ namespace SidebarDiagnostics.Models
 
             ObservableCollection<MonitorConfig> _config = new ObservableCollection<MonitorConfig>(Framework.Settings.Instance.MonitorConfig.Select(c => c.Clone()).OrderByDescending(c => c.Order));
 
-            if (sidebar.Ready)
+            if (sidebar.Ready && sidebar.Model?.MonitorManager != null)
             {
                 foreach (MonitorConfig _record in _config)
                 {
                     bool _isFansFirstSetup = _record.Type == MonitorType.Fans && (_record.Hardware == null || _record.Hardware.Length == 0);
 
-                    _record.HardwareOC = new ObservableCollection<HardwareConfig>(
-                        from hw in sidebar.Model.MonitorManager.GetHardware(_record.Type)
-                        join config in _record.Hardware on hw.ID equals config.ID into merged
-                        from newhw in merged.DefaultIfEmpty(hw).Select(newhw => { newhw.ActualName = hw.ActualName; newhw.Status = hw.Status; newhw.IsSpinning = hw.IsSpinning; if (_record.Type == MonitorType.AIUsage) { UsageRegistry.SetCustomPath(newhw.ID, newhw.CustomPath); newhw.Bars = UsageRegistry.GetBarToggles(newhw); newhw.Status = UsageRegistry.GetStatusText(newhw.ID); newhw.AccountStatus = UsageRegistry.GetAccountText(newhw.ID); if (UsageRegistry.IsSigningIn(newhw.ID)) newhw.RenewStatus = Resources.UsageWaitingForSignIn; } if (string.IsNullOrEmpty(newhw.Name)) { newhw.Name = hw.ActualName; } return newhw; })
-                        orderby newhw.Order descending, newhw.Name ascending
-                        select newhw
-                        );
-
-                    if (_isFansFirstSetup)
+                    if (sidebar.Model.MonitorManager.TryGetHardwareCached(_record.Type, out HardwareConfig[] _discovered))
                     {
-                        if (_record.Enabled)
+                        _record.HardwareOC = BuildMergedHardwareCollection(_record, _discovered, _record.Hardware);
+
+                        if (_isFansFirstSetup)
                         {
-                            foreach (HardwareConfig _fan in _record.HardwareOC)
+                            if (_record.Enabled)
                             {
-                                if (_fan.IsSpinning)
+                                foreach (HardwareConfig _fan in _record.HardwareOC)
                                 {
-                                    _fan.Enabled = true;
+                                    if (_fan.IsSpinning)
+                                    {
+                                        _fan.Enabled = true;
+                                    }
                                 }
                             }
+                            else
+                            {
+                                _fansNeedsFirstEnableDefaults = true;
+                            }
                         }
-                        else
+                    }
+                    else
+                    {
+                        // Offline probe not cached yet: show saved hardware immediately so Settings opens
+                        // without blocking the UI thread, and fill in when the background probe completes.
+                        _record.HardwareOC = BuildFallbackHardwareCollection(_record);
+                        _pendingOfflineTypes.TryAdd(_record.Type, 0);
+
+                        if (_isFansFirstSetup)
                         {
-                            _fansNeedsFirstEnableDefaults = true;
+                            _fansPendingFirstSetup = true;
+                            if (!_record.Enabled)
+                            {
+                                _fansNeedsFirstEnableDefaults = true;
+                            }
                         }
                     }
                 }
@@ -241,14 +255,28 @@ namespace SidebarDiagnostics.Models
                 {
                     if (_record.HardwareOC == null)
                     {
-                        _record.HardwareOC = new ObservableCollection<HardwareConfig>(
-                            (_record.Hardware ?? new HardwareConfig[0]).Select(h => { if (string.IsNullOrEmpty(h.Name)) { h.Name = h.ActualName; } if (_record.Type == MonitorType.AIUsage) { h.AccountStatus = UsageRegistry.GetAccountText(h.ID); } return h; }).OrderByDescending(h => h.Order));
+                        _record.HardwareOC = BuildFallbackHardwareCollection(_record);
                     }
                 }
             }
 
             MonitorConfig = _config;
             SelectedMonitorConfig = _config.FirstOrDefault(c => c.Enabled) ?? _config.FirstOrDefault();
+
+            if (!_pendingOfflineTypes.IsEmpty && sidebar.Ready && sidebar.Model?.MonitorManager != null)
+            {
+                MonitorManager.OfflineHardwareCached += OnOfflineHardwareCached;
+                sidebar.Model.MonitorManager.StartOfflineHardwarePrewarm();
+
+                // Catch any type that finished caching between TryGetHardwareCached and subscribing.
+                foreach (MonitorType _pendingType in _pendingOfflineTypes.Keys.ToArray())
+                {
+                    if (MonitorManager.TryGetCachedOfflineHardware(_pendingType, out _))
+                    {
+                        RefreshPendingHardware(_pendingType);
+                    }
+                }
+            }
 
             if (Framework.Settings.Instance.Hotkeys != null)
             {
@@ -412,8 +440,127 @@ namespace SidebarDiagnostics.Models
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        public void Detach()
+        {
+            _detached = true;
+            MonitorManager.OfflineHardwareCached -= OnOfflineHardwareCached;
+        }
+
+        private static ObservableCollection<HardwareConfig> BuildMergedHardwareCollection(MonitorConfig record, HardwareConfig[] discovered, HardwareConfig[] saved)
+        {
+            HardwareConfig[] _saved = saved ?? Array.Empty<HardwareConfig>();
+            return new ObservableCollection<HardwareConfig>(
+                from hw in discovered
+                join config in _saved on hw.ID equals config.ID into merged
+                from newhw in merged.DefaultIfEmpty(hw).Select(newhw => { newhw.ActualName = hw.ActualName; newhw.Status = hw.Status; newhw.IsSpinning = hw.IsSpinning; if (record.Type == MonitorType.AIUsage) { UsageRegistry.SetCustomPath(newhw.ID, newhw.CustomPath); newhw.Bars = UsageRegistry.GetBarToggles(newhw); newhw.Status = UsageRegistry.GetStatusText(newhw.ID); newhw.AccountStatus = UsageRegistry.GetAccountText(newhw.ID); if (UsageRegistry.IsSigningIn(newhw.ID)) newhw.RenewStatus = Resources.UsageWaitingForSignIn; } if (string.IsNullOrEmpty(newhw.Name)) { newhw.Name = hw.ActualName; } return newhw; })
+                orderby newhw.Order descending, newhw.Name ascending
+                select newhw
+                );
+        }
+
+        private static ObservableCollection<HardwareConfig> BuildFallbackHardwareCollection(MonitorConfig record)
+        {
+            return new ObservableCollection<HardwareConfig>(
+                (record.Hardware ?? new HardwareConfig[0]).Select(h => { if (string.IsNullOrEmpty(h.Name)) { h.Name = h.ActualName; } if (record.Type == MonitorType.AIUsage) { h.AccountStatus = UsageRegistry.GetAccountText(h.ID); } return h; }).OrderByDescending(h => h.Order));
+        }
+
+        private void OnOfflineHardwareCached(MonitorType type)
+        {
+            if (_detached || !_pendingOfflineTypes.ContainsKey(type))
+            {
+                return;
+            }
+
+            UiNotify.Post(this, "OfflineHardware:" + type, () => RefreshPendingHardware(type));
+        }
+
+        private void RefreshPendingHardware(MonitorType type)
+        {
+            if (_detached || !_pendingOfflineTypes.TryRemove(type, out _))
+            {
+                return;
+            }
+
+            if (!MonitorManager.TryGetCachedOfflineHardware(type, out HardwareConfig[] _discovered))
+            {
+                return;
+            }
+
+            MonitorConfig _record = _monitorConfig?.FirstOrDefault(c => c.Type == type);
+            if (_record == null)
+            {
+                return;
+            }
+
+            bool _prevSuppress = _suppressChildChanges;
+            _suppressChildChanges = true;
+            try
+            {
+                ObservableCollection<HardwareConfig> _oldOC = _record.HardwareOC;
+                HardwareConfig[] _baseline = _oldOC != null ? _oldOC.ToArray() : _record.Hardware;
+
+                if (_oldOC != null)
+                {
+                    _oldOC.CollectionChanged -= Child_CollectionChanged;
+                    foreach (HardwareConfig _hw in _oldOC)
+                    {
+                        _hw.PropertyChanged -= Child_PropertyChanged;
+                    }
+                }
+
+                ObservableCollection<HardwareConfig> _newOC = BuildMergedHardwareCollection(_record, _discovered, _baseline);
+                _newOC.CollectionChanged += Child_CollectionChanged;
+                foreach (HardwareConfig _hw in _newOC)
+                {
+                    _hw.PropertyChanged += Child_PropertyChanged;
+                }
+
+                _record.HardwareOC = _newOC;
+
+                if (type == MonitorType.Fans && _fansPendingFirstSetup)
+                {
+                    _fansPendingFirstSetup = false;
+
+                    if (_record.Enabled && !_fansHardwareTouched && !_newOC.Any(h => h.Enabled))
+                    {
+                        foreach (HardwareConfig _fan in _newOC)
+                        {
+                            if (_fan.IsSpinning)
+                            {
+                                _fan.Enabled = true;
+                            }
+                        }
+
+                        _fansNeedsFirstEnableDefaults = false;
+                    }
+                    else if (!_record.Enabled && !_fansHardwareTouched)
+                    {
+                        _fansNeedsFirstEnableDefaults = true;
+                    }
+                }
+            }
+            finally
+            {
+                _suppressChildChanges = _prevSuppress;
+            }
+
+            if (_pendingOfflineTypes.IsEmpty)
+            {
+                MonitorManager.OfflineHardwareCached -= OnOfflineHardwareCached;
+            }
+        }
+
+        private readonly ConcurrentDictionary<MonitorType, byte> _pendingOfflineTypes = new ConcurrentDictionary<MonitorType, byte>();
+        private bool _fansPendingFirstSetup = false;
+        private bool _suppressChildChanges = false;
+        private volatile bool _detached = false;
+
         private void Child_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            if (_suppressChildChanges)
+            {
+                return;
+            }
             // the live provider only learns the new path on Save (the sidebar is rebuilt
             // then); until then say so instead of showing a stale detection result
             if (sender is HardwareConfig _hw)
@@ -456,6 +603,10 @@ namespace SidebarDiagnostics.Models
 
         private void Child_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            if (_suppressChildChanges)
+            {
+                return;
+            }
             MonitorConfig _fansConfig = _monitorConfig?.FirstOrDefault(c => c.Type == MonitorType.Fans);
             if (_fansConfig?.HardwareOC != null && ReferenceEquals(sender, _fansConfig.HardwareOC))
             {

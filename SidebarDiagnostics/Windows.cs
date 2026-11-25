@@ -741,6 +741,8 @@ namespace SidebarDiagnostics.Windows
 
                             App.Current.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, (Action)(() =>
                             {
+                                SidebarDiagnostics.Monitoring.MonitorManager.InvalidateOfflineHardwareCache();
+
                                 Sidebar _sidebar = App.Current.Sidebar;
 
                                 if (_sidebar != null)
@@ -972,6 +974,7 @@ namespace SidebarDiagnostics.Windows
                             break;
 
                         case KeyAction.Reload:
+                            SidebarDiagnostics.Monitoring.MonitorManager.InvalidateOfflineHardwareCache();
                             _sidebar.Reload();
                             break;
 

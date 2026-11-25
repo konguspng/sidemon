@@ -121,6 +121,8 @@ namespace SidebarDiagnostics
 
             Ready = true;
 
+            Model?.MonitorManager?.StartOfflineHardwarePrewarm();
+
             BindGraphs();
 
             ScheduleAutoFit();
@@ -185,10 +187,17 @@ namespace SidebarDiagnostics
                 }
                 else if (e.Mode == Microsoft.Win32.PowerModes.Resume)
                 {
+                    SidebarDiagnostics.Monitoring.MonitorManager.InvalidateOfflineHardwareCache();
+
                     if (Visibility == Visibility.Visible && !_pausedForFullscreen)
                     {
                         Model?.Resume();
                         SidebarDiagnostics.Monitoring.UsageRegistry.OnPowerResume();
+                    }
+
+                    if (Ready)
+                    {
+                        Model?.MonitorManager?.StartOfflineHardwarePrewarm();
                     }
                 }
             }));
@@ -349,6 +358,8 @@ namespace SidebarDiagnostics
             model.Start();
 
             Ready = true;
+
+            Model?.MonitorManager?.StartOfflineHardwarePrewarm();
 
             BindGraphs();
 

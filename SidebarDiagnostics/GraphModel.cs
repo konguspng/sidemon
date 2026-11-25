@@ -126,18 +126,16 @@ namespace SidebarDiagnostics.Models
 
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (System.Windows.Application.Current != null && !System.Windows.Application.Current.Dispatcher.CheckAccess())
+            if (PropertyChanged == null)
             {
-                System.Windows.Application.Current.Dispatcher.BeginInvoke((Action)(() =>
-                {
-                    var _h = PropertyChanged;
-                    if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
-                }));
+                return;
             }
-            else
+
+            UiNotify.Post(this, propertyName, () =>
             {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-            }
+                var _h = PropertyChanged;
+                if (_h != null) _h(this, new PropertyChangedEventArgs(propertyName));
+            });
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -203,9 +201,14 @@ namespace SidebarDiagnostics.Models
             }
 
             // sensor updates arrive on the polling thread; the plot belongs to the UI
+            if (App.Current == null)
+            {
+                return;
+            }
+
             if (!App.Current.Dispatcher.CheckAccess())
             {
-                App.Current.Dispatcher.BeginInvoke((Action)(() => Metric_PropertyChanged(sender, e)));
+                UiNotify.Post(sender, "GraphModel:" + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this) + ":" + e.PropertyName, () => Metric_PropertyChanged(sender, e));
                 return;
             }
 
