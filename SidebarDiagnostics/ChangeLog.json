@@ -1,5 +1,11 @@
 [
   {
+    "Version": "4.5.8",
+    "Changes": [
+      "Faster tray menu and Settings: sensor updates no longer crowd out mouse and keyboard input, and Settings no longer re-scans hardware every time it opens or after Apply."
+    ]
+  },
+  {
     "Version": "4.5.7",
     "Changes": [
       "New Fans monitor: lists every fan and pump connected to the motherboard with its speed in RPM; rename, reorder or hide each fan, optionally hide stopped fans and show control %. Off by default; needs SideMon running as administrator.",
@@ -8,7 +14,6 @@
       "Show connected account per AI provider: each provider in Settings > Monitors > AI Usage has a 'Show account' switch (off by default) and shows 'Signed in as ...'. When enabled, the signed-in email or username appears on a dim line under the provider name in the sidebar.",
       "Fixed missing CPU fan speed on motherboards that report CPU fans through a separate fan controller chip.",
       "Settings now stays open when pressing Apply for changes that reload the sidebar (Acrylic blur, card panels, load bars, or language), showing an 'Applying changes...' indicator and preserving your tab, selected monitor and position.",
-      "Faster tray menu and Settings: sensor updates no longer crowd out mouse and keyboard input, and Settings no longer re-scans hardware every time it opens or after Apply.",
       "Clearer wording across Settings labels, descriptions and prompts, with all Settings strings moved into language resources.",
       "Internal: the monitoring code is split into smaller files (no behaviour change)."
     ]
