@@ -2,7 +2,7 @@
 
 This file is the source for GitHub release notes. Keep it updated as changes land; each version section becomes the release body when that version ships.
 
-## 4.5.8 (unreleased)
+## 4.5.8 (released 2026-11-27)
 
 - **Faster tray menu and Settings:** sensor updates no longer crowd out mouse and keyboard input, and Settings no longer re-scans hardware every time it opens or after Apply.
 - Updated the hardware sensor library (LibreHardwareMonitor 0.9.7) for newer CPUs, GPUs and laptops.
